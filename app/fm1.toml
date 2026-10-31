@@ -1,0 +1,17 @@
+# Melodee Remote's build settings (fm1-base tools/build.py, run by tools/build_base.py)
+name = "MELODEE-REMOTE"
+id_prefix = "FM-1_14"          # package identity: dev FM-1_1400, releases FM-1_14XXYYZZ
+usb_manufacturer = "Ellic Studio"
+usb_product = "Melodee Remote FM-1"
+o2 = []
+words = "words.tsv"
+font_full = ["M", "L"]         # Melodee's names keep their lower case
+ble = true                     # Bluetooth MIDI with Melodee (--no-ble: USB only)
+ble_central = false            # the FM-1 is the peripheral; it connects to nothing itself
+usb_audio_in = false           # no sound
+usb_audio_out = false
+# the site (fm1-base tools/make_site.py)
+tagline = "the FM-1 as Melodee's remote"
+repo = ""
+licence = "MPL-2.0"
+credits = "Built on fm1-base and felucca-bsp, from Saadet's Bluetooth port."

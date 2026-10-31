@@ -1,0 +1,52 @@
+# SETUP: OCT- and OCT+ held 1.5 s; K1..K4 and PRESET change it; HOME (or the hold again) closes and saves it.
+#   app/build/host/melodee-remote_host app/tests/setup.txt app/build/tests
+wait 1300
+press OCT-
+press OCT+
+wait 1000
+expect setup 0
+wait 600
+expect setup 1
+release OCT-
+release OCT+
+wait 30
+text title SETUP
+expect body 1
+out
+turn K1 3
+turn K2 -2
+turn K3 -1
+turn PRESET 1
+wait 60
+expect set_ch 3
+expect set_curve -2
+expect set_pressure 0
+expect theme 2
+expect selected 4
+text rowv0 4
+text rowv1 -2
+text cellv10 OFF
+shot setup.png
+# nothing of SETUP's turns goes to Melodee
+quiet
+turn K4 -1
+wait 2100
+expect set_ble_off 1
+tap HOME
+wait 30
+expect setup 0
+expect set_dirty 0
+expect store_writes 1
+text line2 BLUETOOTH OFF (SETUP)
+shot waiting-ble-off.png
+# the keys on the new channel
+key 0 down
+wait 30
+expect_out USB 93 35 64
+key 0 up
+reboot
+wait 1300
+expect set_ch 3
+expect set_curve -2
+expect theme 2
+expect set_ble_off 1
