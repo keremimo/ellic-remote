@@ -1,17 +1,8 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The screen: Melodee's (mel.melodee) or the FM-1's own (mel.own: waiting, SETUP), in three bands drawn as they
- * change: the header (its name, the transport, its info), the body (text, a list or cells; a popup over it) and the
- * foot (K1..K4). Then the frame, the screen reader and the simulator's checks. Part of app.c. */
-
-#define HEAD_Y 0
-#define HEAD_H 32                        /* the last two rows: the colour's rule */
-#define BODY_Y 32
-#define BODY_H 140
-#define FOOT_Y 172
-#define FOOT_H 68
-#define C_PLAYING RGB(80, 220, 120)
-#define C_RECORDING RGB(232, 76, 60)
+/* The screen: Melodee's (mel.melodee: a page of version 2, or version 1's generic screen) or the FM-1's own (mel.own:
+ * waiting, SETUP: generic screens), drawn by Melodee FM-1's drawing (ui/ui_frame.c ui_draw_screen) as they change.
+ * Then the frame, the screen reader and the simulator's checks. Part of app.c. */
 
 static void text_set(char *d, const char *s, uint32_t max)
 {
@@ -19,155 +10,6 @@ static void text_set(char *d, const char *s, uint32_t max)
     for (i = 0; i < max && s && s[i]; i++)
         d[i] = s[i];
     d[i] = 0;
-}
-
-static int32_t centre_x(int32_t x, int32_t w, const felucca_font_t *f, const char *s)
-{
-    return x + (w - text_w(f, s)) / 2;
-}
-
-static uint16_t accent(const mel_screen_t *s) { return s->colour ? s->colour : C_HI; }
-
-static void frame_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)   /* an outline, two pixels */
-{
-    cv_rect(x, y, w, 2, c);
-    cv_rect(x, y + h - 2, w, 2, c);
-    cv_rect(x, y, 2, h, c);
-    cv_rect(x + w - 2, y, 2, h, c);
-}
-
-/* ---------------------------------------------------------------- header --- */
-static void draw_head(const mel_screen_t *s)
-{
-    int32_t x = 8, ty = (30 - (int32_t)FONT_B.h) / 2;
-    cv_begin(240, HEAD_H, C_BLACK);
-    cv_rect(0, 30, 240, 2, accent(s));
-    if (s->transport & MEL_T_PLAYING) {  /* a triangle */
-        int32_t r;
-        for (r = 0; r <= 12; r++)
-            cv_rect(x, 9 + r, 1 + (r <= 6 ? r : 12 - r) * 3 / 2, 1, C_PLAYING);
-        x += 16;
-    }
-    if (s->transport & (MEL_T_RECORDING | MEL_T_COUNTIN)) {
-        cv_rect(x + 2, 10, 8, 10, (s->transport & MEL_T_RECORDING) ? C_RECORDING : C_DIM);
-        cv_rect(x, 12, 12, 6, (s->transport & MEL_T_RECORDING) ? C_RECORDING : C_DIM);
-        x += 18;
-    }
-    x = cv_text(x, ty, &FONT_B, s->title, C_WHITE);
-    if (s->info[0]) {
-        int32_t w = text_w(&FONT_S, s->info), ix = 232 - w;
-        if (ix > x + 8)                  /* (a long name keeps its room; the info gives way) */
-            cv_text(ix, (30 - (int32_t)FONT_S.h) / 2, &FONT_S, s->info, C_GRAY);
-    }
-    cv_blit(0, HEAD_Y);
-}
-
-/* ------------------------------------------------------------------ body --- */
-static void draw_text_body(const mel_screen_t *s)
-{
-    static const felucca_font_t *const F[MEL_LINES] = {&FONT_L, &FONT_B, &FONT_S};
-    int32_t i, h = 0, y;
-    for (i = 0; i < MEL_LINES; i++)
-        if (s->line[i][0])
-            h += (int32_t)F[i]->h + 6;
-    y = (BODY_H - h) / 2;
-    for (i = 0; i < MEL_LINES; i++) {
-        if (!s->line[i][0])
-            continue;
-        cv_text(centre_x(0, 240, F[i], s->line[i]), y, F[i], s->line[i], i == 0 ? C_WHITE : i == 1 ? C_HI : C_GRAY);
-        y += (int32_t)F[i]->h + 6;
-    }
-}
-
-static void draw_list(const mel_screen_t *s)
-{
-    int32_t r;
-    for (r = 0; r < MEL_ROWS; r++) {
-        const mel_row_t *w = &s->row[r];
-        int32_t y = 1 + r * 23, x = 10, ty = y + (22 - (int32_t)FONT_S.h) / 2;
-        uint16_t c = w->colour ? w->colour : accent(s);
-        int sel = w->flags & MEL_F_SELECTED, dim = w->flags & MEL_F_DIM;
-        if (!w->text[0] && !w->value[0])
-            continue;
-        if (sel) {
-            cv_rect(0, y, 240, 22, C_LINE);
-            cv_rect(0, y, 3, 22, c);
-        }
-        if (w->flags & MEL_F_MARK) {
-            cv_rect(10, y + 7, 8, 8, dim ? C_DIM : c);
-            x = 24;
-        }
-        cv_text(x, ty, &FONT_S, w->text, dim ? C_DIM : sel ? C_WHITE : C_GRAY);
-        if (w->value[0])
-            cv_text(232 - text_w(&FONT_S, w->value), ty, &FONT_S, w->value,
-                    dim ? C_DIM : (w->flags & MEL_F_ON) ? c : C_HI);
-    }
-}
-
-/* a cell: its name, its value, its bar (from the left, or the middle when bipolar); framed when selected */
-static void draw_cell(int32_t x, int32_t y, int32_t w, int32_t h, const mel_cell_t *c, const felucca_font_t *vf,
-                      uint16_t acc)
-{
-    uint16_t col = c->colour ? c->colour : acc;
-    int dim = c->flags & MEL_F_DIM;
-    int32_t bw = w - 16, bx = x + 8, by = y + h - 12;
-    if (!c->name[0] && !c->value[0])
-        return;
-    if (c->flags & MEL_F_SELECTED)
-        frame_rect(x + 2, y + 2, w - 4, h - 4, col);
-    cv_text(centre_x(x, w, &FONT_XS, c->name), y + 6, &FONT_XS, c->name, dim ? C_DIM : C_GRAY);
-    cv_text(centre_x(x, w, vf, c->value), y + 8 + (int32_t)FONT_XS.h, vf, c->value, dim ? C_DIM : C_WHITE);
-    if (c->flags & MEL_F_NOBAR)
-        return;
-    cv_rect(bx, by, bw, 4, C_LINE);
-    if (c->flags & MEL_F_BIPOLAR) {
-        int32_t mid = bx + bw / 2, to = bx + (int32_t)c->pos * bw / 127;
-        if (to >= mid)
-            cv_rect(mid, by, to - mid + 1, 4, dim ? C_DIM : col);
-        else
-            cv_rect(to, by, mid - to + 1, 4, dim ? C_DIM : col);
-    } else {
-        cv_rect(bx, by, (int32_t)c->pos * bw / 127, 4, dim ? C_DIM : col);
-    }
-}
-
-static void draw_popup(const char *a, const char *b, uint16_t acc)
-{
-    cv_rect(14, 28, 212, 84, C_BLACK);
-    frame_rect(14, 28, 212, 84, acc);
-    cv_text(centre_x(0, 240, &FONT_B, a), 46, &FONT_B, a, C_WHITE);
-    cv_text(centre_x(0, 240, &FONT_S, b), 74, &FONT_S, b, C_HI);
-}
-
-static void draw_body(const mel_screen_t *s, int own)
-{
-    uint32_t i;
-    cv_begin(240, BODY_H, C_BLACK);
-    if (s->body == MEL_BODY_LIST)
-        draw_list(s);
-    else if (s->body == MEL_BODY_CELLS)
-        for (i = 0; i < MEL_CELLS; i++)
-            draw_cell((int32_t)(i % 4u) * 60, (int32_t)(i / 4u) * 70, 60, 70, &s->cell[i], &FONT_B, accent(s));
-    else
-        draw_text_body(s);
-    if (mel.say_until)                   /* the platform's word first, then Melodee's popup */
-        draw_popup(mel.say[0], mel.say[1], accent(s));
-    else if (!own && s->popup_shown)
-        draw_popup(s->popup[0], s->popup[1], accent(s));
-    cv_blit(0, BODY_Y);
-}
-
-/* ------------------------------------------------------------------ foot --- */
-static void draw_foot(const mel_screen_t *s)
-{
-    uint32_t i;
-    cv_begin(240, FOOT_H, C_BLACK);
-    cv_rect(0, 0, 240, 1, C_LINE);
-    for (i = 1; i < MEL_KNOBS; i++)
-        cv_rect((int32_t)i * 60, 10, 1, FOOT_H - 20, C_LINE);
-    for (i = 0; i < MEL_KNOBS; i++)
-        draw_cell((int32_t)i * 60, 2, 60, FOOT_H - 2, &s->cell[MEL_CELLS + i], &FONT_M, accent(s));
-    cv_blit(0, FOOT_Y);
 }
 
 /* --------------------------------------------------- the FM-1's own screens --- */
@@ -237,12 +79,12 @@ static void own_fill(mel_screen_t *t)
         own_row(t, ROW_VEL, "VELOCITY CURVE", vel);
         own_row(t, ROW_PRS, "PRESSURE", set.pressure ? "ON" : "OFF");
         own_row(t, ROW_BLE, "BLUETOOTH", set.ble_off ? "OFF" : "ON");
-        own_row(t, ROW_THEME, "THEME", THEME_NAME[set.theme % NPALETTES]);
+        own_row(t, ROW_THEME, "THEME", UI_PALETTES[palette_from_stored(set.theme)].name);
         own_row(t, ROW_VERSION, "VERSION", APP_VERSION);
-        own_cell(t, 0, "CHANNEL", ch, (int32_t)set.keys_ch * 127 / 15, 0);
-        own_cell(t, 1, "VELOCITY", vel, (set.curve + 5) * 127 / 10, MEL_F_BIPOLAR);
-        own_cell(t, 2, "PRESSURE", set.pressure ? "ON" : "OFF", 0, MEL_F_NOBAR);
-        own_cell(t, 3, "RADIO", set.ble_off ? "OFF" : "ON", 0, MEL_F_NOBAR);
+        own_cell(t, 0, "CH", ch, (int32_t)set.keys_ch * 127 / 15, mel.setup_row == ROW_CH ? MEL_F_SELECTED : 0u);
+        own_cell(t, 1, "VEL", vel, (set.curve + 5) * 127 / 10, mel.setup_row == ROW_VEL ? MEL_F_SELECTED : 0u);
+        own_cell(t, 2, "PRS", set.pressure ? "ON" : "OFF", 0, MEL_F_NOBAR);
+        own_cell(t, 3, "BLE", set.ble_off ? "OFF" : "ON", 0, MEL_F_NOBAR);
     } else {
         text_set(t->title, "MELODEE REMOTE", MEL_TITLE_N);
         text_set(t->info, plat_ble_connected() ? "BLE" : plat_midi_out_room(TO_USB) ? "USB" : "", MEL_INFO_N);
@@ -250,9 +92,9 @@ static void own_fill(mel_screen_t *t)
         text_set(t->line[0], "WAITING", MEL_LINE_N);
         text_set(t->line[1], "FOR MELODEE", MEL_LINE_N);
         text_set(t->line[2], ble_words(), MEL_LINE_N);
-        own_cell(t, 0, "CHANNEL", ch, 0, MEL_F_NOBAR | MEL_F_DIM);
-        own_cell(t, 1, "OCTAVE", oct, 0, MEL_F_NOBAR | (mel.octave ? 0u : MEL_F_DIM));
-        own_cell(t, 2, "VELOCITY", vel, 0, MEL_F_NOBAR | MEL_F_DIM);
+        own_cell(t, 0, "CH", ch, 0, MEL_F_NOBAR | MEL_F_DIM);
+        own_cell(t, 1, "OCT", oct, 0, MEL_F_NOBAR | (mel.octave ? 0u : MEL_F_DIM));
+        own_cell(t, 2, "VEL", vel, 0, MEL_F_NOBAR | MEL_F_DIM);
         own_cell(t, 3, "SETUP", "OCT-+", 0, MEL_F_NOBAR | MEL_F_DIM);
     }
 }
@@ -292,7 +134,6 @@ void app_say(const char *a, const char *b)
     text_set(mel.say[0], a, MEL_POPUP_N);
     text_set(mel.say[1], b, MEL_POPUP_N);
     mel.say_until = plat_ms() + SAY_MS;
-    mel.redraw |= MEL_DIRTY_BODY;
     if (ann_on()) {                      /* and to a screen reader (announce.c, fm1-reader) */
         const char *p;
         for (p = mel.say[0]; *p; p++)
@@ -343,18 +184,21 @@ void app_ui_init(void)
 {
     touch_on(1);                         /* velocity and pressure: the keys' readings on */
     touch_curve(set.curve);
-    palette_set(set.theme);
-    lcd_fill(0, 0, 240, 240, C_BLACK);
+    palette_set(palette_from_stored(set.theme));
+    lcd_fill(0, 0, 240, 240, T_BG);
+    ui_redraw();
     mel.usb_link = plat_midi_out_link();
     mel.redraw = MEL_DIRTY_ALL;
     mel.shown_own = 1;
 }
 
+void app_redraw(void) { mel.redraw_all = 1; }
+
 void app_frame(void)
 {
     uint32_t now = plat_ms();
-    uint8_t dirty;
-    int own, popup;
+    char say[2 * MEL_POPUP_N + 2];
+    int own;
     mel_screen_t *s;
     input();
     links();
@@ -371,21 +215,25 @@ void app_frame(void)
     }
     if (mel.say_until && now >= mel.say_until)
         mel.say_until = 0;
-    popup = mel.say_until || (!own && mel.melodee.popup_shown);
-    if (popup != mel.popup_up) {
-        mel.popup_up = (uint8_t)popup;
-        mel.redraw |= MEL_DIRTY_BODY;
+    mel.popup_up = (uint8_t)(!own && mel.melodee.popup_shown);
+    say[0] = 0;
+    if (mel.say_until) {                 /* the platform's word: the header's message (a toast when long) */
+        text_set(say, mel.say[0], MEL_POPUP_N);
+        if (mel.say[1][0]) {
+            uint32_t n = (uint32_t)str_len(say);
+            say[n] = ' ';
+            text_set(say + n + 1u, mel.say[1], MEL_POPUP_N);
+        }
     }
-    dirty = s->dirty | mel.redraw;
-    if (dirty & MEL_DIRTY_POPUP)
-        dirty |= MEL_DIRTY_BODY;
-    if (dirty & MEL_DIRTY_HEAD)
-        draw_head(s);
-    if (dirty & MEL_DIRTY_BODY)
-        draw_body(s, own);
-    if (dirty & MEL_DIRTY_FOOT)
-        draw_foot(s);
+    if (mel.redraw & MEL_DIRTY_ALL)
+        ui.force = 1;
+    if (mel.redraw_all) {                /* (the panel's memory as well: everything sent again) */
+        mel.redraw_all = 0;
+        ui_redraw();
+    }
+    ui_draw_screen(s, own, mel.popup_up, say);
     mel.melodee.dirty = 0;
+    mel.melodee.v2.dirty = 0;
     mel.own.dirty = 0;
     mel.redraw = 0;
     lights();
@@ -435,11 +283,33 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "set_dirty"))
         *got = mel.set_dirty;
     else if (!strcmp(what, "theme"))
-        *got = set.theme;
+        *got = (int)palette_from_stored(set.theme);
     else if (!strcmp(what, "btn_lit"))
         *got = (int)mel.melodee.btn_lit;
     else if (!strcmp(what, "keys_lit"))
         *got = (int)mel.melodee.keys_lit;
+    else if (!strcmp(what, "page"))      /* version 2: the page shown (MEL_PG_*; the FM-1's own: 0) */
+        *got = mel.shown_own ? 0 : mel.melodee.v2.page;
+    else if (!strcmp(what, "gen"))       /* the screen's generation */
+        *got = mel.gen;
+    else if (!strcmp(what, "why"))
+        *got = mel.why;
+    else if (!strcmp(what, "hellos"))    /* HELLOs and STATEs the remote sent */
+        *got = (int)mel.n_hello;
+    else if (!strcmp(what, "states"))
+        *got = (int)mel.n_state;
+    else if (!strcmp(what, "sel"))
+        *got = mel.melodee.v2.sel;
+    else if (!strcmp(what, "qnt"))
+        *got = mel.melodee.v2.q;
+    else if (!strcmp(what, "sheet"))
+        *got = mel.melodee.v2.sheet_on;
+    else if (!strcmp(what, "knobs_out"))  /* Stage's knobs dropped in */
+        *got = stage.out;
+    else if (!strcmp(what, "hot"))       /* the card lit by its knob, -1 none */
+        *got = ui.hot_t ? ui.hot_col : -1;
+    else if (!strcmp(what, "theme_rgb")) /* THEME, RGB565 */
+        *got = T_THEME;
     else
         return 0;
     return 1;
@@ -496,6 +366,29 @@ static const char *host_text(const char *where)   /* text WHERE: a text on the s
         return s->cell[i].value;
     if (!strncmp(where, "cell", 4) && i < MEL_CELLS + MEL_KNOBS)
         return s->cell[i].name;
+    /* version 2's: the header, the tracks, the cards, a list's and a sheet's rows, the question */
+    if (!strcmp(where, "chip"))
+        return s->v2.chip;
+    if (!strcmp(where, "status"))
+        return s->v2.status;
+    if (!strcmp(where, "bpm"))
+        return s->v2.bpm;
+    if (!strcmp(where, "scale"))
+        return s->v2.scale;
+    if (!strncmp(where, "trk", 3) && i < MEL_PLACES)
+        return s->v2.trk[i].name;
+    if (!strncmp(where, "kval", 4) && i < 4)
+        return s->v2.card[i].value;
+    if (!strncmp(where, "knob", 4) && i < 4)
+        return s->v2.card[i].label;
+    if (!strncmp(where, "lrow", 4) && i < MEL_LIST_ROWS)
+        return s->v2.lrow[i].label;
+    if (!strncmp(where, "srow", 4) && i < MEL_SHEET_ROWS)
+        return s->v2.srow[i].label;
+    if (!strcmp(where, "ask"))
+        return s->v2.ask_on ? s->v2.ask_q : "";
+    if (!strcmp(where, "foot"))
+        return s->v2.foot_text;
     return 0;
 }
 

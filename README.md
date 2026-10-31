@@ -4,6 +4,11 @@ Firmware that turns an M-VAVE FM-1 into a remote for Melodee on iPhone and iPad,
 Bluetooth MIDI (or a USB cable). Melodee draws the FM-1's screen and lights its keys and buttons; every key, button,
 encoder and the MASTER knob go back to Melodee. The FM-1 makes no sound of its own.
 
+The screen looks and works like Melodee FM-1's (Melodee's own FM-1 firmware): its drawing is ported here (`app/ui/`),
+and Melodee sends what its pages show: Stage, the chord wheel, SCL and SCALES, TEMPO, CHORD, ARP, the FX racks and
+slots, MIXER, GLO's layer, PATTERNS, SAVE's and the pages' sheets (protocol version 2). The keys play the selected
+track's scale on the remote itself (QNT WHITE, SNAP, ALL).
+
 It is built on the same platform as [Saadet](https://github.com/keremimo/saadet): fm1-base and felucca-bsp at
 Saadet's pinned revisions, with Saadet's fixes to the Bluetooth peripheral link, plus SysEx over Bluetooth MIDI in
 both directions, which the remote's screen needs and the base does not carry.
@@ -14,7 +19,7 @@ both directions, which the remote's screen needs and the base does not carry.
 
 ## On the FM-1
 
-With no Melodee connected, the screen says **WAITING FOR MELODEE** and how the link stands. The keys already play
+With no Melodee connected, the screen says **WAITING FOR MELODEE** and how the link stands, in Melodee FM-1's look. The keys already play
 (notes on channel 1, with velocity and pressure), so the FM-1 works as a plain Bluetooth MIDI keyboard and controller
 meanwhile: its buttons are notes 0..13 and its encoders relative CCs 16..22 on channel 16.
 
@@ -26,7 +31,7 @@ The FM-1 keeps three things to itself:
 | Control | What it does |
 | --- | --- |
 | OCT- / OCT+ | Shift the keys an octave (-3..+3); both together: back to 0. They still go to Melodee as buttons, and Melodee can take them over. |
-| OCT- + OCT+ held 1.5 s | SETUP: K1 the keys' channel, K2 the velocity curve, K3 poly pressure on or off, K4 Bluetooth on or off, PRESETS the screen's theme. HOME (or the same hold) closes it and saves. |
+| OCT- + OCT+ held 1.5 s | SETUP: K1 the keys' channel, K2 the velocity curve, K3 poly pressure on or off, K4 Bluetooth on or off, PRESETS the screen's theme (Melodee FM-1's palettes: NIGHT, DAY, CONTRAST, SUNSET, OCEAN, NEON, CANDY, LO-FI). HOME (or the same hold) closes it and saves. |
 | Bluetooth off | SETUP's K4, kept across power-offs. USB still works. |
 
 Updates and recovery are fm1-base's: its installer (`build/fm1-base-platform/tools/fm1_install.py`), and
@@ -41,6 +46,8 @@ Melodee FM-1's (the nightly firmware's) project area, so a project stored there 
 
 ## Status
 
-Built for the FM-1 (Bluetooth: 236 KB, 66 of 96 KB of RAM) and tested in fm1-base's host simulator, with the
-Bluetooth SysEx code tested on its own against stand-ins for the radio stack. **Not yet run on an FM-1**, and no
-Melodee speaks the protocol yet: Melodee's side is the next step.
+Built for the FM-1 (Bluetooth: 299 KB, 68 of 96 KB of RAM; USB only: 171 KB) and run on one over USB, version 2's
+pages played to it from `tools/play_scene.py` and its screen read back through fm1-base's mirror. Each page is
+tested in fm1-base's host simulator beside Melodee FM-1's own render of the same state (`tests/scenes.py`,
+`tools/compare_shots.py`), the protocol on its own (`tests/proto_test.c`), and the Bluetooth SysEx code against
+stand-ins for the radio stack. Melodee's side of version 2 is not written yet.

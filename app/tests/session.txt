@@ -1,0 +1,76 @@
+# Version 2's session (docs/PROTOCOL.md "Who is there"): a link that comes is greeted, and greeted again 1, 2, 4, 8,
+# 16 s after while no Melodee claims it (a HELLO sent before Melodee listened is lost); PING is answered with STATE
+# and never claims; a message that claims the remote unasked leaves it blank but for itself, and STATE says so (a new
+# generation: Melodee paints again); a Melodee that PINGs and then says nothing for 7 s lets it go; a link that goes
+# lets it go. HELLO and CLEAR claim it without a new generation (Melodee paints after them anyway).
+wait 1300
+ble connect
+wait 30
+expect hellos 1
+wait 1000
+expect hellos 2
+wait 2000
+expect hellos 3
+expect host 0
+# PING: STATE (free), not claimed
+blesysex F0 7D 4D 52 04 F7
+wait 30
+expect states 1
+expect host 0
+expect own 1
+# a stray message (a HEAD) claims it: blank but for it, a new generation, said
+blesysex F0 7D 4D 52 31 01 00 40 00 00 00 00 "124" "STAGE" "" F7
+wait 30
+expect host 2
+expect why 3
+expect states 2
+expect own 0
+# claimed, and it PINGs every 2 s: no more HELLOs unasked, still its
+wait 2000
+blesysex F0 7D 4D 52 04 F7
+wait 2000
+blesysex F0 7D 4D 52 04 F7
+wait 2000
+blesysex F0 7D 4D 52 04 F7
+wait 2000
+blesysex F0 7D 4D 52 04 F7
+wait 2000
+blesysex F0 7D 4D 52 04 F7
+wait 30
+expect hellos 3
+expect states 7
+expect host 2
+# then it goes quiet: let go 7 s after its last word, said; greeted again a second later
+wait 7500
+expect host 0
+expect why 6
+expect states 8
+expect own 1
+expect hellos 3
+wait 1000
+expect hellos 4
+# HELLO claims it again (no new generation: why stays)
+blesysex F0 7D 4D 52 01 02 F7
+wait 30
+expect host 2
+expect why 6
+# the link goes: let go; it comes back: greeted at once and again a second later
+ble disconnect
+wait 30
+expect host 0
+expect why 2
+ble connect
+wait 30
+expect hellos 6
+wait 1000
+expect hellos 7
+# HELLO from USB takes it from nobody; then Bluetooth's HELLO takes it from USB, which is told (STATE)
+sysex F0 7D 4D 52 01 02 F7
+wait 30
+expect host 1
+out
+blesysex F0 7D 4D 52 01 02 F7
+wait 30
+expect host 2
+expect why 5
+expect_out USB F0 7D 4D

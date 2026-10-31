@@ -1,0 +1,16 @@
+# A question over the page: Overwrite? (Melodee FM-1's render: confirm_user.png). Written by tests/scenes.py: change it there.
+wait 1300
+sysex F0 7D 4D 52 01 02 F7
+wait 30
+expect host 1
+sysex F0 7D 4D 52 30 01 00 F7
+sysex F0 7D 4D 52 31 01 00 40 00 00 00 00 03 31 32 34 07 50 52 4F 50 48 45 54 00 F7
+sysex F0 7D 4D 52 35 00 02 F7
+sysex F0 7D 4D 52 32 00 01 00 7F 3D 2E 02 50 31 00 0E 49 74 27 73 20 61 20 50 72 6F 70 68 65 74 00 00 F7
+sysex F0 7D 4D 52 33 00 10 00 00 00 00 00 00 F7
+sysex F0 7D 4D 52 32 01 02 00 7F 60 22 02 50 31 00 0A 53 4F 4C 49 44 20 42 41 53 53 00 00 F7
+sysex F0 7D 4D 52 33 01 10 11 04 11 04 11 00 F7
+sysex F0 7D 4D 52 41 01 00 0F 4F 76 65 72 77 72 69 74 65 20 75 30 30 37 3F 0B 41 20 56 45 52 59 20 4C 4F 4E 47 00 00 F7
+wait 120
+text ask Overwrite u007?
+shot v2_ask.png

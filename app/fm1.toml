@@ -5,7 +5,11 @@ usb_manufacturer = "Ellic Studio"
 usb_product = "Melodee Remote FM-1"
 o2 = []
 words = "words.tsv"
-font_full = ["M", "L"]         # Melodee's names keep their lower case
+# Melodee FM-1's generated tables: Rubik's faces, its icons, keycaps and palettes (tools/, assets/)
+gen = ["../tools/gen_aa_font.py {gen}/ui_fonts.h --preset rubik",
+       "../tools/gen_icons.py {gen}/ui_icons.h",
+       "../tools/gen_aa_keycaps.py {gen}/ui_keycaps.h",
+       "../tools/gen_ui_palettes.py {gen}/ui_palettes.h"]
 ble = true                     # Bluetooth MIDI with Melodee (--no-ble: USB only)
 ble_central = false            # the FM-1 is the peripheral; it connects to nothing itself
 usb_audio_in = false           # no sound

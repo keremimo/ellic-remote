@@ -21,7 +21,7 @@ wait 60
 expect set_ch 3
 expect set_curve -2
 expect set_pressure 0
-expect theme 2
+expect theme 1
 expect selected 4
 text rowv0 4
 text rowv1 -2
@@ -48,5 +48,5 @@ reboot
 wait 1300
 expect set_ch 3
 expect set_curve -2
-expect theme 2
+expect theme 1
 expect set_ble_off 1

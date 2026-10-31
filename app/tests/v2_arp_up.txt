@@ -1,0 +1,17 @@
+# ARP playing up over two octaves (Melodee FM-1's render: ref_arp.png). Written by tests/scenes.py: change it there.
+wait 1300
+sysex F0 7D 4D 52 01 02 F7
+wait 30
+expect host 1
+sysex F0 7D 4D 52 30 03 00 F7
+sysex F0 7D 4D 52 31 00 00 40 00 02 00 00 03 31 32 34 03 41 52 50 00 F7
+sysex F0 7D 4D 52 35 01 02 F7
+sysex F0 7D 4D 52 32 01 02 00 7F 60 22 02 50 31 00 08 53 41 57 20 42 41 53 53 00 00 F7
+sysex F0 7D 4D 52 39 00 00 04 4D 4F 44 45 02 55 70 00 F7
+sysex F0 7D 4D 52 39 01 00 04 52 41 54 45 04 31 2F 31 36 00 F7
+sysex F0 7D 4D 52 39 02 00 03 4F 43 54 01 32 00 F7
+sysex F0 7D 4D 52 39 03 00 04 47 41 54 45 02 35 30 01 25 F7
+sysex F0 7D 4D 52 3D 04 01 02 03 30 34 37 F7
+sysex F0 7D 4D 52 3E 00 08 53 41 57 20 42 41 53 53 00 F7
+wait 120
+shot v2_arp_up.png

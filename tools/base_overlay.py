@@ -2,7 +2,8 @@
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
 """Checked changes to the pinned fm1-base, made in the disposable build copy; upstream files keep their notices.
 
-Bluetooth MIDI SysEx both ways (fm1-base drops SysEx in and has no SysEx out over Bluetooth), the name, and
+Bluetooth MIDI SysEx both ways (fm1-base drops SysEx in and has no SysEx out over Bluetooth), USB's SysEx a byte at
+a time to the app as well (felucca-bsp keeps one frame: a burst of Melodee's lost all but its first), the name, and
 Saadet's fixes to the peripheral link (tools/base_overlay.py there, the same author)."""
 
 
@@ -116,7 +117,22 @@ SYSEX_OUT = r'''        if (cin == 4 || cin == 6 || cin == 7 || (cin == 5 && (sx
         /* running status'''
 
 
+USB_SYSEX = r'''    if (b >= 0xF8u)
+        return;                                        /* realtime may occur anywhere in SysEx */
+#if defined(APP_USB_SYSEX_BYTE) && !defined(FELUCCA_LOADER)
+    app_usb_sysex_byte(b);                             /* Melodee Remote: every SysEx byte to the app as well, as it
+                                                        * comes (the frame below holds one: a burst loses the rest) */
+#endif'''
+
+
 def apply(work):
+    # USB SysEx: every byte to the app too (app.h APP_USB_SYSEX_BYTE), not one frame at a time.
+    p = work / 'bsp/chip/usb.c'
+    s = p.read_text()
+    s = replace(s, '''    if (b >= 0xF8u)
+        return;                                        /* realtime may occur anywhere in SysEx */''', USB_SYSEX)
+    p.write_text('/* Melodee Remote USB SysEx to the app Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+
     # BLE-only builds have no sys_timer task: SDK timers naming that service belong to the main loop's timer pump,
     # as unnamed BLE timers already do (Saadet).
     p = work / 'ble/shim/systimer.c'
