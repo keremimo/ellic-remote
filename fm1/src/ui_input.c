@@ -183,8 +183,8 @@ static void seq_clear_now(uint32_t kind, uint32_t k)
     t->nheld = 0;                                       /* and the latched arp chord */
     t->arp_phys = 0;
     if (kind == CF_CLEAR_TRK) {
-        char b[12] = "1 CLEARED";
-        b[0] = (char)('1' + k % NTRK);
+        char b[12];
+        str_cpy(b + trk_num(b, k), " CLEARED", 9);
         ui_say("TRACK ", b);
     } else {
         ui_message(kind == CF_DEL_PAT ? "PATTERN DELETED" : "PATTERN CLEARED");
@@ -576,7 +576,7 @@ static void tracks_edit(uint32_t slot, int32_t steps)
  * On STEP, armed keys audition/record instead of writing the cursor step. */
 static void rec_toggle(uint32_t latch)
 {
-    uint8_t bit = (uint8_t)(1u << song.sel);
+    uint32_t bit = 1u << song.sel;
     if (!ui.home && cur_page()->graph == GR_SONG && !(song.rec & bit)) {
         ui_message("[SEQ] TO RECORD");
         return;
@@ -602,7 +602,7 @@ static void rec_tap(void) { rec_toggle(1); }
  * already runs. REC's release then does nothing (no tap, no hold). */
 static void rec_play(void)
 {
-    uint8_t bit = (uint8_t)(1u << song.sel);
+    uint32_t bit = 1u << song.sel;
     ui.rec_t0 |= 2u;
     if (chain_busy()) {
         ui_message("STOP TO RECORD");
@@ -1965,9 +1965,9 @@ static void select_turn(uint32_t hs, int32_t s)
         t->p[id] = (int16_t)clamp(t->p[id] + x, d->min, d->max);
         motion_capture(t, id, t->p[id]);
         param_format(d, t->p[id], v, &unit);
-        str_cpy(b, "T1 ", sizeof b);
-        b[1] = (char)('1' + song.sel % NTRK);
-        str_cpy(b + 3, HS_NAME[hs], sizeof b - 3u);
+        str_cpy(b, "T", sizeof b);
+        str_cpy(b + 1 + trk_num(b + 1, song.sel), " ", 2);
+        str_cpy(b + str_len(b), HS_NAME[hs], sizeof b - str_len(b));
         str_cpy(b + str_len(b), " ", 2);
         if (unit && unit[0]) {
             str_cpy(v + str_len(v), " ", 2);

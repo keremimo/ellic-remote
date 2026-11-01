@@ -6,6 +6,7 @@ usb_product = "Melodee Remote FM-1"
 # Melodee FM-1's pages, controls and sequencer: a unit of their own (unit/unit.c, from ../fm1/src), beside fm1-base's
 o2 = ["unit/unit.c"]
 o2_cflags = ["-Os"]              # (the unit for size: its pages are code, not DSP)
+ir_pass = "../tools/unit_ir.py"   # (its zero-filled statics into the pool, its functions for size)
 words = "words.tsv"
 # Melodee FM-1's generated tables: Rubik's faces, its icons, keycaps, palettes, its curves (../fm1/tools, assets)
 gen = ["../fm1/tools/gen_aa_font.py {gen}/ui_fonts.h --preset rubik",

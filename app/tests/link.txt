@@ -1,10 +1,10 @@
-# The link with Melodee (docs/PROTOCOL.md): a stand-in Melodee claims the remote, tells it an instrument, two tracks,
-# a value, a step and that the music plays; the remote's controls tell it back what they change and ask.
+# The link with Melodee (docs/PROTOCOL.md, version 3): a stand-in Melodee claims the remote, tells it an instrument,
+# tracks, a value, a step and that the music plays; the remote's controls tell it back what they change and ask.
 #   app/build/host/melodee-remote_host app/tests/link.txt app/build/tests
 wait 1300
 expect host 0
 expect last_cmd 1
-sysex F0 7D 4D 52 01 02 F7
+sysex F0 7D 4D 52 01 03 F7
 wait 50
 expect host 1
 expect last_cmd 3
@@ -15,11 +15,11 @@ sysex F0 7D 4D 52 42 00 00 40 02 42 72 6F 20 42 61 73 73 00 57 6F 62 62 6C 65 00
 sysex F0 7D 4D 52 43 01 F7
 expect instruments 1
 # two tracks: Bro Bass and Wobble; track 1's DRIVE 100; 98 BPM; a C4 on track 1's first step; playing
-sysex F0 7D 4D 52 44 02 00 00 00 40 00 01 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 F7
+sysex F0 7D 4D 52 44 02 00 00 00 40 00 01 40 F7
 sysex F0 7D 4D 52 45 00 74 40 64 40 F7
 sysex F0 7D 4D 52 46 00 62 40 F7
 sysex F0 7D 4D 52 47 00 00 01 00 00 3C 00 00 00 01 00 00 64 00 00 00 F7
-sysex F0 7D 4D 52 49 01 00 00 00 00 00 00 00 F7
+sysex F0 7D 4D 52 49 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F7
 wait 100
 expect tracks 2
 expect bpm 98
@@ -49,8 +49,21 @@ expect last_cmd 3
 sysex F0 7D 4D 52 02 F7
 wait 20
 expect host 0
-# an older Melodee (version 1) does not claim it: it hears the remote's HELLO, version 2
-sysex F0 7D 4D 52 01 01 F7
+# an older Melodee (version 2) does not claim it: it hears the remote's HELLO, version 3
+sysex F0 7D 4D 52 01 02 F7
 wait 20
 expect host 0
 expect last_cmd 1
+# twelve tracks, every one a part: claimed again, 12 tracks told with track 10 selected, track 10 armed (bit 9)
+sysex F0 7D 4D 52 01 03 F7
+sysex F0 7D 4D 52 44 0C 09 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 F7
+sysex F0 7D 4D 52 49 01 00 04 00 00 00 00 00 00 00 00 00 00 00 F7
+wait 100
+expect host 1
+expect tracks 12
+expect sel 9
+expect rec 512
+tap HOME
+wait 300
+text page HOME
+shot l_stage_12.png

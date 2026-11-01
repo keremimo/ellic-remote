@@ -457,7 +457,8 @@ static void stage_row(uint32_t k)
                                                          * at the right) */
     uint16_t tc = mute ? T_DIM : T_TRK(k), bg = ux_mix(T_BG, tc, sel ? 24 : 11);   /* (the track's tint) */
     const aafont_t *lf = TY_LB, *nf = h >= 80 ? TY_VL : TY_TX;
-    char nm[24], line[48], more[48], ml[TL_MAX][32], d[3] = {(char)('1' + k), 0, 0}, role[16];
+    char nm[24], line[48], more[48], ml[TL_MAX][32], d[3] = {0}, role[16];
+    trk_num(d, k);
     char pt[4] = {'P', 0, 0, 0}, pn[4] = {'P', 0, 0, 0};
     pat_num(pt + 1, t->pattern);
     if (next) pat_num(pn + 1, next - 1u);
@@ -475,7 +476,8 @@ static void stage_row(uint32_t k)
     }
     cat = entry_cat(src, kk) % CAT_N;
     {   /* the role (NEW SONG's words: DRUMS, CHORDS; none, OTHER: the track), then what plays */
-        char tn[3] = {'T', (char)('1' + k), 0};
+        char tn[4] = {'T', 0, 0, 0};
+        trk_num(tn + 1, k);
         str_cpy(line, cat == CAT_DRUM ? "DRUMS" : cat == CAT_KEYS ? "CHORDS" : cat && cat != CAT_OTHER ? CAT_NAME[cat] : tn,
                 sizeof line);
     }

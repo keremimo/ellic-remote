@@ -20,8 +20,8 @@ both directions, which the link with Melodee needs and the base does not carry.
 
 It starts on Melodee FM-1's Stage, its tracks empty, and says **MELODEE NOT HERE** to any control that asks Melodee
 for something while none has it; the keys already play (notes on the selected track's channel). In Melodee, connect
-to **Melodee Remote** (Bluetooth MIDI): once Melodee says HELLO (protocol version 2), its instruments, tracks, steps
-and patterns fill the pages. MASTER is Melodee's master level.
+to **Melodee Remote** (Bluetooth MIDI): once Melodee says HELLO (protocol version 3), its instruments, tracks (up to 32,
+every one a part, shown four at a time as Melodee FM-1 shows them), steps and patterns fill the pages. MASTER is Melodee's master level.
 
 Updates and recovery are fm1-base's: its installer (`build/fm1-base-platform/tools/fm1_install.py`), and
 m-bootloader's recovery menu (hold PLAY while switching on) if it is installed. See BUILDING.md.
@@ -34,7 +34,7 @@ settings) is kept: the projects and sounds are Melodee's, and Melodee FM-1's men
 
 ## Status
 
-Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`): Bluetooth build 459 KB, 92 of 96
-KB of RAM, 197 of 344 KB of the pool. Installed on an FM-1 over USB, which answers HELLO and PING; the pages and the
-link tested in fm1-base's host simulator (`app/tests/`). Melodee's side of version 2 is not written yet (Melodee
-speaks version 1, which this remote no longer serves).
+Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`), 32 tracks: Bluetooth build 457 KB,
+62 of 96 KB of RAM, 292 of 344 KB of the pool. Installed on an FM-1 over USB, which answers HELLO and PING; the pages and the
+link tested in fm1-base's host simulator (`app/tests/`). Melodee iOS speaks version 2 (melodee-ios `0639f4b`); its
+version 3 is being written.

@@ -134,8 +134,8 @@ static uint32_t eng_step(uint32_t e, int32_t dir)
     return eng_vis((eng_rank(e % NENGINES) + (dir > 0 ? 1u : NENG_SHOWN - 1u)) % NENG_SHOWN);
 }
 
-static uint32_t trk_def_engine(uint32_t k) { return k < NPART ? TRK_DEF[k][0] : ENGI_MIDI; }
-static uint32_t trk_def_preset(uint32_t k) { return k < NPART ? TRK_DEF[k][1] : 0u; }
+static uint32_t trk_def_engine(uint32_t k) { return TRK_DEF[k % NPART][0]; }
+static uint32_t trk_def_preset(uint32_t k) { return TRK_DEF[k % NPART][1]; }
 
 /* no instrument's working state here (engines.c's eng_state_*) */
 static void *fm6_part(uint32_t part) { (void)part; return 0; }

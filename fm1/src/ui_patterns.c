@@ -174,7 +174,8 @@ static void pt_row(uint32_t k, uint32_t pg)
     uint32_t b, on = t->pattern / PT_COLS == pg, prog = on ? pt_prog(t) : 0u, sel = k == song.sel, h;
     uint32_t off = !on || (t->pattern_next < NPAT && t->pattern_next / PT_COLS != pg);   /* (on the other page) */
     int32_t y0 = PT_ROW_Y + (int32_t)(k % NPART) * PT_ROW_H;
-    char n[2] = {(char)('1' + k), 0};
+    char n[3];
+    trk_num(n, k);
     h = fnv1(fnv1(fnv1(2166136261u, steps_hash(t)), t->pattern_gen), t->pattern + 16u * t->pattern_next + 8192u * sel +
             16384u * (uint32_t)(t->p[P_MUTE] != 0) + 65536u * (uint32_t)t->p[P_SLEN]);
     h = fnv1(h, ux.gen * 977u + ux.pal * 31u + (uint32_t)song.playing + 2u * pg);

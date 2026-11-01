@@ -32,6 +32,12 @@
 #define NMIDI 4                  /* MIDI-only tracks: tracks 5..8, the MIDI Track engine and no audio */
 #endif
 #define NTRK (NPART + NMIDI)     /* tracks: the parts, then the MIDI-only ones (a project's first NPART on its FUN wire) */
+#ifndef MELODEE_MIDI_PLACES
+#define MELODEE_MIDI_PLACES 1    /* the tracks after the parts are MIDI Tracks by their place (0: every track a part) */
+#endif
+#ifndef MELODEE_TAKES
+#define MELODEE_TAKES 1          /* takes are recorded here, their notes naming their pattern in seven bits */
+#endif
 /* Shared with engine-buffer placement: the queued recorder needs one runtime
  * counter per event, while the reference countdown implementation needs two. */
 #ifndef MELODEE_RECORD_CURSOR
@@ -59,8 +65,12 @@
 #define RES_OK() 1                               /* melodee.c: the resource region (res.c) is installed */
 #endif
 #define NPAT_V1 8u
+#if MELODEE_MIDI_PLACES
 #define trk_npat(k) ((uint32_t)(k) < NPART ? NPAT : NPAT_MIDI)   /* the patterns track k has */
-_Static_assert(NSTEP <= 128u && NTRK * NPAT <= 128u, "recorded-note identifiers (seven bits)");
+#else
+#define trk_npat(k) ((void)(k), NPAT)
+#endif
+_Static_assert(NSTEP <= 128u && (NTRK * NPAT <= 128u || !MELODEE_TAKES), "recorded-note identifiers (seven bits)");
 #define HALF_FRAMES 128          /* I2S half buffer: 2.9 ms at 44.1 kHz (a key waits 0..1 half, then plays 1 half later) */
 /* SLICE retired. Keep its stored engine number reserved. */
 #ifdef MELODEE_SLICE
@@ -539,9 +549,9 @@ typedef struct {
     uint8_t playing, seq_mode;
     uint8_t grid;                /* 1: the keys are the DRUM grid (ui.c grid_on): only the lane keys play (seq.c);
                                   * 2: NAME (ui_name.c): no key plays */
-    uint8_t rec;                 /* live recording armed: bit per track */
-    uint8_t rec_wait, rec_pass;   /* waiting for loop zero, or recording since pattern start */
-    uint8_t rec_latch;           /* explicit REC stays armed across pattern ends: bit per track */
+    uint32_t rec;                /* live recording armed: bit per track */
+    uint32_t rec_wait, rec_pass; /* waiting for loop zero, or recording since pattern start */
+    uint32_t rec_latch;          /* explicit REC stays armed across pattern ends: bit per track */
     uint8_t sel;                 /* selected track 0..trk_n()-1: keys, pages, editor */
     uint8_t ntrk;                /* tracks in use: 1..ntrk play, the rest wait empty and silent (0: the NPART parts) */
     int8_t octave;
@@ -579,7 +589,7 @@ static inline uint32_t trk_n(void) { return song.ntrk - 1u < NTRK ? song.ntrk : 
 /* the parts in use: the tracks the audio renders and mixes (a MIDI-only track never sounds) */
 static inline uint32_t trk_parts(void) { uint32_t n = trk_n(); return n < NPART ? n : NPART; }
 /* track k can only be a MIDI Track (tracks 5..8) */
-static inline int trk_midi_slot(uint32_t k) { return k >= NPART && k < NTRK; }
+static inline int trk_midi_slot(uint32_t k) { return MELODEE_MIDI_PLACES && k >= NPART && k < NTRK; }
 
 #include "microtonal.h"
 
@@ -611,4 +621,4 @@ static inline void reset_intended(void)         /* a reset on purpose (UBOOT, an
 }
 
 /* GLO solo belongs to the mixer, independently of quick-layer effects. */
-static volatile uint8_t track_solo;
+static volatile uint32_t track_solo;

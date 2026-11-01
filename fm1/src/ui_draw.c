@@ -166,9 +166,11 @@ static void head_chip_text(char *b)
     } else if (ptc_on()) {                              /* PATTERNS' Copy to: "copy 3 to 5", another track's "to T2 5" */
         str_cpy(b, "copy ", 16);
         pat_num(b + 5, ui.ptc_src);
-        str_cpy(b + str_len(b), ui.ptc_to != ui.ptc_trk ? " to T1 " : " to ", 8);
-        if (ui.ptc_to != ui.ptc_trk)
-            b[str_len(b) - 2] = (char)('1' + ui.ptc_to % NTRK);
+        str_cpy(b + str_len(b), ui.ptc_to != ui.ptc_trk ? " to T" : " to ", 8);
+        if (ui.ptc_to != ui.ptc_trk) {
+            trk_num(b + str_len(b), ui.ptc_to);
+            str_cpy(b + str_len(b), " ", 2);
+        }
         pat_num(b + str_len(b), ui.ptc_dst);
     } else if (ui.home) {                               /* Stage: the engine (a kit: its name, "909 KIT") */
         if (browse_pending()) { uint32_t kk, s = browse_shown(&kk); e = src_engine(s, kk); }
@@ -697,7 +699,8 @@ static void draw_foot(void)
         cv_key_row(8, 232, (H_FOOT - KC_PH) / 2, hints, 2, 3u, T_BG);
     } else {
         int32_t bw = b[0] ? text_w(TY_TX, b) + 12 : 0;
-        char d[2] = {(char)('1' + song.sel % NTRK), 0};
+        char d[3];
+        trk_num(d, song.sel);
         cv_rrect(4, H_FOOT / 2 - 11, 22, 22, 6, T_THEME, T_BG);   /* (as pv_sound_bar, the page at the right) */
         cv_text_c(15, ty_y(H_FOOT / 2, TY_LB), TY_LB, d, T_INK, T_THEME);
         cv_free_text(34, ty_y(H_FOOT / 2, TY_TX), TY_TX, pn[0] ? pn : ename, T_SEC, T_BG, 236 - bw - 34);
@@ -975,8 +978,8 @@ static void confirm_text(char *a, char *b)
     b[0] = 0;
     switch (ui.confirm) {
     case CF_CLEAR_TRK:
-        str_cpy(a, "CLEAR TRACK 1?", 24);
-        a[12] = (char)('1' + k % NTRK);
+        str_cpy(a, "CLEAR TRACK ", 24);
+        str_cpy(a + 12 + trk_num(a + 12, k), "?", 2);
         break;
     case CF_OVR_PROJ:
         str_cpy(a, "OVERWRITE PROJECT 00?", 24);
@@ -1012,21 +1015,24 @@ static void confirm_text(char *a, char *b)
         str_cpy(a, "DELETE PATTERN ", 24);
         pat_num(a + 15, trk[k % NTRK].pattern);
         str_cpy(a + str_len(a), "?", 2);
-        str_cpy(b, "Track 1 \xB7 notes and motion", 32);
-        b[6] = (char)('1' + k % NTRK);
+        str_cpy(b, "Track ", 32);
+        str_cpy(b + 6 + trk_num(b + 6, k), " \xB7 notes and motion", 24);
         break;
     case CF_PASTE_PAT:                                  /* PATTERNS' Copy to over a pattern in use */
         str_cpy(a, "REPLACE PATTERN ", 24);
         pat_num(a + 16, ui.ptc_dst);
         str_cpy(a + str_len(a), "?", 2);
-        str_cpy(b, ui.ptc_to != ui.ptc_trk ? "Track 1 \xB7 with T1 pattern " : "Track 1 \xB7 with pattern ", 32);
-        b[6] = (char)('1' + ui.ptc_to % NTRK);
-        if (ui.ptc_to != ui.ptc_trk)
-            b[16] = (char)('1' + ui.ptc_trk % NTRK);
+        str_cpy(b, "Track ", 32);
+        trk_num(b + 6, ui.ptc_to);
+        str_cpy(b + str_len(b), ui.ptc_to != ui.ptc_trk ? " \xB7 with T" : " \xB7 with pattern ", 20);
+        if (ui.ptc_to != ui.ptc_trk) {
+            trk_num(b + str_len(b), ui.ptc_trk);
+            str_cpy(b + str_len(b), " pattern ", 10);
+        }
         pat_num(b + str_len(b), ui.ptc_src);
         break;
     case CF_CLEAR_MOTION:
-        str_cpy(a, "CLEAR T1 MOTION?", 24); a[7] = (char)('1' + k % NTRK);
+        str_cpy(a, "CLEAR T", 24); str_cpy(a + 7 + trk_num(a + 7, k), " MOTION?", 9);
         break;
 #if MELODEE_BLE
     case CF_BLE_FORGET:
@@ -1088,13 +1094,13 @@ static void confirm_text(char *a, char *b)
         break;
     }
     case CF_DEL_TRACK:                                  /* Stage's sheet: the tracks after it move down a place */
-        str_cpy(a, "REMOVE TRACK 1?", 24);
-        a[13] = (char)('1' + k % NTRK);
+        str_cpy(a, "REMOVE TRACK ", 24);
+        str_cpy(a + 13 + trk_num(a + 13, k), "?", 2);
         str_cpy(b, "Its sound, patterns and motion", 32);
         break;
     default:
-        str_cpy(a, "CLEAR T1 SEQUENCE?", 24);     /* the header (T1..T4) is hidden */
-        a[7] = (char)('1' + k % NTRK);
+        str_cpy(a, "CLEAR T", 24);                 /* the header (T1..T4) is hidden */
+        str_cpy(a + 7 + trk_num(a + 7, k), " SEQUENCE?", 11);
         break;
     }
 }

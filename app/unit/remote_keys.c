@@ -2,14 +2,16 @@
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* The keys, as Melodee FM-1 plays them (its seq.c keyboard_block, key_on, key_off): the selected track's, laid out
  * as its QNT and scale say (kb_map), a chord key's chord (chord.c chord_build), the drum grid's lanes, a layer's keys
- * the layer's (ui_layer.c kb_mask); NAME and the patterns' selection take them all. The notes go to Melodee as MIDI
- * on the track's channel (trk_midi_ch), a key's release ending the notes its press began. Nothing sounds here. */
+ * the layer's (ui_layer.c kb_mask); NAME and the patterns' selection take them all. The notes go to Melodee as MIDI,
+ * track k's on channel (k mod 15) + 1 (16 is the remote's: MASTER), a key's release ending the notes its press began.
+ * Nothing sounds here. */
 static uint32_t kb_prev;
 static uint8_t kb_note[27], kb_trk[27];
 
 static void key_send(uint32_t k, uint32_t on)
 {
-    uint32_t i, ch = trk_midi_ch(kb_trk[k]), tr = kb_trk[k] % NTRK;
+    uint32_t tr = kb_trk[k] % NTRK, i;
+    uint32_t ch = midi_track_only(&trk[tr]) ? midi_track_channel(&trk[tr]) : tr % 15u;   /* (16: the remote's own) */
     for (i = 0; i < kb_chn[k]; i++) {
         uint32_t x = kb_chord[k][i];
         midi_out_event(on ? 0x09u | (0x90u | ch) << 8 | x << 16 | 100u << 24 : 0x08u | (0x80u | ch) << 8 | x << 16);

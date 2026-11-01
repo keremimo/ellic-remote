@@ -122,8 +122,7 @@ static void ps_trk_v(char *b, uint32_t k, int none)
         return;
     }
     b[0] = 'T';
-    b[1] = (char)('1' + k % NTRK);
-    b[2] = 0;
+    trk_num(b + 1, k);
 }
 static void ps_add_v(char *b) { ps_trk_v(b, trk_n(), trk_n() >= NTRK); }
 static void ps_remove_v(char *b) { ps_trk_v(b, song.sel, trk_n() < 2u); }
@@ -195,7 +194,7 @@ static void song_cell_sheet_open(void)
 {
     if (chain_busy()) { ui_message("STOP TO EDIT"); return; }
     if (ui.song_row >= chain_config.count) { song_insert(0); return; }
-    char b[20] = "T1 / Section "; b[1] = (char)('1' + song.sel);
+    char b[20] = "T"; str_cpy(b + 1 + trk_num(b + 1, song.sel), " / Section ", 12);
     fmt_int(b + str_len(b), ui.song_row + 1u);
     const song_sound_t *sound = song_sound_get(chain_sound_id(ui.song_row, song.sel));
     sheet_open(sound ? sound->name : "Song cell", b, SHEET_SONG_CELL, NELEM(SHEET_SONG_CELL));
@@ -362,15 +361,15 @@ static void page_sheet_open(void)
         sheet_open("Song", nm, SHEET_SONG, NELEM(SHEET_SONG));
         break;
     case 3:
-        str_cpy(nm, "T1", sizeof nm);
-        nm[1] = (char)('1' + song.sel % NTRK);
+        str_cpy(nm, "T", sizeof nm);
+        trk_num(nm + 1, song.sel);
         sheet_open("Pattern", nm, SHEET_PATTERN, NELEM(SHEET_PATTERN));
         break;
     case 4: {                                           /* "Pattern 3", "T2" */
         char t[12] = "Pattern ";
         pat_num(t + 8, TSEL->pattern);
-        str_cpy(nm, "T1", sizeof nm);
-        nm[1] = (char)('1' + song.sel % NTRK);
+        str_cpy(nm, "T", sizeof nm);
+        trk_num(nm + 1, song.sel);
         const song_sound_t *sound = song_sound_get(pattern_sound_id(song.sel, TSEL->pattern));
         if (sound) str_cpy(nm, sound->name, sizeof nm);
         sheet_open(t, nm, SHEET_PATTERNS, NELEM(SHEET_PATTERNS));
@@ -783,14 +782,14 @@ static void preset_pick_draw(void)
 {
     uint32_t k, src = browse_shown(&k), e = src_engine(src, k);
     uint32_t sig = src * 7919u + k * 131u + song.sel * 31u + up_gen * 977u + ux.gen + ux.pal;
-    char tag[6], nm[16], title[] = "T1 PRESET";
+    char tag[6], nm[16], title[12] = "T";
     if (!ui.force && sig == pop.sig) { draw_head(); return; }
     pop.sig = sig;
     draw_head();
     entry_label(src, k, tag, nm);
     if (src == ENGI_PROPHET)
         str_cpy(nm, eng_preset(ENGINES[ENGI_PROPHET], k)->name, sizeof nm);
-    title[1] = (char)('1' + song.sel);
+    str_cpy(title + 1 + trk_num(title + 1, song.sel), " PRESET", 8);
     for (uint32_t band = 0; band < 104u; band += CV_MAX / POP_W) {
         cv_begin_band(POP_W, 104u, T_BG, band);
         cv_rrect(0, 0, POP_W, 104, 10, T_LINE, T_BG);

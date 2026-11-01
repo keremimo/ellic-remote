@@ -43,7 +43,9 @@ The package identity is `FM-1_1400` for development builds and `FM-1_14XXYYZZ` f
 ## The unit
 
 `app/unit/unit.c` is Melodee FM-1's pages and controls as one compilation unit of their own (fm1.toml `o2`), its
-files from `fm1/` in Melodee FM-1's order, built for size. Beside them, the remote's own sections where Melodee FM-1 has
+files from `fm1/` in Melodee FM-1's order, built for size, with 32 tracks (core.h `NMIDI` 28, none MIDI-only). On the
+FM-1 its zero-filled statics go to fm1-base's pool and its functions are built for size by `tools/unit_ir.py` (fm1.toml
+`ir_pass`, a pass over its LLVM IR): the FM-1's RAM is fm1-base's. Beside them, the remote's own sections where Melodee FM-1 has
 hardware or a model of its own: `remote_hal.c` (the panel, LEDs and LCD by fm1-base, through `unit.h`),
 `remote_sounds.c` (the engine table: Melodee's instruments), `remote_model.c` (the sequencer, patterns, takes and
 song: Melodee's, mirrored), `remote_project.c` (projects and tracks: requests), `remote_keys.c` (the keys as MIDI),

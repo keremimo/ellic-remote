@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The link with Melodee (docs/PROTOCOL.md, version 2): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
+/* The link with Melodee (docs/PROTOCOL.md, version 3): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
  *   the session: the remote says HELLO until a Melodee claims it (its HELLO back), answers PING with STATE (its
  *     generation: a new one each time it loses what Melodee told, so Melodee tells it all again); BYE lets it go;
  *   the mirror, Melodee's: its instruments, the tracks and their parameters, the steps, the patterns, where the music
@@ -8,7 +8,7 @@
  *   from the remote: what the controls changed in place (a value, a step, the track selected, a sound chosen), found
  *     against the mirror as Melodee last told it, and what they asked (link_request); the keys' notes go as MIDI.
  * Values: 14 bits as two 7-bit bytes, low first, offset by 8192 (-8192..8191); text ASCII, 0-terminated. */
-#define L_PROTO 2u
+#define L_PROTO 3u                                     /* (3: every track a part, as many as NTRK) */
 enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING,
        L_INSTRUMENT = 0x40, L_PARAM_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
        L_PLAY, L_SONG, L_PROJECTS, L_SCOPE, L_REQUEST = 0x50 };
@@ -75,18 +75,24 @@ static void link_send(uint32_t cmd, const uint8_t *body, uint32_t n, int port)
 }
 
 static uint32_t link_state(uint32_t port) { return !lk.host ? L_FREE : lk.host == 1u + port ? L_YOURS : L_TAKEN; }
-static void link_hello(uint32_t port)
+static void link_hello(uint32_t port)                  /* version, generation, state, the tracks it holds */
 {
-    uint8_t b[5] = {L_PROTO, 0, 0, 0, 0};
-    b[1] = (uint8_t)(lk.gen & 0x7Fu);
-    b[2] = (uint8_t)(lk.gen >> 7 & 0x7Fu);
+    uint8_t b[5] = {L_PROTO, (uint8_t)(lk.gen & 0x7Fu), (uint8_t)(lk.gen >> 7 & 0x7Fu), 0, NTRK};
     b[3] = (uint8_t)link_state(port);
-    link_send(L_HELLO, b, 4, (int)port);
+    link_send(L_HELLO, b, 5, (int)port);
 }
 static void link_state_to(uint32_t port)
 {
-    uint8_t b[4] = {(uint8_t)(lk.gen & 0x7Fu), (uint8_t)(lk.gen >> 7 & 0x7Fu), (uint8_t)link_state(port), lk.why};
-    link_send(L_STATE, b, 4, (int)port);
+    uint8_t b[5] = {(uint8_t)(lk.gen & 0x7Fu), (uint8_t)(lk.gen >> 7 & 0x7Fu), (uint8_t)link_state(port), lk.why, NTRK};
+    link_send(L_STATE, b, 5, (int)port);
+}
+/* a bit per track, 35 in 5 bytes of 7 bits, low first */
+static uint32_t rd_bits(const uint8_t *p)
+{
+    uint32_t v = 0, i;
+    for (i = 0; i < 5u; i++)
+        v |= (uint32_t)(p[i] & 0x7Fu) << (7u * i);
+    return v;
 }
 static void link_new_gen(uint32_t why)
 {
@@ -238,11 +244,11 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             ui.force = 1;
         }
         break;
-    case L_TRACKS:                                     /* ntrk, sel, then per track: instrument (127 none), sound v14 */
+    case L_TRACKS:                                     /* count, sel, then count x (instrument (127 none), sound v14) */
         if (end - b >= 2) {
             song.ntrk = (uint8_t)clamp(b[0], 1, NTRK);
             song.sel = (uint8_t)(b[1] % trk_n());
-            for (k = 0, b += 2; k < NTRK && end - b >= 3; k++, b += 3) {
+            for (k = 0, b += 2; k < song.ntrk && end - b >= 3; k++, b += 3) {
                 if (b[0] < REMOTE_ENGINES)
                     trk[k].engine = trk[k].eng_req = REMOTE_IDX[b[0]];
                 trk[k].preset = (uint8_t)rd14(b + 1);
@@ -290,16 +296,16 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             pattern_epoch++;
         }
         break;
-    case L_PLAY:                                       /* playing, rec, rec_wait, counting, song running, song row,
-                                                        * then per track the step playing */
-        if (end - b >= 6) {
+    case L_PLAY:                                       /* playing, armed (5 bytes of bits), waiting (5), counting,
+                                                        * song running, song row, then per track the step playing */
+        if (end - b >= 14) {
             song.playing = b[0] & 1u;
-            song.rec = b[1];
-            song.rec_wait = b[2];
-            cin_left = b[3];
-            chain.running = b[4] & 1u;
-            chain.row = b[5];
-            for (k = 0, b += 6; k < NTRK && b < end; k++, b++)
+            song.rec = rd_bits(b + 1);
+            song.rec_wait = rd_bits(b + 6);
+            cin_left = b[11];
+            chain.running = b[12] & 1u;
+            chain.row = b[13];
+            for (k = 0, b += 14; k < NTRK && b < end; k++, b++)
                 trk[k].seq_idx = b[0];
         }
         break;
@@ -405,8 +411,10 @@ static void link_poll(void)
             m[n++] = song.ntrk;
             m[n++] = song.sel;
             for (k = 0; k < NTRK; k++) {
-                m[n++] = (uint8_t)(eng_ok(trk[k].eng_req) ? eng_rank(trk[k].eng_req) : 127u);
-                n += wr14(m + n, trk[k].preset);
+                if (k < trk_n()) {
+                    m[n++] = (uint8_t)(eng_ok(trk[k].eng_req) ? eng_rank(trk[k].eng_req) : 127u);
+                    n += wr14(m + n, trk[k].preset);
+                }
                 lk.eng[k] = trk[k].eng_req;
                 lk.preset[k] = trk[k].preset;
             }

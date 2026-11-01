@@ -14,9 +14,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "unit.h"
-#ifndef PLAT_HOST
-#pragma clang section bss = ".pool.unit"   /* its zero-initialised RAM in fm1-base's pool: the app's RAM is fm1-base's */
-#endif
 
 /* ---------------------------------------------------- build options --- */
 #define MELODEE_FLASH 0          /* nothing kept in the FM-1's flash: the project is Melodee's */
@@ -34,6 +31,9 @@
 #define MELODEE_ID "FM-1_1400"
 #define MELODEE_RES
 #define RESOURCE_WORDS 8192u    /* the working arena (resources.c): 32 KB, for the undo histories */
+#define NMIDI 28                 /* core.h: 32 tracks (NPART 4 + 28), as many as the pool holds; every one a part */
+#define MELODEE_MIDI_PLACES 0    /* (no MIDI Track by its place: Melodee's instruments decide) */
+#define MELODEE_TAKES 0          /* (no takes recorded here: Melodee's) */
 #define RES_OK() 1               /* Rubik's faces are built in (gen: ui_fonts.h), not in a resource region */
 #include "../../fm1/src/build_options.h"
 #include "../../fm1/src/performance_options.h"

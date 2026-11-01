@@ -252,7 +252,7 @@ static void layer_keys(uint32_t keys)
     for (k = 0; k < 27u; k++)
         if ((lys.solo >> k) & 1u)
             s |= 1u << (trk_group() + key_place(k));
-    track_solo = (uint8_t)s;
+    track_solo = s;
 }
 
 /* KNOB 1..4 in the open layer: its own (GLO levels), else the four of its page */
@@ -404,7 +404,8 @@ static void layer_glo_keys(int32_t h)
             dim = i == 7u && song.g[G_CLOCK];
         uint16_t f = on ? T_TRK(i) : none ? ux_mix(T_PANEL, T_SURF, 50) : T_SURF, ink = on ? T_INK : dim ? T_DIM :
                      i < NPART ? T_TRK(i) : T_TEXT;
-        char d[2] = {(char)('1' + g + i), 0};
+        char d[3];
+        trk_num(d, g + i);
         cv_rrect(x, wy, kw, h - wy - 6, 4, f, T_PANEL);
         if (!none)
             cv_text_c(x + kw / 2, ty_y(h - 26, i < NPART ? TY_TX : TY_LB), i < NPART ? TY_TX : TY_LB,
@@ -414,7 +415,8 @@ static void layer_glo_keys(int32_t h)
         int32_t x = x0 + (int32_t)(BX[i] + 1u) * (kw + 1) - 14;
         int m = trk[g + i].p[P_MUTE] != 0;
         uint16_t f = m ? T_REC : T_LIFT;
-        char n[2] = {(char)('1' + g + i), 0};
+        char n[3];
+        trk_num(n, g + i);
         if (g + i >= trk_n()) {                         /* (a track not in use: its key blank) */
             cv_rrect(x, by, 26, bh, 4, ux_mix(T_PANEL, T_SURF, 50), T_PANEL);
             continue;

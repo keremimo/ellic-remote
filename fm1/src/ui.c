@@ -65,6 +65,13 @@ static uint32_t pat_num(char *b, uint32_t p)
     if (p > 9u) { b[0] = (char)('0' + p / 10u); b[1] = (char)('0' + p % 10u); b[2] = 0; return 2; }
     b[0] = (char)('0' + p); b[1] = 0; return 1;
 }
+/* track k's number, 1..32, into b (3 bytes); its length (as pat_num: the remote's tracks go past 9) */
+static uint32_t trk_num(char *b, uint32_t k)
+{
+    k = k % NTRK + 1u;
+    if (k > 9u) { b[0] = (char)('0' + k / 10u); b[1] = (char)('0' + k % 10u); b[2] = 0; return 2; }
+    b[0] = (char)('0' + k); b[1] = 0; return 1;
+}
 static int project_free_pct(void);                 /* project.c: the shared pool's room left in KB (-1 unknown) */
 static int project_rename(uint32_t slot, const char *name);
 static int project_erase(uint32_t slot);
@@ -972,7 +979,7 @@ static void undo_step_guarded(int redo)
     if (undo_top) undo_lv[undo_top - 1u].keep = 0;
     if (t == TSEL)
         sync_reload = 1;
-    b[1] = (char)('1' + trk_index(t));
+    trk_num(b + 1, trk_index(t));
     ui_say(redo ? "REDO " : "UNDO ", b);
     ui.force = 1;
 }
@@ -1067,7 +1074,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
  * its values or the new one with its own (voice.c engine_block), never one with the other's */
 static void engine_load_of(track_t *t, uint32_t ei, uint32_t pi)
 {
-    if (t >= &trk[NPART] && t < &trk[NTRK]) { ei = ENGI_MIDI; pi = 0; }   /* (tracks 5..8: MIDI Track only) */
+    if (MELODEE_MIDI_PLACES && t >= &trk[NPART] && t < &trk[NTRK]) { ei = ENGI_MIDI; pi = 0; }   /* (tracks 5..8: MIDI Track only) */
     const engine_t *e = ENGINES[ei % NENGINES];
     uint32_t i;
     load_begin(t, UNDO_SOUND);
