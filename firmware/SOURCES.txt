@@ -1,0 +1,7 @@
+Melodee Remote 0.1.0
+Firmware source: melodee-remote-0.1.0-source.zip
+Application commit: c582228734d513a85508bf5a826ca9dd52fcfd5e
+Source SHA-256: 8f669df0b456faa0ee7ba935a3404f836de34098d53438bb35c8829efa185ad4
+The ZIP includes matching Melodee Remote, fm1-base and felucca-bsp source.
+MPL-covered files are available under MPL-2.0; other files retain their own terms.
+Read LICENSE, LICENSING.md and LICENSES/.
