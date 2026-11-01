@@ -14,7 +14,7 @@ waveform and its marks for a sample or a clip (**WAVE**, **MARKS**) and actions 
 names (**TRACKS**); the screens followed both ways (**PAGE**); the remote's preferences and Melodee's sound settings
 kept by Melodee (**PREFS**); Melodee's word on the remote's screen (**TOAST**). Gone: the projects (PROJECTS, LOAD,
 NEW; SAVE saves the project open), Melodee FM-1's own ENV, LFO and FX pages and its eight engine parameters
-(`P_E0..P_E7`). Versions 1..3 are retired: an older HELLO gets the remote's HELLO back (version 4) and nothing else.
+(`P_E0..P_E7`). A HELLO of another version claims nothing: the remote answers with its own.
 `app/unit/link.c` is the firmware's side of everything below; `app/tests/link.txt` plays Melodee's.
 
 The same bytes work over Bluetooth MIDI (the remote is a peripheral advertised as **Melodee**, GAP name
@@ -29,7 +29,7 @@ Every message is SysEx: `F0 7D 4D 52 cmd body F7` (7D: non-commercial; "MR"). In
 - **text**: ASCII 0x20..0x7E, ended by `00`.
 - Parameter numbers below 4096 are Melodee FM-1's: per track `P_*`, global `G_*` (`fm1/src/core.h`); their ranges and
   formats are its descriptors (`fm1/src/params.c` `TP[]` and `GP[]`). At this firmware: `P_COUNT` 124, `G_COUNT` 45,
-  `P_ROOT` 25, `P_SCALE` 26, `P_QUANT` 27, `G_BPM` 0. **4096 + k** is the selected track's told value k (0..63, below).
+  `P_ROOT` 25, `P_SCALE` 26, `P_QUANT` 27, `G_BPM` 0. **4096 + k** is the selected track's told value k (0..119, below).
 - Tracks are numbered 0..tmax-1, every one a part. The remote's pages show them four at a time, the selected track's
   four (Stage, MIXER, PATTERNS, SONG, GLO's layer: Melodee FM-1's groups), numbered 1..32.
 - Messages keep their bodies to about 150 bytes (Melodee splits longer ones: PAGES, SOUNDS, WAVE).
@@ -64,7 +64,7 @@ over) and PING (answered with STATE: "taken").
 | cmd | Name | Body |
 | --- | --- | --- |
 | 40 | INSTRUMENT | n (0..11, Melodee's order), sounds v14, name |
-| 41 | DESC | k (0..63), format (`F_*`: 0 INT, 1 PCT, 2 BIPCT, 3 TIME, 4 LFOHZ, 5 CUTOFF, 6 DB, 7 SEMI, 8 ENUM, 9 BPM, 10 NOTE, 11 ONOFF, 12 OCT, 13 STEPS; 14 ACTION), min v14, max v14, default v14, names count, label, unit, then the value names (ENUM: one a value, at most 24): the selected track's told value k |
+| 41 | DESC | k (0..119), format (`F_*`: 0 INT, 1 PCT, 2 BIPCT, 3 TIME, 4 LFOHZ, 5 CUTOFF, 6 DB, 7 SEMI, 8 ENUM, 9 BPM, 10 NOTE, 11 ONOFF, 12 OCT, 13 STEPS; 14 ACTION), min v14, max v14, default v14, names count, label, unit, then the value names (ENUM: one a value, at most 24): the selected track's told value k |
 | 42 | SOUNDS | n, first v14, count, then count names (at most 128 an instrument) |
 | 43 | INSTRUMENTS | count: the instruments told so far are the list (PRESETS browses them; a track's instrument is one of them) |
 | 44 | TRACKS | count (1..tmax: the project's first tracks, in order), the selected one, first, then the tracks from first on as fit (each: instrument n (127 none), sound v14, name): Melodee splits them into messages of ~150 bytes |
@@ -104,7 +104,7 @@ device's). **PAGES** lists them in order:
 
 Each told value k has its **DESC** (its range, how it reads; ACTION: a column that OCT+ does, `REQUEST ACTION`). A
 value belongs to the track as Melodee maps it: a sampler's pad values to the pad selected, a clip's to the clip shown;
-when that changes Melodee tells the values again. Up to 24 pages, 64 values.
+when that changes Melodee tells the values again. Up to 32 pages, 120 values.
 
 **keys**: 0 the keys play the selected track's layout (below); 1 pads: the 16 white keys, left to right, play the
 pads' first note .. + 15 (the black keys nothing), as Melodee FM-1's kits do; Melodee chooses a pad as it is struck.

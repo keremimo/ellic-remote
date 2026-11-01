@@ -601,7 +601,7 @@ static page_t PAGES[] = {
     {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, P_STRUM, P_STROKE}},   /* SCL again: the chord keys (chord.c) */
     {"MPC", FAM_SCL, SC_TRACK, GR_NONE, {P_MPCDEG, 0xFF, 0xFF, 0xFF}},   /* the degree of each bank's pad 02: a row of SCL's list
                                                                           * (QNT MPC only), not a page of its own */
-    TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4,
+    TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4,
     {"PRESETS", FAM_EDIT, SC_GLOBAL, GR_BROWSE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* browser: KNOB 1 LIST, 2 / PRESETS the sounds
                                                                               * (EDIT's last: SAVE only saves) */
     {"ARP", FAM_ARP, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},

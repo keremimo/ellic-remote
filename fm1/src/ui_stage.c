@@ -456,8 +456,8 @@ static void stage_row(uint32_t k)
         stage_entry(k, &src, &kk);
     }
     cat = entry_cat(src, kk) % CAT_N;
-    if (!pending && trk_name[k % NTRK][0]) {          /* a named track: its sound under its name */
-        sound_name(t, line);
+    if (!pending && trk_name[k % NTRK][0] && (sound_name(t, line), !str_eq(line, trk_name[k % NTRK]))) {
+        /* a track named otherwise than its sound: the sound under its name */
     } else {   /* the role (NEW SONG's words: DRUMS, CHORDS; none, OTHER: the track), then what plays */
         char tn[4] = {'T', 0, 0, 0};
         trk_num(tn + 1, k);

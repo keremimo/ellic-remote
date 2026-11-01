@@ -170,6 +170,20 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
         fm1u_sysex(f, n, cmd[0] == 'b' ? PORT_BLE : PORT_USB);
         return 1;
     }
+    if (!strcmp(cmd, "text") && a[0]) {                /* text WHERE WORDS..: the rest of the line, spaces and all */
+        static char rest[128];
+        const char *q = strstr(plat_host_line, a);
+        size_t n;
+        q = q ? q + strlen(a) : "";
+        while (*q == ' ')
+            q++;
+        n = strcspn(q, "\r\n");
+        if (n >= sizeof rest)
+            n = sizeof rest - 1u;
+        memcpy(rest, q, n);
+        rest[n] = 0;
+        return fm1u_host_cmd(cmd, a, rest);
+    }
     return fm1u_host_cmd(cmd, a, b);
 }
 int app_host_fails(void) { return fm1u_host_fails(); }

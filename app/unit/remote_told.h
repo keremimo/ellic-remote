@@ -2,10 +2,10 @@
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* The selected track's sound pages as Melodee tells them: the set (remote_told.c), before the page table that shows it
  * (params.c SC_TOLD, page_desc). */
-#define TOLD_PAGES 24u                   /* (the page table's told slots) */
-#define TOLD_K 64u                       /* told values a set holds */
-#define TOLD_TEXT 6144u                  /* the set's titles, labels, units and value names */
-#define TOLD_NAMES 640u                  /* .. the value names' pointers, each list ended by 0 */
+#define TOLD_PAGES 32u                   /* (the page table's told slots) */
+#define TOLD_K 120u                      /* told values a set holds */
+#define TOLD_TEXT 8192u                  /* the set's titles, labels, units and value names */
+#define TOLD_NAMES 1024u                  /* .. the value names' pointers, each list ended by 0 */
 #define TOLD_WAVE_W 224u                 /* a wave's columns (WAVE) */
 #define TOLD_MARKS 64u
 #define TOLD_ID 4096u                    /* PARAM's ids from here: told value k */

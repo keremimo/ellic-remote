@@ -119,7 +119,7 @@ expect last_cmd 3
 sysex F0 7D 4D 52 02 F7
 wait 20
 expect host 0
-# an older Melodee (version 3) does not claim it: it hears the remote's HELLO, version 4
+# a Melodee of another version (3) does not claim it: it hears the remote's HELLO, version 4
 sysex F0 7D 4D 52 01 03 F7
 wait 20
 expect host 0
