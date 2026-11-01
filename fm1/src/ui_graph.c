@@ -264,8 +264,11 @@ static void graph_recorded_notes(const track_t *t, uint16_t c)
     uint32_t base = notes_base(), end = base + notes_span();
     if (end > (uint32_t)t->p[P_SLEN]) end = (uint32_t)t->p[P_SLEN];
     for (uint32_t step = base; step <= end; step++) {
-        int32_t x = notes_x(recording_prefix(t, period, step), a, b);
-        cv_rect(x, PR_Y0, 1, bottom - PR_Y0, step % 4u ? T_GRID : T_RAISE);
+        int32_t x;
+        if (notes_span() > 16u && step % 4u)          /* (a bar or more shown: the beats' lines alone) */
+            continue;
+        x = notes_x(recording_prefix(t, period, step), a, b);
+        cv_rect(x, PR_Y0, 1, bottom - PR_Y0, step % 4u ? T_GRID : step % 16u ? T_RAISE : T_MID);
     }
     if (proll.play >= 0) cv_rect(proll.play, PR_Y0, 1, bottom - PR_Y0, T_ACCENT);   /* (set by the caller: notes_play_x) */
     /* Manual notes use the same time axis and selection language. Ties

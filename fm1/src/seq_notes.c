@@ -72,7 +72,12 @@ static void notes_swung_move(const track_t *t, const recorded_note_t *r, int32_t
                          target * (int32_t)period, (target + 1) * (int32_t)period - 1);
     recording_quant_position(r, at, step_samples(t, period, 0), step_samples(t, period, 1), len, out);
 }
-static uint32_t notes_span(void) { return 16u >> ui.note_zoom; }
+/* the steps NOTES shows: the whole pattern at zoom 0 (its length to a bar, 16 .. 64), halved at each zoom in */
+static uint32_t notes_span(void)
+{
+    uint32_t len = (uint32_t)clamp(TSEL->p[P_SLEN], 1, NSTEP), whole = (len + 15u) / 16u * 16u;
+    return whole >> ui.note_zoom ? whole >> ui.note_zoom : 1u;
+}
 static uint32_t notes_base(void) { return ui.cursor / notes_span() * notes_span(); }
 
 /* Rebuild only the deleted event's rounded overview cell. Other events in

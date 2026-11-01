@@ -46,6 +46,23 @@ static struct {
 } lys;
 
 static const uint32_t LY_DTAP_MS=300u;
+/* Melodee told a value (link.c): a SET layer's snapshot of it takes it, so OCT- puts back the remote's own turns and
+ * never what Melodee changed meanwhile */
+static void layer_heard(uint32_t t, uint32_t id, int32_t v)
+{
+    uint32_t k;
+    if (!ui.layer || lys.l == LAYER_FX)
+        return;
+    if (lys.l == LAYER_GLO) {
+        k = t - lys.trk / NPART * NPART;
+        if (t == 0xFFu && id == G_BPM) lys.v[8] = (int16_t)v;
+        else if (k < 4u && id == P_MUTE) lys.v[k] = (int16_t)v;
+        else if (k < 4u && id == P_LEVEL) lys.v[4u + k] = (int16_t)v;
+    } else if (t == lys.trk) {
+        if (id >= P_ROOT && id < P_ROOT + 4u) lys.v[id - P_ROOT] = (int16_t)v;
+        else if (id == P_CHRD || id == P_VOIC) lys.v[4u + id - P_CHRD] = (int16_t)v;
+    }
+}
 
 
 
@@ -238,7 +255,6 @@ static void layer_key(uint32_t l, uint32_t k)
         }
     } else if (l == LAYER_SCL) {
         TSEL->p[P_ROOT] = (int16_t)((k + 5u) % 12u);    /* the key's note name (F3 = F) */
-        scale_share(TSEL);
     }
 }
 /* each pass: the keys the layer got now; then GLO's solo: the tracks of its keys still held (perform.c) */
@@ -315,7 +331,6 @@ static uint32_t layer_oct(uint32_t pressed, uint32_t oct)
                 trk[lys.trk % NTRK].p[P_ROOT + k] = lys.v[k];
             trk[lys.trk % NTRK].p[P_CHRD] = lys.v[4];
             trk[lys.trk % NTRK].p[P_VOIC] = lys.v[5];
-            scale_share(&trk[lys.trk % NTRK]);
             ui_message("SCALE PUT BACK");
         }
     }

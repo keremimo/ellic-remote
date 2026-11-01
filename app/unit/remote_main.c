@@ -89,6 +89,11 @@ int fm1u_sysex(const uint8_t *p, uint32_t n, int port)
     return link_sysex(p, n, port);
 }
 
+void fm1u_lost(int port)
+{
+    link_lost(port);
+}
+
 #ifdef PLAT_HOST
 /* ------------------------------------------------------------ simulator --- */
 static int host_fails;
@@ -113,6 +118,8 @@ int fm1u_expect(const char *what, int *got)
     else if (!strcmp(what, "host")) v = lk.host;
     else if (!strcmp(what, "frames_in")) v = (int)lk.frames_in;
     else if (!strcmp(what, "frames_out")) v = (int)lk.frames_out;
+    else if (!strcmp(what, "lost")) v = (int)lk.lost;
+    else if (!strcmp(what, "gen")) v = lk.gen;
     else if (!strcmp(what, "last_req")) v = lk.last_req;
     else if (!strcmp(what, "last_cmd")) v = lk.last_cmd;
     else if (!strcmp(what, "instruments")) v = (int)remote_eng_n;

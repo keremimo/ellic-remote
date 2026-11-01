@@ -975,9 +975,6 @@ static void edit_param(uint32_t slot, int32_t steps)
         if (motion_param((uint32_t)(vp - TSEL->p)))
             motion_unplayed();
     }
-    if ((pg->scope == SC_TRACK && scale_shared((uint32_t)(vp - TSEL->p))) ||
-        (pg->scope == SC_GLOBAL && pg->id[slot] == G_PROJECT_RECQ))
-        scale_share(TSEL);
 }
 
 /* OCT+ on an action page: the picked action asked of Melodee, dropped once asked */
@@ -2102,7 +2099,7 @@ static void ui_input(void)
         /* PRESETS browses the selected part's sounds (all engines, then user presets) on HOME and the
          * PRESETS page and PATTERNS (never the steps); elsewhere (TRACKS too, where one records) a stray turn
          * would throw away the sound being edited. Tracks 5..8 are MIDI Tracks: no sounds to browse */
-        if (trk_midi_slot(song.sel)) ui_message("MIDI TRACK");
+        if (!eng_ok(TSEL->eng_req)) ui_message("NO SOUNDS");   /* (a track with no instrument: MIDI, audio) */
         else {
             browse_turn(EN_PRESET, s);                  /* past the factory ones: user presets */
             uint32_t total;

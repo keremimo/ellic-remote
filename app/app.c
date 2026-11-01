@@ -54,35 +54,41 @@ typedef struct {
     uint32_t n;
     uint8_t on;
 } sx_t;
+/* 1 a frame whole, -1 one cut short (bytes lost on the way: a new start, another status, too long), else 0 */
 static int sx_byte(sx_t *a, uint8_t b)
 {
+    int cut = 0;
     if (b >= 0xF8u)
         return 0;                                  /* (realtime may come anywhere) */
     if (b == 0xF0u) {
+        cut = a->on;                               /* (a frame still open: its end was lost) */
         a->n = 0;
         a->on = 1;
     } else if (!a->on) {
         return 0;
     } else if (b & 0x80u && b != 0xF7u) {
         a->on = 0;                                 /* another status cuts it short */
-        return 0;
+        return -1;
     }
     if (a->n >= SX_MAX) {
         a->on = 0;
-        return 0;
+        return -1;
     }
     a->buf[a->n++] = b;
     if (b == 0xF7u) {
         a->on = 0;
         return 1;
     }
-    return 0;
+    return cut ? -1 : 0;
 }
 static sx_t sx_ble PLAT_POOL, sx_usb PLAT_POOL;
 void mel_ble_sysex(uint8_t byte)
 {
-    if (sx_byte(&sx_ble, byte))
+    int got = sx_byte(&sx_ble, byte);
+    if (got > 0)
         (void)fm1u_sysex(sx_ble.buf, sx_ble.n, PORT_BLE);
+    else if (got < 0)
+        fm1u_lost(PORT_BLE);                       /* (Melodee told again: link.c) */
 }
 
 #define USB_Q 4096u
@@ -106,11 +112,18 @@ static void usb_take(void)
         uint8_t b = usb_q[usb_r % USB_Q];
         __asm__ volatile("" ::: "memory");
         usb_r++;
-        if (usb_over && b != 0xF0u)                /* (lost bytes: nothing until the next frame's start) */
-            continue;
-        usb_over = 0;
-        if (sx_byte(&sx_usb, b))
+        if (usb_over) {                            /* (lost bytes: nothing until the next frame's start) */
+            if (b != 0xF0u)
+                continue;
+            usb_over = 0;
+            sx_usb.on = 0;
+            fm1u_lost(PORT_USB);
+        }
+        int got = sx_byte(&sx_usb, b);
+        if (got > 0)
             (void)fm1u_sysex(sx_usb.buf, sx_usb.n, PORT_USB);
+        else if (got < 0)
+            fm1u_lost(PORT_USB);
     }
 }
 #ifdef PLAT_HOST
@@ -167,7 +180,14 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
             f[n++] = (uint8_t)v;
             q += used;
         }
-        fm1u_sysex(f, n, cmd[0] == 'b' ? PORT_BLE : PORT_USB);
+        if (cmd[0] == 'b') {                       /* (Bluetooth's: a byte at a time, as the overlay hands them over, so
+                                                    * a frame cut short is one) */
+            uint32_t i;
+            for (i = 0; i < n; i++)
+                mel_ble_sysex(f[i]);
+        } else {
+            fm1u_sysex(f, n, PORT_USB);
+        }
         return 1;
     }
     if (!strcmp(cmd, "text") && a[0]) {                /* text WHERE WORDS..: the rest of the line, spaces and all */

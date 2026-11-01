@@ -139,3 +139,28 @@ tap HOME
 wait 300
 text page HOME
 shot l_stage_12.png
+# bytes lost on Bluetooth: a frame cut short (a new one starting inside it) gives a new generation, so Melodee's next
+# PING has STATE tell it to tell everything again
+ble connect
+wait 100
+sysex F0 7D 4D 52 02 F7
+wait 20
+blesysex F0 7D 4D 52 01 04 F7
+wait 50
+expect host 2
+expect lost 0
+blesysex F0 7D 4D 52 46 00 62 F0 7D 4D 52 04 F7
+wait 50
+expect lost 1
+expect last_cmd 3
+# NOTES: the selected track's (10) 32-step pattern shown whole at zoom 0 (its length to a bar), the notes over both bars
+sysex F0 7D 4D 52 01 04 F7
+wait 50
+sysex F0 7D 4D 52 45 09 1D 40 20 40 F7
+sysex F0 7D 4D 52 47 09 00 01 00 00 3C 00 00 00 01 00 00 64 00 00 00 F7
+sysex F0 7D 4D 52 47 09 18 01 00 00 43 00 00 00 01 00 00 64 00 00 00 F7
+wait 50
+tap SEQ
+wait 900
+text page NOTES
+shot l_notes32.png

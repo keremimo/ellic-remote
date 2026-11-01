@@ -257,8 +257,8 @@ static int list_keep(uint32_t m, uint32_t src, uint32_t k)
 }
 
 /* one pass over the list LIST keeps: *total its length; the place of entry (ws, wk) (total: not in it); entry n in
- * *as, *ak (USER_GENERAL, UP_SLOTS past the end). The segments: 2 per engine in ENGINE_ORDER (factory, native), then
- * the user presets */
+ * *as, *ak (USER_GENERAL, UP_SLOTS past the end). The selected track's instrument's sounds alone (Melodee's: its
+ * instrument is changed on the browser's KNOB 4, never by turning past its sounds; a track with none has none) */
 #define LSEG_USER (2u * NENG_SHOWN)
 static uint32_t lseg_src(uint32_t seg){return seg&1u?USER_GENERAL:eng_vis(seg/2u);}
 static uint32_t lseg_len(uint32_t seg){return seg&1u?UP_SLOTS:ENGINES[eng_vis(seg/2u)]->npresets;}
@@ -272,7 +272,7 @@ static uint32_t list_scan(uint32_t m, uint32_t ws, uint32_t wk, uint32_t n, uint
         for (i = 0; i < recent_n; i++) {
             src = recent[i] >> 16;
             k = recent[i] & 0xFFFFu;
-            if (!entry_ok(src, k))
+            if (!entry_ok(src, k) || src != TSEL->eng_req)
                 continue;
             if (src == ws && k == wk)
                 pos = c;
@@ -284,6 +284,8 @@ static uint32_t list_scan(uint32_t m, uint32_t ws, uint32_t wk, uint32_t n, uint
         for (seg = 0; seg < LSEG_USER; seg++) {
             uint32_t len = lseg_len(seg), slot = seg & 1u, init;
             src = lseg_src(seg);
+            if (slot || src != TSEL->eng_req || !eng_ok(src))
+                continue;
             init = slot || !len ? 0u : preset_init(src);   /* (an engine's INIT first: FM6's comes after F24) */
             for (i = 0; i < len; i++) {
                 k = (i + init) % len;

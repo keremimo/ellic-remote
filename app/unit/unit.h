@@ -12,6 +12,7 @@ void fm1u_frame(void);                  /* a pass of Melodee FM-1's main loop: t
 void fm1u_redraw(void);                 /* the whole screen again at the next frame (the mirror lost a part) */
 void fm1u_midi(uint32_t pkt, int port); /* a USB-MIDI packet from Melodee (port U_PORT_*): clock, notes */
 int fm1u_sysex(const uint8_t *p, uint32_t n, int port);   /* a whole SysEx frame (F0 .. F7): 1 = the unit's */
+void fm1u_lost(int port);               /* a frame cut short on a port (bytes lost): Melodee tells it all again */
 
 #ifdef PLAT_HOST
 /* the simulator's checks of Melodee FM-1's state (app.h APP_HOST_EXPECT, APP_HOST_CMD) */

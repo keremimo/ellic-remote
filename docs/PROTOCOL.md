@@ -43,7 +43,7 @@ Every message is SysEx: `F0 7D 4D 52 cmd body F7` (7D: non-commercial; "MR"). In
 3. Melodee sends **PING** every 2 s; the remote answers **STATE**. A Melodee that has PINGed and then says nothing
    for 7 s lets the remote go, as **BYE** does, and as the claiming link going does.
 4. The remote's **generation** (in HELLO and STATE) changes whenever it lost what Melodee had told it (power-on,
-   a link that went, another Melodee taking it). A Melodee that sees a generation it did not last tell, or a state
+   a link that went, another Melodee taking it, a frame of Melodee's cut short on the way: bytes lost). A Melodee that sees a generation it did not last tell, or a state
    that is not "yours", tells it everything again.
 
 Only the Melodee that has the remote is listened to; another port's messages are ignored except HELLO (which takes it
@@ -53,7 +53,7 @@ over) and PING (answered with STATE: "taken").
 | --- | --- | --- | --- |
 | 01 | HELLO | both | version (4); from the remote also: generation (2 x 7 bits, low first), state, tmax (the tracks it holds: 32) |
 | 02 | BYE | Melodee | — |
-| 03 | STATE | remote | generation (2 x 7 bits), state: 0 free, 1 yours, 2 taken; why the generation last changed: 0 power-on, 1 a link went or went silent, 2 taken by another port; tmax |
+| 03 | STATE | remote | generation (2 x 7 bits), state: 0 free, 1 yours, 2 taken; why the generation last changed: 0 power-on, 1 a link went or went silent, 2 taken by another port, 3 bytes lost (a frame of Melodee's cut short on the way); tmax |
 | 04 | PING | Melodee | — |
 | 05 | PAGE | both | screen, track, family, page (127 none), title (below) |
 | 06 | PREFS | both | (id, value v14) repeated (below) |

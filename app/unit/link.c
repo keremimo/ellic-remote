@@ -15,7 +15,7 @@ enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING, L_PAGE, L_PREFS, L_TOAST,
        L_INSTRUMENT = 0x40, L_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
        L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS, L_REQUEST = 0x50 };
 enum { L_FREE, L_YOURS, L_TAKEN };                     /* STATE: whose the remote is, to the port asking */
-enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN };      /* why the generation last changed */
+enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN, L_WHY_LOST };   /* why the generation last changed */
 #define L_SILENT_MS 7000u                              /* a Melodee that PINGs and is then silent this long: let go */
 #define L_SEND_MAX 24u                                 /* messages a frame (Bluetooth MIDI's pace) */
 
@@ -35,6 +35,7 @@ static struct {
     step_t step[NTRK][NSTEP];
     uint8_t eng[NTRK], preset[NTRK], sel, ntrk;
     uint32_t frames_in, frames_out;                    /* (the simulator's checks) */
+    uint32_t lost;                                     /* frames cut short on the way (bytes lost) */
     uint8_t last_req, last_cmd;
 } lk __attribute__((section(".pool")));
 
@@ -116,6 +117,15 @@ static void link_mark(void)
     memcpy(lk.g, song.g, sizeof lk.g);
     lk.sel = song.sel;
     lk.ntrk = song.ntrk;
+}
+
+/* a frame cut short on a port (bytes lost on the way): from the Melodee that has the remote, a new generation, so the
+ * next STATE (its PING's answer) has it tell everything again */
+static void link_lost(int port)
+{
+    lk.lost++;
+    if (lk.host == 1u + (uint32_t)port)
+        link_new_gen(L_WHY_LOST);
 }
 
 static void link_let_go(void)
@@ -303,14 +313,17 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             if (b[0] < NTRK && (uint32_t)rd14(b + 1) < P_COUNT) {
                 uint32_t id = (uint32_t)rd14(b + 1);
                 trk[b[0]].p[id] = lk.p[b[0]][id] = (int16_t)rd14(b + 3);
+                layer_heard(b[0], id, rd14(b + 3));
             } else if (b[0] < NTRK && rd14(b + 1) >= (int32_t)TOLD_ID) {
                 told_param(b[0], (uint32_t)rd14(b + 1) - TOLD_ID, rd14(b + 3));
             }
         break;
     case L_GLOBAL:                                     /* (id, value v14)... */
         for (; end - b >= 3; b += 3)
-            if (b[0] < G_COUNT)
+            if (b[0] < G_COUNT) {
                 song.g[b[0]] = lk.g[b[0]] = (int16_t)rd14(b + 1);
+                layer_heard(0xFFu, b[0], rd14(b + 1));
+            }
         break;
     case L_STEPS:                                      /* track, first, count, count x 13 bytes */
         if (end - b >= 3 && b[0] < NTRK) {
