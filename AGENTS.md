@@ -9,7 +9,9 @@
 # This repository
 
 - Melodee Remote is MPL-2.0 file by file. Take nothing from Saadet but Kerem Kilic's own lines (check `git blame` there),
-  and never its factory sound data, engines, Felucca-derived UI, or GPL-3.0-only tools and web pages.
+  and never its factory sound data, engines, Felucca-derived UI, or GPL-3.0-only tools and web pages. The exceptions
+  are its web installer (`web/install/`, MPL-2.0 with fm1-base's portions) and its release-site tools, which Kerem
+  licenses MPL-2.0 here (LICENSING.md, "From Saadet").
 - The remote is a pure remote: it runs Melodee FM-1's pages and controls (`~/code/personal/Felucca`, branch `nightly`;
   call it Melodee FM-1, never Felucca) and keeps no music. Never bring Melodee FM-1's engines, voices, mixer, effects,
   sequencer, pattern store, takes, song chain, projects, presets or undo arena, nor any factory data: the model is

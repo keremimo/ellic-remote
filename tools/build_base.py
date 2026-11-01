@@ -51,9 +51,22 @@ if work.exists():
 shutil.copytree(source, work, ignore=shutil.ignore_patterns(".git", "build", "__pycache__"))
 sys.path.insert(0, str(ROOT / "tools"))
 from base_overlay import apply  # noqa: E402
+from release_support import NAME, record_build, source_state  # noqa: E402
 
 apply(work)
 env = os.environ.copy()
 env.setdefault("JIELI_TOOLCHAIN", str(Path.home() / ".jieli/toolchain"))
 env.setdefault("AC79_SDK", str(Path.home() / "fw-AC79_AIoT_SDK"))
+before = source_state(ROOT)
 run([sys.executable, work / "tools/build.py", ROOT / "app", *sys.argv[1:]], env=env, cwd=ROOT)
+
+# a package's build receipt (PACKAGE.build.json): the source it was built from, which a release site checks
+if "--host" not in sys.argv and "--web" not in sys.argv:
+    version = sys.argv[sys.argv.index("--release") + 1] if "--release" in sys.argv else None
+    stem = NAME + ("-usb" if "--no-ble" in sys.argv else "") + (f"-{version}" if version else "")
+    package = ROOT / "app/build" / (stem + ".fwsc")
+    sys.path.insert(0, str(work / "tools"))
+    from fm1_install import product_of  # noqa: E402
+
+    record_build(ROOT, package, before, version, product_of(package.read_bytes()), "--no-ble" not in sys.argv,
+                 REV, BSP_REV)

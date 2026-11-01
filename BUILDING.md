@@ -80,9 +80,46 @@ MOTION, the polyphony budget's pages, autosave), and SAVE only asks Melodee to s
 
 The Bluetooth stack itself is not in the tests.
 
+## Release site and web installer
+
+The web installer is Saadet's (`web/install/`), with Melodee Remote's words. `tools/make_site.py` builds a static site
+from a package: the installer page (its modules bundled into one file, so a cached page never mixes two releases'
+code), `release.json` (version, identity, SHA-256s the page checks), the package, m-bootloader 1.2 from the pinned
+fm1-base (exactly its SHA-256, with its MIT licence), the licences and `SHA256SUMS`.
+
+```sh
+python3 tools/make_site.py --dev app/build/melodee-remote.fwsc dev build/site     # a development package, to try
+python3 -m http.server 8847 --bind 127.0.0.1 --directory build/site              # then /install/ or /install/?demo
+build/venv/bin/python tools/prepare_public_release.py 0.1.0                       # a public release, prepared locally
+```
+
+`?demo` runs the page against a simulated FM-1 (`web/install/fakefm1.js`); nothing is written. `?demo=saadet`,
+`remote`, `current`, `update`, `interrupt` and `open` start it from Saadet, an older remote, this version, update mode,
+a cable lost halfway, and M-VAVE's Open firmware; `&auto` finds the FM-1 at once.
+
+A firmware build writes its receipt beside the package (`PACKAGE.build.json`: the source files' hashes, the pinned
+revisions). `tools/prepare_public_release.py` refuses uncommitted source, builds `./build.sh --release X.Y.Z` (identity
+`FM-1_14XXYYZZ`, which the page checks the download against and the FM-1 reports after the install), and prepares
+`build/releases/X.Y.Z/`: the package, a source ZIP with the exact fm1-base and felucca-bsp copies (MPL-2.0 asks that whoever
+gets the firmware can get its source), the site and its ZIP, `RELEASE_INFO.json` and `SHA256SUMS`. It does not flash, tag, push
+or publish. The site goes on any static host as its web root (GitHub Pages: a `gh-pages` branch with the site at its
+root; `keremimo.github.io` is also Saadet's origin, so the page keeps its own storage keys and install lock).
+
+The page is fm1-base's installer made hard to break from the browser, as Saadet's: every answer to the FM-1's reads
+leaves from the MIDI event itself (`transfer.js`), so a background tab does not stall it; while writing, a Web Lock
+(one install per browser), a wake lock and a leave confirmation hold the page (`keepalive.js`); an install stopped
+after the FM-1 entered update mode resumes, now or on a later visit. Melodee Remote's differences: it keeps nothing
+on the FM-1, so the backup question comes only over another firmware (Saadet's sounds, M-VAVE's); it detects Saadet
+and points back to Saadet's installer; and it asks to close Melodee, which talks to the FM-1 over the same USB MIDI.
+
+`node web/test_install.mjs` runs the transfer against the simulated FM-1 with the page's timers throttled, interrupts
+and resumes an install, installs m-bootloader after it, and checks the page's words in both languages and the
+vendored fm1-base files; `tests/site_test.py` checks the site from the development package. Both are in
+`tests/run_tests.sh`. They do not replace an install on an FM-1 in Chrome and Edge.
+
 ## Installing
 
-Installation is a separate, explicit step, with fm1-base's installer from the build copy:
+Installation is a separate, explicit step, with the web installer (above) or fm1-base's installer from the build copy:
 
 ```sh
 ~/code/personal/saadet/build/venv/bin/python build/fm1-base-platform/tools/fm1_install.py app/build/melodee-remote.fwsc --port FM-1

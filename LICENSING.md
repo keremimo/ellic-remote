@@ -5,11 +5,13 @@ are MPL-2.0 (`LICENSE`), by Kerem Kilic (Ellic Studio).
 
 | What | Licence |
 | --- | --- |
-| The app (`app/`), the build wrapper and overlay (`tools/`), the tests (`tests/`), the docs | MPL-2.0, Kerem Kilic (Ellic Studio) |
+| The app (`app/`), the build wrapper and overlay, the release site's tools (`tools/`), the tests (`tests/`, `web/test_install.mjs`), the docs | MPL-2.0, Kerem Kilic (Ellic Studio) |
+| The web installer (`web/install/`), Saadet's | MPL-2.0: Kerem Kilic (Ellic Studio), with fm1-base's installer code (Charles Vestal; Leo Kuroshita's Felucca update protocol) where the files say so; `fm1ota.js` and `fm1pkg.js` are fm1-base's, unchanged |
 | Melodee FM-1's pages and controls, forked into `fm1/` (`fm1/src`, its font, icon, keycap, palette and table makers in `fm1/tools`, `fm1/assets/icons.json`, `fm1/assets/fonts/melodee_pixel.txt`) | MPL-2.0: Kerem Kilic (Ellic Studio), with Leo Kuroshita's Felucca code where the files say so, under his permission (below) |
 | Rubik by The Rubik Project Authors (<https://github.com/googlefonts/rubik>): the screen's text and keycap labels, rasterised at build time (the generated tables are not offered as a font; the font declares no Reserved Font Name) | SIL OFL 1.1: `fm1/assets/fonts/Rubik[wght].ttf`, `LICENSES/OFL-Rubik.txt` |
 | fm1-base and felucca-bsp, fetched at pinned revisions into `build/` (never committed) | Their own: MPL-2.0 file by file (Charles Vestal; Leo Kuroshita's Felucca code under his MPL-2.0 permission, hugelton/felucca-bsp#4), with their fonts (SIL OFL 1.1) and their third-party notices |
 | JieLi's AC79 SDK and Bluetooth libraries, linked into the Bluetooth build from `$AC79_SDK` | JieLi's (Apache-2.0 for the SDK files fm1-base builds; see fm1-base's LICENSING.md) |
+| m-bootloader 1.2 by Julius Vitkauskas (<https://github.com/jvitkauskas/m-bootloader>), offered by the release site from the pinned fm1-base's `web/m-bootloader` | MIT: its `LICENSE` published beside it |
 
 ## From Melodee FM-1
 
@@ -44,9 +46,15 @@ The remote takes its platform from Saadet's fm1-base port, and only Kerem Kilic'
   peripheral-link changes to fm1-base (timer routing, fresh-link state, the subscription bit, GAP name reads, Bluetooth
   off while starting). The SysEx and naming changes are new.
 - `app/app.h` keeps Saadet's splash colour and its panel-calibration store offset.
+- `web/install/` is Saadet's web installer (MPL-2.0 there too) with Melodee Remote's words: Kerem Kilic's code, with
+  the portions it keeps from fm1-base's `web/installer.html` and `fm1ota.js`/`fm1pkg.js` (Charles Vestal, Leo
+  Kuroshita) under MPL-2.0 as fm1-base gives them; `web/test_install.mjs` is its test.
+- `tools/make_site.py`, `tools/release_support.py`, `tools/prepare_public_release.py` and `tests/site_test.py` follow
+  Saadet's. Saadet's `make_site.py` and `site_test.py` are GPL-3.0-only there; they are Kerem Kilic's alone, and here
+  he licenses them MPL-2.0.
 
 Nothing of Saadet's instrument is here: no engines, no factory sound data (Roland's, Sequential's, Casio's), no
-Felucca-derived UI or editor code, and none of Saadet's GPL-3.0-only tools or web pages.
+Felucca-derived UI or editor code, and none of Saadet's GPL-3.0-only web pages (its editor and manual).
 
 ## Changes to fm1-base
 
