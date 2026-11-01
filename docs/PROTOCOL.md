@@ -249,4 +249,5 @@ set's page 1: AMP).
 ## Not in version 4 (yet)
 
 Motion (parameter lanes), a pattern's own sound, the song's sections as Melodee has them (the remote's SONG is rows of
-patterns), the preset favourites and the scales' favourites (the remote's, until power-off).
+patterns), a Song clip's audio (the pages edit an audio track's Stage clip), audio to notes, the preset favourites and
+the scales' favourites (the remote's, until power-off).

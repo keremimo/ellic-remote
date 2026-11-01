@@ -70,9 +70,10 @@ MOTION, the polyphony budget's pages, autosave), and SAVE only asks Melodee to s
   selected track's sound pages (an envelope, a wave and an action), a step and the transport, and checks what the
   controls send back, the pages followed both ways, the preferences, a toast and the pads on the keys; `lights` the
   LEDs' levels and SAVE. The app adds script commands: `sysex HEX..` (a frame from USB),
-  `blesysex HEX..` (from Bluetooth), `text page TITLE`, and `expect` values (home, page, menu, pop, confirm, layer,
-  sel, playing, rec, bpm, octave, tracks, list_row, list_first, host, frames_in, frames_out, last_req, last_cmd,
-  instruments, pattern). Screenshots land in `app/build/tests/`.
+  `blesysex HEX..` (from Bluetooth), `text page TITLE` (`text nameK NAME`, `text toast WORDS`: the rest of the line),
+  and `expect` values (home, page, menu, pop, confirm, layer, sel, playing, rec, bpm, octave, tracks, list_row,
+  list_first, host, frames_in, frames_out, last_req, last_cmd, instruments, pattern, keyN (a key's light), lights,
+  lights_mask, told_n, toldK, keys, act). Screenshots land in `app/build/tests/`.
 - `ble-midi`: the overlay's Bluetooth parser and sender, cut out of the build copy's `le_midi.c` and compiled against
   stand-ins for JieLi's stack (`tests/ble_midi_harness.c`): SysEx whole, split, with clock inside, cut short; sent and
   read back byte for byte at MTU 20 and 182.
