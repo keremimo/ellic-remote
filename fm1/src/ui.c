@@ -213,52 +213,11 @@ static uint32_t layer_btn(void);
 /* FM operator pages belonged to DIGITAL (retired): they never appear. SLICES:
  * a SLICE track's (ui_slice.c) */
 static int list_gone(uint32_t i);                        /* ui_list.c: a page in another's list */
-/* ENV / LFO on the engines with envelopes and LFOs of their own (Prophet, FM6, CZ-1: engine_t.ownenv, the track's
- * ADSR and ENV DEST do nothing there): their own pages (FAM_EDIT, by title). ENV: only those; LFO: those first, then
- * the track LFO's pages and MOD (the track LFO modulates any engine through LFO DEST and is the matrix's source) */
-static const char *const *native_titles(uint32_t fam)
-{
-    static const char *const P5_ENV[] = {"P5 FLT ENV", "P5 AMP ENV", "P5 ENV MOD", 0};
-    static const char *const FM_ENV[] = {"EG RATE", "EG LVL", "PITCH EG", "PITCH LV", 0};
-    static const char *const CZ_ENV[] = {"C1 PIT R1-4", "C1 WAV R1-4", "C1 AMP R1-4", "C2 PIT R1-4", "C2 WAV R1-4",
-                                         "C2 AMP R1-4", 0};
-    static const char *const P5_LFO[] = {"P5 LFO", "P5 WHEEL", 0};
-    static const char *const FM_LFO[] = {"FM LFO", 0};
-    static const char *const CZ_LFO[] = {"CZ VIBRATO", 0};
-    uint32_t e = TSEL->eng_req;
-    if (fam == FAM_ENV)
-        return e == ENGI_PROPHET ? P5_ENV : e == ENGI_FM6 ? FM_ENV : e == ENGI_CZ ? CZ_ENV : 0;
-    if (fam == FAM_LFO)
-        return e == ENGI_PROPHET ? P5_LFO : e == ENGI_FM6 ? FM_LFO : e == ENGI_CZ ? CZ_LFO : 0;
-    return 0;
-}
-static int native_page(uint32_t i, uint32_t fam)       /* page i: one of fam's native pages (a prefix of its title) */
-{
-    const char *const *t = native_titles(fam);
-    for (; t && *t; t++)
-        if (str_prefix(PAGES[i].title, *t))
-            return 1;
-    return 0;
-}
-
 static int page_visible(uint32_t i)
 {
-    if (midi_track_only(TSEL)) {
-        if (trk_midi_slot(song.sel) && PAGES[i].graph == GR_BROWSE) return 0;   /* (tracks 5..8: no other sound) */
-        if (PAGES[i].fam == FAM_ENV || PAGES[i].fam == FAM_LFO) return 0;
-        if (PAGES[i].scope == SC_TRACK && PAGES[i].fam == FAM_EDIT) return 0;
-        if (PAGES[i].fam == FAM_FX && PAGES[i].scope == SC_TRACK && PAGES[i].graph != GR_FXRACK) return 0;
-        if (PAGES[i].scope == SC_ENGINE && PAGES[i].id[0] == P_E4) return 0;
-    }
-    if (PAGES[i].fam == FAM_FX && PAGES[i].graph != GR_FXRACK) {   /* a slot's page (its MIX first): while it holds
-                                                                     * an effect (the rack shows it either way); NOTE
-                                                                     * TAIL none: its row is all of it, KNOB 4 REL */
-        int16_t t = (PAGES[i].scope == SC_GLOBAL ? song.g : TSEL->p)[PAGES[i].id[0] - 1u];
-        return t != FX_OFF && t != FX_MIDIVERB;
-    }
+    if (PAGES[i].scope == SC_TOLD)                    /* Melodee's: the selected track's, as told (remote_told.c) */
+        return told_visible(i);
     if (list_gone(i))
-        return 0;
-    if (PAGES[i].fam == FAM_ENV && native_titles(FAM_ENV))   /* (the track's ADSR, ENV DEST: nothing there) */
         return 0;
     return 1;
 }
@@ -496,39 +455,17 @@ static void page_scroll(int32_t dir)
     page_entered();
 }
 
-/* the pages a family's button visits, in order: ENV / LFO on an engine with its own (native_titles) its pages
- * first; n = 0: none */
-static uint32_t fam_pages(uint32_t fam, uint8_t *pg)
-{
-    uint32_t i, n = 0;
-    for (i = 0; i < NPAGES; i++)
-        if (native_page(i, fam) && page_visible(i))
-            pg[n++] = (uint8_t)i;
-    for (i = 0; i < NPAGES; i++)
-        if (PAGES[i].fam == fam && page_visible(i) && !native_page(i, fam))
-            pg[n++] = (uint8_t)i;
-    return n;
-}
-static int fam_has(uint32_t fam, uint32_t page)         /* page: one the family's button visits */
-{
-    return page < NPAGES && (native_page(page, fam) || PAGES[page].fam == fam) && page_visible(page);
-}
-
 static void open_family(uint32_t fam)
 {
-    if (midi_track_only(TSEL) && (fam == FAM_ENV || fam == FAM_LFO)) return;
-    if ((fam == FAM_ENV || fam == FAM_LFO) && native_titles(fam)) {   /* ENV / LFO of the Prophet, FM6, CZ-1 */
-        uint8_t pg[NPAGES];
-        uint32_t n = fam_pages(fam, pg), k;
-        for (k = 0; k < n && pg[k] != ui.page; k++) {}
-        if (!n)
-            return;
-        ui.page = !ui.home && k < n ? pg[(k + 1u) % n]                 /* again: the next one; from elsewhere the */
-                  : native_page(ui.fam_last[fam], fam) && fam_has(fam, ui.fam_last[fam]) ? ui.fam_last[fam] : pg[0];
-                                                                        /* engine's page last used, else its first */
-    } else if (fam == FAM_FX && (ui.home || ui.page != page_first(FAM_FX))) {
-        ui.page = (uint8_t)page_first(FAM_FX);        /* FX: the track's rack (from its slots and SHARED too); */
-    } else if (!ui.home && cur_page()->fam == fam) {   /* same button again: next page (FX: on from its rack) */
+    static const char *const NONE[FAM_COUNT] = {[FAM_ENV] = "ENV", [FAM_LFO] = "LFO", [FAM_EDIT] = "EDIT", [FAM_FX] = "FX"};
+    uint32_t i;
+    for (i = 0; i < NPAGES && !(PAGES[i].fam == fam && page_visible(i)); i++)
+        ;
+    if (i == NPAGES) {                                /* (Melodee told none for this sound: said, nothing moves) */
+        ui_say(NONE[fam] ? NONE[fam] : "", told_on() ? " NONE HERE" : " NOT TOLD YET");
+        return;
+    }
+    if (!ui.home && cur_page()->fam == fam) {         /* same button again: next page */
         uint32_t n, i = ui.page;
         for (n = 0; n < NPAGES; n++) {
             i = (i + 1u) % NPAGES;
@@ -544,19 +481,10 @@ static void open_family(uint32_t fam)
     page_entered();
 }
 
-/* GLO always enters the mixer from another family. Subsequent taps visit the
- * global settings, then return to the mixer; recording has no navigation role. */
+/* GLO enters the mixer (the remote has no global pages: the project's settings are Melodee's) */
 static void open_global(void)
 {
-    uint32_t i;
-    if (!ui.home && cur_page()->fam == FAM_TRK) {
-        ui.page = (uint8_t)page_first(FAM_GLO);
-    } else if (!ui.home && cur_page()->fam == FAM_GLO) {
-        for (i = ui.page + 1u; i < NPAGES && (PAGES[i].fam != FAM_GLO || !page_visible(i)); i++) {}
-        ui.page = (uint8_t)(i < NPAGES ? i : page_first(FAM_TRK));
-    } else {
-        ui.page = (uint8_t)page_first(FAM_TRK);
-    }
+    ui.page = (uint8_t)page_first(FAM_TRK);
     ui.home = 0;
     page_entered();
 }
@@ -1059,13 +987,11 @@ static void preset_go(uint32_t n)                    /* load list index n into t
 static page_t stage_pg;
 static const page_t *stage_page(void)
 {
-    uint32_t e = eng_idx(TSEL->eng_req), k;
     stage_pg.title = "STAGE";
     stage_pg.fam = FAM_HOME;
     stage_pg.graph = GR_NONE;
-    stage_pg.scope = SC_ENGINE;
-    for (k = 0; k < 4u; k++)
-        stage_pg.id[k] = ENGINES[e]->knob[k];
+    stage_pg.scope = SC_TOLD;                        /* (the set's HOME page: remote_told.c) */
+    told_home(stage_pg.id);
     return &stage_pg;
 }
 /* HOME: what KNOB k edits (0: nothing there) */
@@ -1095,13 +1021,18 @@ static void track_select(uint32_t i)
 
 
 /* ---------------------------------------------------- action pages --- */
-/* Pages whose purpose is an action: the knobs pick, OCT+ does it, OCT- cancels the picked action or goes HOME
- * (ui_input.c). None yet */
+/* Columns whose purpose is an action (a told page's ACTION values: Melodee's chop, normalise, record ..): the knob
+ * picks it, OCT+ does it, OCT- cancels the picked action or goes HOME (ui_input.c) */
 static uint32_t act_cols(void)                   /* the columns that are actions, a bit each; 0 = not such a page */
 {
     const page_t *pg = cur_page();
-    (void)pg;
-    return 0;
+    uint32_t c, m = 0;
+    if (ui.home || pg->scope != SC_TOLD || !told_on())
+        return 0;
+    for (c = 0; c < 4u; c++)
+        if (told_is_action(pg->id[c]))           /* (Melodee's: REQUEST ACTION) */
+            m |= 1u << c;
+    return m;
 }
 
 /* the action OCT+ does: its column + 1, 0 = none picked yet */
@@ -1112,8 +1043,8 @@ static uint32_t act_col(void)
 
 static const char *act_name(uint32_t c)          /* column c's action (the footer hint) */
 {
-    (void)c;
-    return "--";
+    uint32_t k = cur_page()->id[c & 3u];
+    return k < TOLD_K && told.desc[k].label ? told.desc[k].label : "--";
 }
 
 /* the picked action would do something now (OCT+ blinks) */

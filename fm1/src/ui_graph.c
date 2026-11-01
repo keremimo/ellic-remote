@@ -507,6 +507,8 @@ static uint32_t graph_sig(int play)
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u;
+    if (pg->scope == SC_TOLD)                        /* (Melodee's values, wave and marks: remote_told.c) */
+        h = (h ^ told.gen) * 16777619u + (uint32_t)told.track * 31u;
     if (pg->graph == GR_ROLL && !grid_on()) {
         uint32_t chosen = notes_selected(t);
         notes_follow(t);
@@ -719,6 +721,61 @@ static void graph_scope(uint16_t c, int32_t top, int32_t h)
     }
 }
 
+/* A told sample's or clip's wave (remote_told.c WAVE, MARKS): its peaks in the track's colour, dim outside START .. END;
+ * its marks as lines (START, END the theme's; the loop's the accent; a cut, a warp marker thin; a fade a slope; the gain
+ * points a line through them; where it plays the text's), the selected one bright and thicker */
+static void graph_wave(uint16_t c)
+{
+    int32_t top = 8, bot = H_GRAPH - 8, mid = (top + bot) / 2, x0 = 8, w = (int32_t)TOLD_WAVE_W, i, start = 0, end = w;
+    int32_t gx = -1, gy = 0;
+    uint16_t dim = ux_mix(T_SURF, c, 35);
+    for (i = 0; i < (int32_t)told.nmarks; i++) {
+        uint32_t kind = told.mark[i].kind & ~TM_SELECTED;
+        int32_t x = clamp(told.mark[i].pos, 0, 8191) * w / 8192;
+        if (kind == TM_START) start = x;
+        if (kind == TM_END) end = x;
+    }
+    cv_rect(x0, mid, w, 1, T_RAISE);
+    for (i = 0; i < w; i++) {                         /* the peaks */
+        int32_t lo = told.wave[i][0], hi = told.wave[i][1], y0, y1;
+        if (lo == 0 && hi == 0)
+            continue;                                 /* (not told) */
+        y0 = mid - (hi - 64) * (bot - top) / 128;
+        y1 = mid - (lo - 64) * (bot - top) / 128;
+        if (y1 < y0) { int32_t s = y0; y0 = y1; y1 = s; }
+        cv_rect(x0 + i, y0, 1, y1 - y0 + 1, i >= start && i <= end ? c : dim);
+    }
+    for (i = 0; i < (int32_t)told.nmarks; i++) {      /* the marks */
+        uint32_t kind = told.mark[i].kind & ~TM_SELECTED, sel = (told.mark[i].kind & TM_SELECTED) != 0u;
+        int32_t x = x0 + clamp(told.mark[i].pos, 0, 8191) * w / 8192, t = sel ? 3 : 1, y;
+        uint16_t mc = kind == TM_START || kind == TM_END ? T_THEME : kind == TM_LOOP_START || kind == TM_LOOP_END ? T_ACCENT :
+                      kind == TM_PLAYING ? T_TEXT : kind == TM_WARP ? T_KNOB(1) : kind == TM_CUT ? T_KNOB(2) : T_KNOB(3);
+        if (sel)
+            mc = T_TEXT;
+        switch (kind) {
+        case TM_GAIN:                                 /* (a point, the line from the last one) */
+            y = mid - clamp(told.mark[i].value, -600, 120) * (bot - top) / 2 / 720;
+            if (gx >= 0)
+                cv_line_t(gx, gy, x, y, mc, 2);
+            cv_disc(x, y, sel ? 7 : 5, mc, 0);
+            gx = x;
+            gy = y;
+            break;
+        case TM_FADE_IN:
+            cv_line_t(x0 + start, bot, x, top, mc, t);
+            break;
+        case TM_FADE_OUT:
+            cv_line_t(x, top, x0 + end, bot, mc, t);
+            break;
+        default:
+            cv_rect(x - t / 2, top - 4, t, bot - top + 8, mc);
+            if (kind == TM_START || kind == TM_END || kind == TM_LOOP_START || kind == TM_LOOP_END)
+                cv_rect(kind == TM_START || kind == TM_LOOP_START ? x : x - 6, top - 4, 6, 3, mc);
+            break;
+        }
+    }
+}
+
 /* Each arrangement row selects one bank per track. graph_y, graph_h: the panel's place (ui_pages.c: under its rings) */
 static void draw_graph(void)
 {
@@ -740,6 +797,10 @@ static void draw_graph(void)
             graph_scope(c, 0, H_GRAPH);
         } else {
             switch (pg->graph) {
+            case GR_WAVE:                                    /* a told sample or clip (remote_told.c) */
+                cv_oy = 0;
+                graph_wave(c);
+                break;
             case GR_LFO:
                 graph_lfo(t, c);
                 break;

@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* Melodee FM-1's engine table (its engines.c) on a pure remote: Melodee's instruments, none sounding here. Melodee
- * tells each (link.c INSTRUMENT, PARAM_DESC, SOUNDS): its name, its two EDIT pages' titles and eight parameters, its
- * HOME knobs and its sounds' names. Each takes an index of Melodee FM-1's table that none of Melodee FM-1's own
- * engines' pages answers to (DRUM, FM6, CZ, PROPHET, MIDI, SLICE keep theirs, unused), in Melodee's order. Until
- * Melodee has told any: one, SOUND, its eight parameters numbered. */
+ * tells each (link.c INSTRUMENT, SOUNDS): its name and its sounds' names; its pages are the selected track's
+ * (remote_told.c). Each takes an index of Melodee FM-1's table in Melodee's order; a track with no instrument (MIDI,
+ * audio, a plug-in) takes ENGI_NONE_HERE, never offered. Until Melodee has told any: one, SOUND. */
 #include "absent_engines.h"      /* (Melodee FM-1's own engines: none of them here) */
 
 /* the working arena (resources.c): none, Melodee FM-1 keeps its undo histories and the like there; the remote's
@@ -21,9 +20,10 @@ static void resource_release(uint32_t id) { (void)id; }
 static const uint8_t REMOTE_IDX[] = {3, 2, 4, 5, 6, 7, 8, 9, 11, 13, 14, 16};
 #define REMOTE_ENGINES ((uint32_t)sizeof REMOTE_IDX)
 #define REMOTE_PRESETS 128u      /* sounds an instrument lists (Melodee's longest: BRO-FAT's 68) */
-#define REMOTE_TEXT 2048u        /* an instrument's names: its parameters', their values', its units, its sounds' */
-#define REMOTE_NAMES 24u         /* value names a parameter has at most (F_ENUM) */
+#define REMOTE_TEXT 2048u        /* an instrument's names: its own, its sounds' */
+#define ENGI_NONE_HERE 0u        /* (ENGI_ANALOG: retired, never offered: a track with no instrument) */
 
+static int32_t remote_pad_keys(const struct track *t, uint32_t k);   /* remote_told.c: the pads on the keys */
 static void remote_note_on(struct track *t, voice_t *v) { (void)t; (void)v; }
 static void remote_render(struct track *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
@@ -33,7 +33,6 @@ static void remote_render(struct track *t, voice_t *v, int32_t *out, uint32_t n,
 typedef struct {
     engine_t e;
     uint16_t sound[REMOTE_PRESETS];          /* each sound's name: its place in text */
-    const char *names[8][REMOTE_NAMES + 1u]; /* each parameter's value names, 0-terminated */
     char text[REMOTE_TEXT];
     uint16_t used;                           /* of text */
 } remote_engine_t;
@@ -150,10 +149,9 @@ static const char *remote_text(remote_engine_t *r, const char *s, uint32_t n)
     r->used = (uint16_t)(r->used + n + 1u);
     return d;
 }
-/* instrument n (0..): its name, its EDIT pages' titles, HOME's four knobs (P_* ids), its sounds' count; its eight
- * parameters and sounds' names follow (remote_param, remote_sounds_named), then remote_instruments */
-static void remote_instrument(uint32_t n, const char *name, uint32_t nl, const char *t1, uint32_t l1, const char *t2,
-                              uint32_t l2, const uint8_t knob[4], uint32_t sounds)
+/* instrument n (0..): its name, its sounds' count; its sounds' names follow (remote_sounds_named), then
+ * remote_instruments */
+static void remote_instrument(uint32_t n, const char *name, uint32_t nl, uint32_t sounds)
 {
     remote_engine_t *r;
     uint32_t i;
@@ -166,42 +164,9 @@ static void remote_instrument(uint32_t n, const char *name, uint32_t nl, const c
     r->e.preset_make = REMOTE_SOUND[n];
     r->e.npresets = (uint8_t)(sounds < REMOTE_PRESETS ? sounds : REMOTE_PRESETS);
     r->e.name = remote_text(r, name, nl);
-    r->e.page_title[0] = remote_text(r, t1, l1);
-    r->e.page_title[1] = remote_text(r, t2, l2);
-    for (i = 0; i < 4u; i++)
-        r->e.knob[i] = knob[i] < P_COUNT ? knob[i] : 255u;
+    r->e.keys = remote_pad_keys;                 /* (a sampler's pads on the keys, as Melodee says: remote_told.c) */
     for (i = 0; i < REMOTE_PRESETS; i++)
         r->sound[i] = 0;                         /* ("" until named: the text's first byte is a name's end) */
-    for (i = 0; i < 8u; i++)
-        r->e.edit[i] = ENG_NONE.edit[i];
-}
-/* its parameter k (P_E0 + k): label, format (F_*), range, default, unit, value names (each 0-terminated, nn of them) */
-static void remote_param(uint32_t n, uint32_t k, const char *label, uint32_t ll, uint32_t fmt, int32_t min, int32_t max,
-                         int32_t def, const char *unit, uint32_t ul, const char *names, uint32_t nn)
-{
-    remote_engine_t *r;
-    param_desc_t *d;
-    uint32_t i;
-    if (n >= REMOTE_ENGINES || k >= 8u)
-        return;
-    r = &remote_eng[n];
-    d = &r->e.edit[k];
-    d->label = remote_text(r, label, ll);
-    d->fmt = (uint8_t)fmt;
-    d->min = (int16_t)min;
-    d->max = (int16_t)max;
-    d->def = (int16_t)def;
-    d->unit = ul ? remote_text(r, unit, ul) : 0;
-    d->names = 0;
-    if (nn) {
-        for (i = 0; i < nn && i < REMOTE_NAMES; i++) {
-            uint32_t len = (uint32_t)str_len(names);
-            r->names[k][i] = remote_text(r, names, len);
-            names += len + 1u;
-        }
-        r->names[k][i] = 0;
-        d->names = r->names[k];
-    }
 }
 /* its sounds from first, count names (each 0-terminated) */
 static void remote_sounds_named(uint32_t n, uint32_t first, uint32_t count, const char *names)

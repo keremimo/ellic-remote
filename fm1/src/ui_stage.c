@@ -451,12 +451,14 @@ static void stage_row(uint32_t k)
         entry_label(src, kk, tag, nm);
         if (!nm[0]) str_cpy(nm, tag, sizeof nm);
     } else {
-        sound_name(t, nm);
+        track_label(t, nm);                             /* (its name, as Melodee tells it; none: its sound's) */
         if (!nm[0]) str_cpy(nm, ENGINES[eng_idx(t->eng_req)]->name, sizeof nm);
         stage_entry(k, &src, &kk);
     }
     cat = entry_cat(src, kk) % CAT_N;
-    {   /* the role (NEW SONG's words: DRUMS, CHORDS; none, OTHER: the track), then what plays */
+    if (!pending && trk_name[k % NTRK][0]) {          /* a named track: its sound under its name */
+        sound_name(t, line);
+    } else {   /* the role (NEW SONG's words: DRUMS, CHORDS; none, OTHER: the track), then what plays */
         char tn[4] = {'T', 0, 0, 0};
         trk_num(tn + 1, k);
         str_cpy(line, cat == CAT_DRUM ? "DRUMS" : cat == CAT_KEYS ? "CHORDS" : cat && cat != CAT_OTHER ? CAT_NAME[cat] : tn,

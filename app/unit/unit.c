@@ -58,6 +58,7 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/dsp.c"                 /* (its helpers: clamp, the curves the pages draw; nothing of it plays) */
 #include "../../fm1/src/eng_midi.c"            /* (a MIDI Track: the tracks after the four) */
 #include "remote_sounds.c"       /* Melodee FM-1's engines.c: Melodee's instruments, told over the link */
+#include "remote_told.h"         /* the selected track's sound pages, as Melodee tells them */
 #include "../../fm1/src/params.c"
 #include "absent_sound.h"        /* (Melodee FM-1's punch effects and inserts: not here) */
 #include "remote_model.c"        /* what the pages read and ask of Melodee FM-1's model: Melodee's, mirrored */
@@ -70,6 +71,7 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/excerpt_mod.c"
 #include "remote_audio.c"        /* audio.c: the scope, Melodee's */
 #include "remote_keys.c"         /* the keys as Melodee FM-1 lays them out: notes to Melodee */
+#include "remote_told.c"         /* the selected track's sound pages, as Melodee tells them */
 
 /* --------------------------------------------------------------- UI --- */
 #include "../../fm1/src/panel.c"
@@ -80,6 +82,7 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/ui_menu.c"
 #include "../../fm1/src/ui_input.c"
 #include "../../fm1/src/ui_layer.c"
+#include "remote_follow.c"        /* one screen with Melodee's (PAGE), the menu's settings kept by Melodee (PREFS) */
 
 #include "upreset.c"             /* (here: the user's sounds are Melodee's) */
 #include "remote_project.c"      /* project.c, tracks.c: Melodee's projects, tracks asked of Melodee */

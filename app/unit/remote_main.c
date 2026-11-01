@@ -57,6 +57,8 @@ void fm1u_frame(void)
     static uint32_t frame_ms;
     fm1_ms = plat_ms();
     hal_poll();
+    if (told_sync())                          /* (the selected track's told pages: remote_told.c) */
+        ui.force = 1;
     keys_block();
     ui_input();
     model_poll();
@@ -119,6 +121,12 @@ int fm1u_expect(const char *what, int *got)
                                                                             * lit, 1 the LIGHTS plane, 2 the buttons') */
         v = hal_shown[14u + (uint32_t)strtoul(what + 3, 0, 10) % 27u];
     else if (!strcmp(what, "lights_mask")) v = fm1_led_dim_mask[0];
+    else if (!strcmp(what, "told_n")) v = told_on() ? told.n : -1;
+    else if (!strncmp(what, "told", 4) && what[4] >= '0' && what[4] <= '9')   /* toldK: told value K here */
+        v = told.val[strtoul(what + 4, 0, 10) % TOLD_K];
+    else if (!strcmp(what, "keys")) v = told.keys;
+    else if (!strcmp(what, "lights")) v = settings_lights;
+    else if (!strcmp(what, "act")) v = ui.act;
     else return 0;
     *got = v;
     return 1;
@@ -131,6 +139,10 @@ int fm1u_host_cmd(const char *cmd, const char *a, const char *b)
         return 0;
     if (!strcmp(a, "page"))
         got = ui.home ? "HOME" : cur_page()->title;
+    else if (!strncmp(a, "name", 4))                   /* nameK: track K's name as told */
+        got = trk_name[strtoul(a + 4, 0, 10) % NTRK];
+    else if (!strcmp(a, "toast"))                      /* what the top bar says now */
+        got = ui.msg;
     else
         return 0;
     if (strcmp(got, b)) {

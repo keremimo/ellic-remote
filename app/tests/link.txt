@@ -1,47 +1,117 @@
-# The link with Melodee (docs/PROTOCOL.md, version 3): a stand-in Melodee claims the remote, tells it an instrument,
-# tracks, a value, a step and that the music plays; the remote's controls tell it back what they change and ask.
+# The link with Melodee (docs/PROTOCOL.md, version 4): a stand-in Melodee claims the remote, tells it an instrument, two
+# named tracks, the selected track's sound pages and values, the tempo, a step and that the music plays; the remote's
+# controls tell it back what they change, ask and show (PAGE), and it follows Melodee's screen and preferences.
 #   app/build/host/melodee-remote_host app/tests/link.txt app/build/tests
 wait 1300
 expect host 0
 expect last_cmd 1
-sysex F0 7D 4D 52 01 03 F7
+sysex F0 7D 4D 52 01 04 F7
 wait 50
 expect host 1
-expect last_cmd 3
-# an instrument: BROFAT, two sounds, HOME's knobs P_E0..P_E3 (116..119), EDIT's titles; its first parameter; its sounds
-sysex F0 7D 4D 52 40 00 02 40 74 75 76 77 42 52 4F 46 41 54 00 4F 53 43 00 46 49 4C 54 45 52 00 F7
-sysex F0 7D 4D 52 41 00 00 00 00 40 7F 40 40 40 00 44 52 49 56 45 00 00 F7
+# (STATE, then where it is: PAGE)
+expect last_cmd 5
+# an instrument: BROFAT and its two sounds
+sysex F0 7D 4D 52 40 00 02 40 42 52 4F 46 41 54 00 F7
 sysex F0 7D 4D 52 42 00 00 40 02 42 72 6F 20 42 61 73 73 00 57 6F 62 62 6C 65 00 F7
 sysex F0 7D 4D 52 43 01 F7
 expect instruments 1
-# two tracks: Bro Bass and Wobble; track 1's DRIVE 100; 98 BPM; a C4 on track 1's first step; playing
-sysex F0 7D 4D 52 44 02 00 00 00 40 00 01 40 F7
-sysex F0 7D 4D 52 45 00 74 40 64 40 F7
+# two tracks named BASS and LEAD (BROFAT's sounds), track 0 selected; and a third, KEYS, a MIDI track (no instrument)
+sysex F0 7D 4D 52 44 03 00 00 00 00 40 42 41 53 53 00 00 01 40 4C 45 41 44 00 7F 00 40 4B 45 59 53 00 F7
+# track 0's sound pages: Stage's knobs (DRIVE, CUTOFF, RES, a pad's value), OSC on EDIT, AMP (an envelope) on ENV,
+# SAMPLE (a wave, CHOP an action) on LFO; their values
+sysex F0 7D 4D 52 4D 00 00 24 00 04 04 00 00 00 01 02 03 53 54 41 47 45 00 01 00 00 01 7F 7F 4F 53 43 00 02 02 04 05 06 07 41 4D 50 00 03 01 08 09 7F 0A 53 41 4D 50 4C 45 00 F7
+sysex F0 7D 4D 52 41 00 00 00 40 7F 40 40 40 00 44 52 49 56 45 00 00 F7
+sysex F0 7D 4D 52 41 01 05 00 40 7F 40 64 40 00 43 55 54 4F 46 46 00 00 F7
+sysex F0 7D 4D 52 41 02 00 00 40 7F 40 00 40 00 52 45 53 00 00 F7
+sysex F0 7D 4D 52 41 03 08 00 40 02 40 00 40 03 4D 4F 44 45 00 00 4F 4E 45 00 4C 4F 4F 50 00 47 41 54 45 00 F7
+sysex F0 7D 4D 52 41 04 00 00 40 7F 40 0A 40 00 41 54 54 41 43 4B 00 00 F7
+sysex F0 7D 4D 52 41 05 00 00 40 7F 40 0A 40 00 44 45 43 41 59 00 00 F7
+sysex F0 7D 4D 52 41 06 00 00 40 7F 40 0A 40 00 53 55 53 54 41 49 4E 00 00 F7
+sysex F0 7D 4D 52 41 07 00 00 40 7F 40 0A 40 00 52 45 4C 45 41 53 45 00 00 F7
+sysex F0 7D 4D 52 41 08 00 00 40 7F 7F 00 40 00 53 54 41 52 54 00 00 F7
+sysex F0 7D 4D 52 41 09 00 00 40 7F 7F 7F 7F 00 45 4E 44 00 00 F7
+sysex F0 7D 4D 52 41 0A 0E 00 40 00 40 00 40 00 43 48 4F 50 00 00 F7
+sysex F0 7D 4D 52 45 00 00 60 64 40 00 01 60 5A 40 00 04 60 14 40 00 05 60 3C 40 00 06 60 5A 40 00 07 60 28 40 00 09 60 70 6E F7
 sysex F0 7D 4D 52 46 00 62 40 F7
 sysex F0 7D 4D 52 47 00 00 01 00 00 3C 00 00 00 01 00 00 64 00 00 00 F7
-sysex F0 7D 4D 52 49 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F7
+sysex F0 7D 4D 52 49 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F7
 wait 100
-expect tracks 2
+expect tracks 3
 expect bpm 98
 expect playing 1
-expect frames_in 10
+expect told_n 4
+expect told0 100
+text name0 BASS
+text name2 KEYS
 text page HOME
 shot l_stage.png
-# K1 on Stage turns the selected track's first knob (DRIVE): told to Melodee
+# K1 on Stage turns told value 0 (DRIVE): told to Melodee (PARAM 4096)
 turn K1 2
 wait 100
+expect told0 102
 expect last_cmd 69
 # PLAY while playing: asks Melodee to stop
 tap PLAY
 wait 100
 expect last_req 2
-# SCL: K1 is ROOT
-tap SEL
+# ENV: AMP, the told envelope; Melodee hears the page (PAGE)
+tap ENV
 wait 100
-shot l_scl.png
-turn K1 1
+text page AMP
+expect last_cmd 5
+shot l_env.png
+# LFO: SAMPLE, the wave and its marks; K4 picks CHOP, OCT+ asks Melodee (ACTION 20)
+sysex F0 7D 4D 52 4E 00 01 40 00 38 40 40 3F 41 3E 42 3D 43 3C 44 3B 45 3A 46 39 47 38 48 37 49 36 4A 35 4B 34 4C 33 4D 32 4E 31 4F 30 50 2F 51 2E 52 2D 53 2C 54 2B 55 2A 56 29 57 28 58 27 59 26 5A 25 5B 24 5C 23 5D 22 5E 21 5F 20 60 1F 61 1E 62 1D 63 1C 64 1B 65 1A 66 19 67 40 40 3F 41 3E 42 3D 43 3C 44 3B 45 3A 46 39 47 38 48 37 49 36 4A 35 4B 34 4C 33 4D 32 4E 31 4F F7
+sysex F0 7D 4D 52 4E 00 01 40 38 38 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 F7
+sysex F0 7D 4D 52 4F 00 01 40 05 01 00 40 00 40 02 70 6E 00 40 05 50 4F 00 40 45 20 5F 01 40 0A 38 57 00 40 F7
+tap LFO
 wait 100
-expect last_cmd 69
+text page SAMPLE
+shot l_wave.png
+turn K4 1
+wait 50
+expect act 4
+tap OCT+
+wait 100
+expect last_req 20
+# EDIT: OSC, then PRESETS (its last page)
+tap EDIT
+wait 100
+text page OSC
+tap EDIT
+wait 100
+text page PRESETS
+# Melodee's screen: Stage (PAGE 0), then ENV's AMP (PAGE 1, ENV, page 2): the remote goes there, not telling back
+# (the frames sent: as many after as before)
+expect frames_out 12
+sysex F0 7D 4D 52 05 00 00 00 7F 00 F7
+wait 50
+expect home 1
+sysex F0 7D 4D 52 05 01 00 02 02 41 4D 50 00 F7
+wait 50
+text page AMP
+expect frames_out 12
+# SAVE: a save asked (17); Melodee's word on the screen
+tap SAVE
+wait 100
+expect last_req 17
+sysex F0 7D 4D 52 07 53 41 56 45 44 00 00 F7
+wait 20
+text toast SAVED
+# PREFS: LIGHTS FULL as Melodee keeps it
+sysex F0 7D 4D 52 06 03 04 40 F7
+wait 50
+expect lights 4
+# a sampler's pads on the keys (PAGES keys 1, from 36): the first white key plays 36 on track 0's channel
+sysex F0 7D 4D 52 4D 00 01 24 00 01 01 00 00 00 01 02 03 53 54 41 47 45 00 F7
+wait 50
+expect keys 1
+out
+key w0 down
+wait 20
+expect_out USB 90 24 64
+key w0 up
+wait 20
 # PING: STATE; BYE: let go
 sysex F0 7D 4D 52 04 F7
 wait 20
@@ -49,20 +119,22 @@ expect last_cmd 3
 sysex F0 7D 4D 52 02 F7
 wait 20
 expect host 0
-# an older Melodee (version 2) does not claim it: it hears the remote's HELLO, version 3
-sysex F0 7D 4D 52 01 02 F7
+# an older Melodee (version 3) does not claim it: it hears the remote's HELLO, version 4
+sysex F0 7D 4D 52 01 03 F7
 wait 20
 expect host 0
 expect last_cmd 1
-# twelve tracks, every one a part: claimed again, 12 tracks told with track 10 selected, track 10 armed (bit 9)
-sysex F0 7D 4D 52 01 03 F7
-sysex F0 7D 4D 52 44 0C 09 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 00 00 40 00 01 40 F7
+# twelve tracks, every one a part: claimed again, 12 tracks told in two messages, track 10 selected and armed (bit 9)
+sysex F0 7D 4D 52 01 04 F7
+sysex F0 7D 4D 52 44 0C 09 00 00 00 40 54 31 00 00 00 40 54 32 00 00 00 40 54 33 00 00 00 40 54 34 00 00 00 40 54 35 00 00 00 40 54 36 00 F7
+sysex F0 7D 4D 52 44 0C 09 06 00 01 40 54 37 00 00 01 40 54 38 00 00 01 40 54 39 00 00 01 40 54 31 30 00 00 01 40 54 31 31 00 00 01 40 54 31 32 00 F7
 sysex F0 7D 4D 52 49 01 00 04 00 00 00 00 00 00 00 00 00 00 00 F7
 wait 100
 expect host 1
 expect tracks 12
 expect sel 9
 expect rec 512
+text name11 T12
 tap HOME
 wait 300
 text page HOME

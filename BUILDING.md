@@ -52,7 +52,9 @@ FM-1 its zero-filled statics go to fm1-base's pool and its functions are built f
 hardware or a model of its own: `remote_hal.c` (the panel, LEDs and LCD by fm1-base, through `unit.h`),
 `remote_sounds.c` (the engine table: Melodee's instruments), `remote_model.c` (the sequencer, patterns, takes and
 song: Melodee's, mirrored), `remote_project.c` (projects and tracks: requests), `remote_keys.c` (the keys as MIDI),
-`link.c` (the protocol), `remote_main.c` (the start and the loop). `upreset.c`, `absent_engines.h` and
+`link.c` (the protocol), `remote_told.h`/`remote_told.c` (the selected track's sound pages as Melodee tells them: the
+page table's told slots, their values and actions, the wave), `remote_follow.c` (one screen with Melodee's: PAGE; the
+menu's settings kept by Melodee: PREFS), `remote_main.c` (the start and the loop). `upreset.c`, `absent_engines.h` and
 `absent_sound.h` answer what the pages still ask of Melodee FM-1's sounds and engines: absent.
 
 `fm1/` is the remote's own, forked from Melodee FM-1 (`fm1/SOURCE` names the commit) and edited here: what a remote
@@ -64,8 +66,10 @@ MOTION, the polyphony budget's pages, autosave), and SAVE only asks Melodee to s
 `tests/run_tests.sh` (about 10 s) runs:
 
 - `host-*`: the app in fm1-base's host simulator, `app/tests/*.txt`, each at most a minute. `pages` walks the pages
-  with the controls; `link` plays Melodee: it claims the remote, tells it an instrument, tracks, a value, a step and the
-  transport, and checks what the controls send back. The app adds script commands: `sysex HEX..` (a frame from USB),
+  with the controls; `link` plays Melodee (version 4): it claims the remote, tells it an instrument, named tracks, the
+  selected track's sound pages (an envelope, a wave and an action), a step and the transport, and checks what the
+  controls send back, the pages followed both ways, the preferences, a toast and the pads on the keys; `lights` the
+  LEDs' levels and SAVE. The app adds script commands: `sysex HEX..` (a frame from USB),
   `blesysex HEX..` (from Bluetooth), `text page TITLE`, and `expect` values (home, page, menu, pop, confirm, layer,
   sel, playing, rec, bpm, octave, tracks, list_row, list_first, host, frames_in, frames_out, last_req, last_cmd,
   instruments, pattern). Screenshots land in `app/build/tests/`.

@@ -529,6 +529,15 @@ static void foot_hint(char *a, char *b)
 }
 
 /* the sound's name on the track: a user preset or the engine's preset (b holds 16) */
+/* a track as Stage and the mixer name it: its name as Melodee tells it, else its sound's */
+static void track_label(const track_t *t, char *b)
+{
+    const char *n = trk_name[(uint32_t)(t - trk) % NTRK];
+    if (n[0])
+        str_cpy(b, n, 16);
+    else
+        sound_name(t, b);
+}
 static void sound_name(const track_t *t, char *b)
 {
     if (song_picker.active && t == &trk[song_picker.track] && browse_loads == browse_mark) {
@@ -993,11 +1002,20 @@ static int own_screen(void)                             /* a page drawn whole by
 /* the page (or Stage): its own screen, the redesign's, else its cards, panel and footer */
 static void draw_page(void)
 {
-    /* SCALES opens explicitly from the Scale row, outside the SCL/SELECT cycle.
-     * An unavailable OP page returns to EDIT 1; an emptied FX slot to its rack. */
-    if (!ui.home && !page_visible(ui.page) && cur_page()->graph != GR_SCALE_PICKER) {
-        ui.page = (uint8_t)page_first(cur_page()->fam == FAM_FX ? FAM_FX : FAM_EDIT);
-        page_entered();
+    /* SCALES opens explicitly from the Scale row, outside the SCL/SELECT cycle. */
+    {   /* a page gone (another track's sound pages told, an FX slot emptied): its family's first, else Stage */
+        static uint8_t fam = FAM_EDIT;
+        if (!ui.home && page_visible(ui.page))
+            fam = cur_page()->fam;
+        else if (!ui.home && cur_page()->graph != GR_SCALE_PICKER) {
+            uint32_t i = page_first(fam);
+            if (PAGES[i].fam == fam && page_visible(i)) {
+                ui.page = (uint8_t)i;
+                page_entered();
+            } else {
+                go_home();
+            }
+        }
     }
     cursor_fix();
     if (!own_screen() && list_on()) {            /* a list page (ui_list.c) */

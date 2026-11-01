@@ -578,10 +578,11 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
 /* ------------------------------------------------------------ pages --- */
 enum { FAM_HOME, FAM_ENV, FAM_LFO, FAM_SCL, FAM_EDIT, FAM_GLO, FAM_SAVE, FAM_ARP, FAM_SEQ, FAM_TRK,
        FAM_FX, FAM_COUNT };
-enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK };   /* SC_TRK: the TRACKS page (ui_input.c tracks_edit) */
+enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK, SC_TOLD };   /* SC_TRK: the TRACKS page (ui_input.c tracks_edit);
+                                                                     * SC_TOLD: Melodee's (remote_told.c) */
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_ROLL, GR_BROWSE, GR_TRK,
        GR_PATS, GR_SONG, GR_CHORD, GR_SCALE_PICKER, GR_PATGRID,
-       GR_FXRACK }; /* NOTES shares GR_ROLL for steps and recorded events */
+       GR_FXRACK, GR_WAVE }; /* NOTES shares GR_ROLL for steps and recorded events; GR_WAVE a told sample's or clip's */
 
 typedef struct {
     const char *title;
@@ -590,30 +591,17 @@ typedef struct {
 } page_t;
 
 #define G_PROJECT_RECQ 0xFEu                            /* shared recording QNT, mirrored in track slots for storage/protocol compatibility */
-static const page_t PAGES[] = {
-    /* FX (docs/design README "FX rack"): the track's rack, its three slots (shown while they hold an effect), the
-     * shared rack, its three slots. A rack: KNOB 2 the row (fx_rack_row), 1 its effect, 4 its amount, SHARED's 3 ROUTE
-     * (page_desc) */
-    {"FX", FAM_FX, SC_TRACK, GR_FXRACK, {P_FXTYPE, 0xFF, 0xFF, P_FXMIX}},
-    {"FX 1", FAM_FX, SC_TRACK, GR_NONE, {P_FXMIX, P_FXRATE, P_FXCHAR, P_FXTONE}},
-    {"FX 2", FAM_FX, SC_TRACK, GR_NONE, {P_FX2MIX, P_FX2RATE, P_FX2CHAR, P_FX2TONE}},
-    {"FX 3", FAM_FX, SC_TRACK, GR_NONE, {P_FX3MIX, P_FX3RATE, P_FX3CHAR, P_FX3TONE}},
-    {"SHARED", FAM_FX, SC_GLOBAL, GR_FXRACK, {G_MFXTYPE, 0xFF, 0xFF, G_MFXMIX}},
-    {"SEND FX 1", FAM_FX, SC_GLOBAL, GR_NONE, {G_MFXMIX, G_MFXRATE, G_MFXCHAR, G_MFXTONE}},
-    {"SEND FX 2", FAM_FX, SC_GLOBAL, GR_NONE, {G_MFX2MIX, G_MFX2RATE, G_MFX2CHAR, G_MFX2TONE}},
-    {"SEND FX 3", FAM_FX, SC_GLOBAL, GR_NONE, {G_MFX3MIX, G_MFX3RATE, G_MFX3CHAR, G_MFX3TONE}},
-    {"ENV", FAM_ENV, SC_TRACK, GR_ADSR, {P_ATK, P_DEC, P_SUS, P_REL}},
-    {"ENV DEST", FAM_ENV, SC_TRACK, GR_NONE, {P_ED_FLT, P_ED_PIT, P_ED_SHP, 0xFF}},   /* the former fourth slot: SEQ > TEMPO's QNT */
-    {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LRATE, P_LWAVE, P_LPHASE, P_LFADE}},
-    {"LFO 2", FAM_LFO, SC_TRACK, GR_LFO, {P_LSYNC, P_LTRIG, P_LPOL, 0xFF}},
-    {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
+/* the told slots: the selected track's sound pages as Melodee tells them (remote_told.c told_sync fills them: EDIT,
+ * ENV, LFO and FX, in the order told; FAM_COUNT while empty) */
+#define TOLD_SLOT {"", FAM_COUNT, SC_TOLD, GR_NONE, {0xFF, 0xFF, 0xFF, 0xFF}}
+#define TOLD_SLOTS4 TOLD_SLOT, TOLD_SLOT, TOLD_SLOT, TOLD_SLOT
+static page_t PAGES[] = {
     {"SCALES", FAM_SCL, SC_TRACK, GR_SCALE_PICKER, {0xFF, P_SCALE, P_ROOT, P_QUANT}},
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, 0xFF, P_QUANT, P_TRANS}}, /* K2: scale favorite */
     {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, P_STRUM, P_STROKE}},   /* SCL again: the chord keys (chord.c) */
     {"MPC", FAM_SCL, SC_TRACK, GR_NONE, {P_MPCDEG, 0xFF, 0xFF, 0xFF}},   /* the degree of each bank's pad 02: a row of SCL's list
                                                                           * (QNT MPC only), not a page of its own */
-    {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
-    {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
+    TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4, TOLD_SLOTS4,
     {"PRESETS", FAM_EDIT, SC_GLOBAL, GR_BROWSE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* browser: KNOB 1 LIST, 2 / PRESETS the sounds
                                                                               * (EDIT's last: SAVE only saves) */
     {"ARP", FAM_ARP, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},
@@ -679,6 +667,13 @@ static const param_desc_t *fx_rack_desc(const page_t *pg, uint32_t slot, int16_t
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (pg->scope == SC_TOLD) {                          /* Melodee's told values (remote_told.c) */
+        *valp = 0;
+        if (!told_on() || id >= TOLD_K || !told.desc[id].label)
+            return 0;
+        *valp = &told.val[id];
+        return &told.desc[id];
+    }
     if (midi_track_only(TSEL) && ((pg->fam == FAM_FX && pg->scope == SC_TRACK) ||
         ((pg->scope == SC_TRACK || pg->scope == SC_ENGINE) && midi_track_audio_disabled(TSEL->eng_req, id)))) {
         *valp = 0; return 0;

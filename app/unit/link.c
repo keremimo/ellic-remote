@@ -1,17 +1,19 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The link with Melodee (docs/PROTOCOL.md, version 3): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
+/* The link with Melodee (docs/PROTOCOL.md, version 4): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
  *   the session: the remote says HELLO until a Melodee claims it (its HELLO back), answers PING with STATE (its
  *     generation: a new one each time it loses what Melodee told, so Melodee tells it all again); BYE lets it go;
- *   the mirror, Melodee's: its instruments, the tracks and their parameters, the steps, the patterns, where the music
- *     is, the song's rows, the projects, the scope (remote_model.c, remote_sounds.c, remote_project.c);
- *   from the remote: what the controls changed in place (a value, a step, the track selected, a sound chosen), found
- *     against the mirror as Melodee last told it, and what they asked (link_request); the keys' notes go as MIDI.
+ *   the mirror, Melodee's: its instruments, the tracks (their names) and their parameters, the selected track's sound
+ *     pages (remote_told.c), the steps, the patterns, where the music is, the song's rows, the scope, the remote's
+ *     preferences (remote_model.c, remote_sounds.c);
+ *   from the remote: what the controls changed in place (a value, a step, the track selected, a sound chosen, a
+ *     preference), found against the mirror as Melodee last told it, what they asked (link_request) and the page shown
+ *     (PAGE: Melodee follows it, and the remote Melodee's); the keys' notes go as MIDI.
  * Values: 14 bits as two 7-bit bytes, low first, offset by 8192 (-8192..8191); text ASCII, 0-terminated. */
-#define L_PROTO 3u                                     /* (3: every track a part, as many as NTRK) */
-enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING,
-       L_INSTRUMENT = 0x40, L_PARAM_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
-       L_PLAY, L_SONG, L_PROJECTS, L_SCOPE, L_REQUEST = 0x50 };
+#define L_PROTO 4u                                     /* (4: Melodee's sound pages, names, PAGE, PREFS, TOAST) */
+enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING, L_PAGE, L_PREFS, L_TOAST,
+       L_INSTRUMENT = 0x40, L_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
+       L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS, L_REQUEST = 0x50 };
 enum { L_FREE, L_YOURS, L_TAKEN };                     /* STATE: whose the remote is, to the port asking */
 enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN };      /* why the generation last changed */
 #define L_SILENT_MS 7000u                              /* a Melodee that PINGs and is then silent this long: let go */
@@ -75,6 +77,7 @@ static void link_send(uint32_t cmd, const uint8_t *body, uint32_t n, int port)
 }
 
 static uint32_t link_state(uint32_t port) { return !lk.host ? L_FREE : lk.host == 1u + port ? L_YOURS : L_TAKEN; }
+static int link_held(void) { return lk.host != 0; }
 static void link_hello(uint32_t port)                  /* version, generation, state, the tracks it holds */
 {
     uint8_t b[5] = {L_PROTO, (uint8_t)(lk.gen & 0x7Fu), (uint8_t)(lk.gen >> 7 & 0x7Fu), 0, NTRK};
@@ -174,6 +177,8 @@ static void link_claim(int port)
         link_new_gen(L_WHY_TAKEN);                     /* (another Melodee had it: it hears it has gone) */
     lk.host = (uint8_t)(1u + (uint32_t)port);
     lk.heard_ms = plat_ms();
+    told_reset(0xFFu);                                 /* (the sound pages: Melodee tells the selected track's) */
+    follow_claimed();
     link_state_to((uint32_t)port);
     ui_say("MELODEE ", "CONNECTED");
 }
@@ -209,23 +214,51 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
     case L_BYE:
         link_let_go();
         break;
-    case L_INSTRUMENT:                                 /* n, sounds v14, knob x4, name, title 1, title 2 */
-        if (end - b >= 7) {
-            const char *nm = (const char *)b + 7, *t1 = nm + str_len(nm) + 1, *t2 = t1 + str_len(t1) + 1;
-            if ((const uint8_t *)t2 + str_len(t2) < end)
-                remote_instrument(b[0], nm, str_len(nm), t1, str_len(t1), t2, str_len(t2), b + 3,
-                                  (uint32_t)rd14(b + 1));
+    case L_INSTRUMENT:                                 /* n, sounds v14, name */
+        if (end - b >= 4) {
+            const char *nm = (const char *)b + 3;
+            if ((const uint8_t *)nm + str_len(nm) < end)
+                remote_instrument(b[0], nm, str_len(nm), (uint32_t)rd14(b + 1));
         }
         break;
-    case L_PARAM_DESC:                                 /* n, k, fmt, min v14, max v14, def v14, nn, label, unit, names */
-        if (end - b >= 10) {
-            const char *label = (const char *)b + 10, *unit = label + str_len(label) + 1;
+    case L_DESC:                                       /* k, fmt, min v14, max v14, def v14, nn, label, unit, names:
+                                                        * the selected track's told value k (remote_told.c) */
+        if (end - b >= 9) {
+            const char *label = (const char *)b + 9, *unit = label + str_len(label) + 1;
             const char *names = unit + str_len(unit) + 1, *q = names;
-            for (i = 0; i < b[9] && (const uint8_t *)q < end; i++)
+            for (i = 0; i < b[8] && (const uint8_t *)q < end; i++)
                 q += str_len(q) + 1;
-            if ((const uint8_t *)q <= end)
-                remote_param(b[0], b[1], label, str_len(label), b[2], rd14(b + 3), rd14(b + 5), rd14(b + 7), unit,
-                             str_len(unit), names, b[9]);
+            if ((const uint8_t *)unit < end && (const uint8_t *)q <= end)
+                told_desc(b[0], b[1], rd14(b + 2), rd14(b + 4), rd14(b + 6), label, unit, names, b[8]);
+        }
+        break;
+    case L_PAGES:                                      /* the selected track's sound pages (remote_told.c) */
+        told_pages(b, end);
+        break;
+    case L_WAVE:
+        told_wave(b, end);
+        break;
+    case L_MARKS:
+        told_marks(b, end);
+        break;
+    case L_PAGE:                                       /* screen, track, family, page: Melodee's screen, the remote's */
+        if (end - b >= 4)
+            page_follow(b);
+        break;
+    case L_PREFS:                                      /* (id, value v14)...: what Melodee keeps for the remote */
+        for (; end - b >= 3; b += 3)
+            pref_set(b[0], rd14(b + 1));
+        break;
+    case L_TOAST:                                      /* a line, a second line: Melodee's word, shown a moment */
+        if (b < end) {
+            const char *a = (const char *)b, *c = a + str_len(a) + 1;
+            char t[32];
+            str_cpy(t, a, sizeof t);
+            if ((const uint8_t *)c < end && c[0] && str_len(t) + 2u < sizeof t) {
+                str_cpy(t + str_len(t), " ", 2);
+                str_cpy(t + str_len(t), c, sizeof t - str_len(t));
+            }
+            ui_message(t);
         }
         break;
     case L_SOUNDS:                                     /* n, first v14, count, names */
@@ -243,14 +276,19 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             ui.force = 1;
         }
         break;
-    case L_TRACKS:                                     /* count, sel, then count x (instrument (127 none), sound v14) */
-        if (end - b >= 2) {
+    case L_TRACKS:                                     /* count, sel, first, then from first: (instrument (127 none),
+                                                        * sound v14, name) */
+        if (end - b >= 3) {
             song.ntrk = (uint8_t)clamp(b[0], 1, NTRK);
             song.sel = (uint8_t)(b[1] % trk_n());
-            for (k = 0, b += 2; k < song.ntrk && end - b >= 3; k++, b += 3) {
-                if (b[0] < REMOTE_ENGINES)
-                    trk[k].engine = trk[k].eng_req = REMOTE_IDX[b[0]];
+            for (k = b[2], b += 3; k < song.ntrk && end - b >= 4; k++) {
+                const char *nm = (const char *)b + 3;
+                /* no instrument (a MIDI, audio or plug-in track): one that is never offered, so the remote tells it
+                 * back as none (127) and never as the first instrument's sound */
+                trk[k].engine = trk[k].eng_req = b[0] < REMOTE_ENGINES ? REMOTE_IDX[b[0]] : ENGI_NONE_HERE;
                 trk[k].preset = (uint8_t)rd14(b + 1);
+                str_cpy(trk_name[k], nm, sizeof trk_name[k]);
+                b = (const uint8_t *)nm + str_len(nm) + 1;
             }
             lk.sel = song.sel;
             lk.ntrk = song.ntrk;
@@ -260,11 +298,13 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             }
         }
         break;
-    case L_PARAM:                                      /* (track, id v14, value v14)... */
+    case L_PARAM:                                      /* (track, id v14, value v14)...: P_*, told (4096 + k) */
         for (; end - b >= 5; b += 5)
             if (b[0] < NTRK && (uint32_t)rd14(b + 1) < P_COUNT) {
                 uint32_t id = (uint32_t)rd14(b + 1);
                 trk[b[0]].p[id] = lk.p[b[0]][id] = (int16_t)rd14(b + 3);
+            } else if (b[0] < NTRK && rd14(b + 1) >= (int32_t)TOLD_ID) {
+                told_param(b[0], (uint32_t)rd14(b + 1) - TOLD_ID, rd14(b + 3));
             }
         break;
     case L_GLOBAL:                                     /* (id, value v14)... */
@@ -314,17 +354,6 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
             for (i = 0, b++; i < chain_config.count && end - b >= 2; i++, b += 2) {
                 chain_config.row[i].slot = b[0];
                 chain_config.row[i].repeat = b[1];
-            }
-        }
-        break;
-    case L_PROJECTS:                                   /* the current one's name, then per slot: used, name */
-        if (b < end) {
-            str_cpy(proj_current, (const char *)b, sizeof proj_current);
-            b += str_len((const char *)b) + 1u;
-            for (i = 0; i < PROJ_SLOTS && end - b >= 2; i++) {
-                proj_slots[i].used = b[0] & 1u;
-                str_cpy(proj_slots[i].name, (const char *)b + 1, sizeof proj_slots[i].name);
-                b += 1u + str_len((const char *)b + 1) + 1u;
             }
         }
         break;
@@ -385,41 +414,37 @@ static void link_poll(void)
         }
     }
     while (lk.req_r != lk.req_w && lk.sent < L_SEND_MAX) {   /* what the controls asked */
-        const char *name = "";
         i = lk.req_r % 16u;
         m[0] = lk.req[i].what;
         n = 1;
         n += wr14(m + n, lk.req[i].a);
         n += wr14(m + n, lk.req[i].b);
         n += wr14(m + n, lk.req[i].c);
-        if (lk.req[i].what == RQ_SAVE)
-            name = link_save_name;
-        n += wr_text(m + n, name, PROJ_NAME_LEN);
+        m[n++] = 0;                                    /* (an empty text) */
         link_send(L_REQUEST, m, n, -1);
         lk.req_r++;
     }
-    {                                                  /* the track selected, the sounds chosen */
-        int changed = song.sel != lk.sel;
-        for (k = 0; k < NTRK; k++)
-            if (trk[k].eng_req != lk.eng[k] || trk[k].preset != lk.preset[k]) {
-                changed = 1;
-                memcpy(lk.p[k], trk[k].p, sizeof lk.p[k]);   /* (a sound chosen: its values are Melodee's to tell) */
-            }
-        if (changed && lk.sent < L_SEND_MAX) {
+    for (k = 0; k < NTRK && lk.sent < L_SEND_MAX; k++)     /* a sound chosen (PRESETS): that track alone */
+        if (k < trk_n() && (trk[k].eng_req != lk.eng[k] || trk[k].preset != lk.preset[k])) {
+            memcpy(lk.p[k], trk[k].p, sizeof lk.p[k]);   /* (its values are Melodee's to tell) */
             n = 0;
             m[n++] = song.ntrk;
             m[n++] = song.sel;
-            for (k = 0; k < NTRK; k++) {
-                if (k < trk_n()) {
-                    m[n++] = (uint8_t)(eng_ok(trk[k].eng_req) ? eng_rank(trk[k].eng_req) : 127u);
-                    n += wr14(m + n, trk[k].preset);
-                }
-                lk.eng[k] = trk[k].eng_req;
-                lk.preset[k] = trk[k].preset;
-            }
+            m[n++] = (uint8_t)k;
+            m[n++] = (uint8_t)(eng_ok(trk[k].eng_req) ? eng_rank(trk[k].eng_req) : 127u);
+            n += wr14(m + n, trk[k].preset);
+            n += wr_text(m + n, trk_name[k], TRK_NAME_LEN);   /* (as told: the remote names nothing) */
+            lk.eng[k] = trk[k].eng_req;
+            lk.preset[k] = trk[k].preset;
             lk.sel = song.sel;
             link_send(L_TRACKS, m, n, -1);
         }
+    if (song.sel != lk.sel && lk.sent < L_SEND_MAX) {   /* the track selected: no tracks after it */
+        m[0] = song.ntrk;
+        m[1] = song.sel;
+        m[2] = song.ntrk;
+        lk.sel = song.sel;
+        link_send(L_TRACKS, m, 3, -1);
     }
     for (k = 0; k < NTRK && lk.sent < L_SEND_MAX; k++) {   /* values the controls turned */
         n = 0;
@@ -433,6 +458,20 @@ static void link_poll(void)
         if (n)
             link_send(L_PARAM, m, n, -1);
     }
+    if (told.track < NTRK && lk.sent < L_SEND_MAX) {   /* told values the knobs turned (the told track's) */
+        n = 0;
+        for (i = 0; i < TOLD_K && n + 5u <= 250u; i++)
+            if (told.val[i] != told.lk[i]) {
+                m[n++] = told.track;
+                n += wr14(m + n, (int32_t)(TOLD_ID + i));
+                n += wr14(m + n, told.val[i]);
+                told.lk[i] = told.val[i];
+            }
+        if (n)
+            link_send(L_PARAM, m, n, -1);
+    }
+    page_poll();                                       /* (the page shown, the preferences: Melodee's to know) */
+    prefs_poll();
     n = 0;
     for (i = 0; i < G_COUNT && n + 3u <= 250u; i++)
         if (song.g[i] != lk.g[i]) {

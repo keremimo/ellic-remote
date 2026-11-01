@@ -12,7 +12,7 @@
 static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c);   /* (link.c) */
 enum { RQ_PLAY = 1, RQ_STOP, RQ_RESTART, RQ_ARM, RQ_PATTERN, RQ_PAT_COPY, RQ_PAT_CLEAR, RQ_PAT_DOUBLE, RQ_PAT_HALF,
        RQ_TRACK_ADD, RQ_TRACK_REMOVE, RQ_UNDO, RQ_ERASE, RQ_TAKE_REMOVE, RQ_TAKES_CLEAR, RQ_PANIC, RQ_SAVE,
-       RQ_LOAD, RQ_NEW };
+       RQ_ACTION = 20 };
 
 /* ------------------------------------------------------------- MIDI --- */
 /* what the pages read of USB (usb.c): up while fm1-base has a host */
@@ -64,6 +64,11 @@ static volatile uint8_t audition_request;
 static uint8_t audition_track, audition_count, audition_notes[12], audition_vel[12];
 static uint32_t audition_gate;
 static int32_t audition_pitch;
+
+/* ---------------------------------------------------- the tracks' names --- */
+/* each track's name as Melodee tells it (TRACKS): Stage's cards and the mixer's strips show it ("": the sound's) */
+#define TRK_NAME_LEN 12u
+static char trk_name[NTRK][TRK_NAME_LEN + 1u];
 
 /* ------------------------------------------------- patterns (clips) --- */
 /* each track's patterns: which hold something, their lengths and speeds (pattern_timing), as Melodee says; the
