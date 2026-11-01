@@ -38,7 +38,6 @@ static uint32_t division_samples(uint32_t quarter, uint32_t div)
 {
     return div < 6u ? quarter / DIV_DEN[div] : div < 10u ? quarter << (div - 5u) : quarter / DIV_DEN[div % 6u];
 }
-static uint32_t div_samples(uint32_t div) { return division_samples(beat_samples(), div); }
 static uint32_t seq_beat_samples(void) { return beat_samples(); }
 static uint32_t seq_div_samples(uint32_t div) { return division_samples(seq_beat_samples(), div); }
 static volatile uint32_t kb_mask, kb_layer;    /* the keys a layer or the patterns hold (ui_layer.c, remote_keys.c) */
@@ -65,7 +64,6 @@ static volatile uint8_t audition_request;
 static uint8_t audition_track, audition_count, audition_notes[12], audition_vel[12];
 static uint32_t audition_gate;
 static int32_t audition_pitch;
-static volatile uint8_t midi_knob_overflow;
 
 /* ------------------------------------------------- patterns (clips) --- */
 /* each track's patterns: which hold something, their lengths and speeds (pattern_timing), as Melodee says; the
@@ -215,30 +213,15 @@ static uint8_t motion_full;
 static uint8_t motion_nbase[NPART][MO_NATIVE_N];
 static uint32_t motion_guard(void) { return 0; }
 static void motion_unguard(uint32_t f) { (void)f; }
-static int motion_enabled(const track_t *t) { (void)t; return 0; }
-static void motion_set_enabled(track_t *t, uint32_t on) { (void)t; (void)on; }
-static int motion_has_lanes(const track_t *t) { (void)t; return 0; }
 static uint32_t motion_count(const track_t *t) { (void)t; return 0; }
 static int motion_param(uint32_t id) { (void)id; return 0; }
 static int motion_capture(track_t *t, uint32_t id, int16_t value) { (void)t; (void)id; (void)value; return 0; }
-static int motion_set_event(track_t *t, uint32_t step, uint32_t id, int16_t value) { (void)t; (void)step; (void)id; (void)value; return 0; }
-static void motion_delete_event(track_t *t, uint32_t step, uint32_t id) { (void)t; (void)step; (void)id; }
-static void motion_clear_param(track_t *t, uint32_t id) { (void)t; (void)id; }
 static void motion_clear_bank(track_t *t, uint32_t b) { (void)t; (void)b; }
 static void motion_reset(track_t *t) { (void)t; }
 static void motion_restore(track_t *t) { (void)t; }
 static void motion_rebase(track_t *t) { (void)t; }
-static int16_t motion_base_value(const track_t *t, uint32_t id) { return t->p[id % P_COUNT]; }
-static uint32_t motion_token(const motion_event_t *e) { (void)e; return 0; }
 static void motion_snapshot_track(track_t *t, motion_store_t *out) { (void)t; memset(out, 0, sizeof *out); }
 static int motion_replace_track(track_t *t, const motion_store_t *in) { (void)t; (void)in; return 0; }
-static uint32_t motion_native_tag(const track_t *t) { (void)t; return MO_TAG_NONE; }
-static uint8_t *motion_native_at(track_t *t, uint32_t i) { static uint8_t none; (void)t; (void)i; return &none; }
-static void motion_native_peek(track_t *t, uint8_t *old) { (void)t; (void)old; }
-static uint32_t motion_native_edited(track_t *t, const uint8_t *old) { (void)t; (void)old; return 0; }
-static int motion_native_event(uint32_t id, int32_t value) { (void)id; (void)value; return 0; }
-static int motion_native_ok(uint32_t id, int32_t value) { (void)id; (void)value; return 0; }
-static int motion_nbit(uint32_t k, uint32_t i) { (void)k; (void)i; return 0; }
 
 typedef struct {
     uint8_t p[P_COUNT], engine, preset, user[2], user_native, fm_on;
@@ -260,13 +243,7 @@ static void song_sound_apply(uint32_t k, const song_sound_t *s) { (void)k; (void
 static void song_sound_capture(song_sound_t *s, const track_t *t, const char *name) { (void)s; (void)t; (void)name; }
 
 /* ------------------------------------------- MIDI knobs, the master --- */
-#define MIDI_KNOB_Q 64u
-static uint32_t midi_knob_q[MIDI_KNOB_Q];
-static volatile uint32_t midi_knob_w, midi_knob_r;
-static volatile uint8_t midi_knob_usb_epoch;
-static uint32_t midi_knob_config(void) { return 0; }
 static uint8_t midi_master_volume = 127;
-static void midi_master_apply(void) {}
 static void midi_master_physical(uint32_t q12) { song.master_q12 = q12; }
 static void midi_insert_init(void) {}
 

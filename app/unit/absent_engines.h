@@ -35,23 +35,12 @@ static const uint8_t FM6_ALG[32][6];
 static uint8_t fm6_on[NTRK], fm6_fn[NTRK][FM6_NFN];
 static volatile uint8_t fm6_lgen[NTRK], fm6_pgen[NTRK], fm6_rx_ready;
 static uint8_t *fm6_patch_of(uint32_t k) { static uint8_t none[FP_SIZE + 1u]; (void)k; return none; }
-static void fm6_put_patch(uint32_t tr, const uint8_t *v, int load) { (void)tr; (void)v; (void)load; }
 static void fm6_set_patch(uint32_t tr, const uint8_t *v) { (void)tr; (void)v; }
-static void fm6_sanitize(uint8_t *v) { (void)v; }
 static void fm6_track_loaded(const track_t *t) { (void)t; }
-static void fm6_name(char *d, const uint8_t *v) { (void)v; d[0] = 0; }
-static uint32_t fm6_carriers(uint32_t a) { (void)a; return 1u; }
-static void fm6_fn_set(uint32_t tr, uint32_t k, int32_t v) { (void)tr; (void)k; (void)v; }
 static uint32_t fm6_pow2(int32_t x) { (void)x; return 1u; }
 static const uint8_t FM6_INIT[FM6_PACKED];
 static const uint8_t FM6_FNDEF[FM6_NFN];
-static int fm6_fn_ok(const uint8_t *f) { (void)f; return 1; }
-static void fm6_pack(const uint8_t *v, uint8_t *b) { (void)v; memset(b, 0, FM6_PACKED); }
-static void fm6_unpack(const uint8_t *b, uint8_t *v) { (void)b; memset(v, 0, FP_SIZE + 1u); }
 static void fm6_init(void) {}
-static void fm6_init_voice(void) {}
-static void fm6_store(uint32_t k) { (void)k; }
-static void fm6_send(void) {}
 /* the project's wire scratch, which Melodee FM-1 keeps beside FM6's SysEx in (its eng_fm6.c): a bank record, the
  * project's own (project.c: the archives, the transfers) */
 #define WIRE_SCRATCH_BYTES 27904u
@@ -72,8 +61,6 @@ static const param_desc_t CZ_ED[20];
 static cz_patch_t cz_compare;
 static uint8_t cz_compare_tr;
 static cz_patch_t *cz_patch_of(uint32_t k) { static cz_patch_t none; (void)k; return &none; }
-static int cz_patch_valid(const uint8_t *b) { (void)b; return 0; }
-static void cz_compare_take(uint32_t tr) { (void)tr; }
 static void cz_factory_loaded(track_t *t) { (void)t; }
 static void cz_track_accept(track_t *t) { (void)t; }
 static void cz_init(void) {}
@@ -84,13 +71,9 @@ enum { P5_CUTOFF, P5_RESONANCE, P5_ENV_FILTER, P5_ATTACK_AMP, P5_DECAY_AMP, P5_S
 static p5_patch_t p5_patch[NPART];
 static uint8_t p5_ready[NPART];
 static p5_patch_t *p5_patch_of(const track_t *t) { (void)t; return &p5_patch[0]; }
-static void p5_patch_init(p5_patch_t *p) { memset(p, 0, sizeof *p); }
 static void p5_patch_name(char *name, const p5_patch_t *p) { (void)p; name[0] = 0; }
-static int p5_patch_valid(const p5_patch_t *p) { (void)p; return 0; }
 static void p5_preset_loaded(track_t *t, uint32_t pi) { (void)t; (void)pi; }
-static void p5_track_accept(track_t *t) { (void)t; }
 #define P5_FACTORY_N 0u
-static void p5_factory(uint32_t k, p5_patch_t *p) { (void)k; p5_patch_init(p); }
 
 /* the drum kits' engine (seq.c drum_track: never one) and the 909's snare */
 static const engine_t ENG_DRUM = {.name = "-"};
@@ -102,8 +85,6 @@ static const uint8_t DRUM_LANE_NOTE[8] = {36, 38, 42, 46, 41, 45, 39, 49};
 static volatile uint8_t drum_flash[NTRK];
 static uint32_t drum_event_length;
 static int32_t drum_event_pitch;
-static int drum_is909(const track_t *t) { (void)t; return 0; }
-static int drum_issid(const track_t *t) { (void)t; return 0; }
 static uint32_t drum_lane(uint32_t note)
 {
     uint32_t l;
@@ -111,16 +92,12 @@ static uint32_t drum_lane(uint32_t note)
         ;
     return l;
 }
-static const char *drum_character(uint32_t sound) { (void)sound; return ""; }
 static const char *drum_lane_name(const track_t *t, uint32_t l) { (void)t; (void)l; return ""; }
 static const char *drum_lane_abbr(const track_t *t, uint32_t l) { (void)t; (void)l; return ""; }
-static uint32_t drum_mpc_note(const track_t *t, uint32_t pad) { (void)t; return 36u + pad; }
 static uint32_t drum_sound_count(const track_t *t) { (void)t; return 0; }
-static const char *drum_sound_name(const track_t *t, uint32_t sound) { (void)t; (void)sound; return ""; }
 static const char *drum_sound_abbr(const track_t *t, uint32_t sound) { (void)t; (void)sound; return ""; }
 static uint32_t drum_sound_note(const track_t *t, uint32_t sound) { (void)t; return 36u + sound; }
 static uint32_t drum_sound_of(const track_t *t, uint32_t note) { (void)t; return note >= 36u ? note - 36u : 0u; }
-static uint32_t drum_sound_step(const track_t *t, uint32_t sound, int32_t delta) { (void)t; (void)delta; return sound; }
 static uint32_t step_lanes(const step_t *s) { (void)s; return 0; }
 static uint32_t step_accents(const step_t *s) { (void)s; return 0; }
 static int32_t step_sound_note(const track_t *t, const step_t *s, uint32_t sound) { (void)t; (void)s; return (int32_t)sound; }

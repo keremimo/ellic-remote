@@ -40,27 +40,6 @@ static uint32_t notes_selected(const track_t *t)
     return chosen;
 }
 /* Shared by note preview and the drum editor, including undo preview. */
-static uint32_t drum_hit_selected(void)
-{
-    uint32_t selected=ui.note_pick?ui.note_pick-1u:RECORD_MAX, first=RECORD_MAX;
-    for(uint32_t i=recording_head[recording_owner(TSEL)];i<RECORD_MAX;i=recording_next[i]){
-        if(!recording_active(TSEL,i) || recording_view(TSEL,&recording[i])!=ui.cursor || drum_sound_of(TSEL,recorded_note(&recording[i]))!=ui.drum_sound%drum_sound_count(TSEL))continue;
-        if(i==selected)return i;
-        if(first==RECORD_MAX || recording[i].on<recording[first].on)first=i;
-    }
-    return first;
-}
-static uint32_t notes_rank(const track_t *t, uint32_t chosen, uint32_t *count)
-{
-    uint32_t rank = 0;
-    *count = 0;
-    for (uint32_t i = recording_head[recording_owner(t)]; i < RECORD_MAX; i = recording_next[i])
-        if (notes_in_step(t, i)) {
-            (*count)++;
-            if (chosen < RECORD_MAX && notes_before(i, chosen)) rank++;
-        }
-    return chosen < RECORD_MAX ? rank + 1u : 0u;
-}
 static void notes_cycle(int32_t delta)
 {
     uint32_t chosen = notes_selected(TSEL);
@@ -189,7 +168,7 @@ static int notes_preview_on(void)
 {
     const page_t *pg=cur_page();
     return settings_preview && !song.playing && !seq_counting() && !ui.home && !ui.menu && !ui.layer && !ui.entry_open &&
-        (pg->graph==GR_ROLL || pg->graph==GR_STEPS || pg->graph==GR_DRUMHIT);
+        (pg->graph==GR_ROLL || pg->graph==GR_STEPS);
 }
 static void notes_audition(const uint8_t *nn,const uint8_t *vv,uint32_t count,int32_t pitch,uint32_t gate)
 {
@@ -201,7 +180,6 @@ static void notes_preview(void)
     if(!notes_preview_on()) return;
     const page_t *pg=cur_page();
     uint8_t nn[12],vv[12];uint32_t count=0,chosen=notes_selected(TSEL);
-    if(pg->scope==SC_DRUMHIT)chosen=drum_hit_selected();
     int32_t pitch=0;uint32_t gate=0;
     if(chosen<RECORD_MAX) { const recorded_note_t *r=&recording[chosen];nn[count]=recorded_note(r);vv[count++]=r->vel;
         if(drum_track(TSEL)){pitch=r->pitch;if(recorded_gate(r))gate=(uint32_t)(((uint64_t)r->duration<<(recorded_exponent(r)))*seq_div_samples(TSEL->p[P_SDIV])/RECORD_UNIT);}

@@ -3,8 +3,9 @@
 """Checked changes to the pinned fm1-base, made in the disposable build copy; upstream files keep their notices.
 
 Bluetooth MIDI SysEx both ways (fm1-base drops SysEx in and has no SysEx out over Bluetooth), USB's SysEx a byte at
-a time to the app as well (felucca-bsp keeps one frame: a burst of Melodee's lost all but its first), the name, and
-Saadet's fixes to the peripheral link (tools/base_overlay.py there, the same author)."""
+a time to the app as well (felucca-bsp keeps one frame: a burst of Melodee's lost all but its first), the name,
+Saadet's fixes to the peripheral link (tools/base_overlay.py there, the same author), and Melodee FM-1's light levels
+in the scan (three planes, each lit on the frames its mask leaves: full, 1/2, 1/4, 1/8 of lit)."""
 
 
 def replace(s, old, new):
@@ -125,7 +126,97 @@ USB_SYSEX = r'''    if (b >= 0xF8u)
 #endif'''
 
 
+LED_MID = '''static uint8_t fm1_led_mid[FM1_NCOL];      /* a steady mid level (see top): lit 1 frame in FM1_LED_MID_N */'''
+
+LED_PLANES_STATE = LED_MID + r'''
+/* Melodee Remote: Melodee FM-1's levels, three planes of LEDs lit as a lit LED on the frames their masks leave (the
+ * frame count & mask == 0: mask 0 every frame, full; 1 one frame in 2; 3 one in 4; 7 one in 8), all in step, dark in
+ * the others. fm1__pl_ph counts the frames when column 0 comes round; plat_lights_planes writes them */
+static uint8_t fm1_led_pl[3][FM1_NCOL];
+static volatile uint8_t fm1_led_pl_mask[3];
+static uint8_t fm1__pl_ph;'''
+
+LED_LIT = r'''#define FM1__LIT(c) (fm1_led[c] | (fm1__br_lit ? fm1_led_breath[c] & ~fm1_led_dim[c] : 0u) | \
+                     (!fm1__mid_ph ? fm1_led_mid[c] : 0u))'''
+
+LED_PLANES_LIT = r'''#define FM1__PL(c) ((fm1__pl_ph & fm1_led_pl_mask[0] ? 0u : fm1_led_pl[0][c]) | \
+                    (fm1__pl_ph & fm1_led_pl_mask[1] ? 0u : fm1_led_pl[1][c]) | \
+                    (fm1__pl_ph & fm1_led_pl_mask[2] ? 0u : fm1_led_pl[2][c]))
+#define FM1__LIT(c) (fm1_led[c] | (fm1__br_lit ? fm1_led_breath[c] & ~fm1_led_dim[c] : 0u) | \
+                     (!fm1__mid_ph ? fm1_led_mid[c] : 0u) | FM1__PL(c))'''
+
+LED_FRAME = '''        fm1__mid_ph = (uint8_t)(fm1__mid_ph + 1u >= fm1__mid_n ? 0u : fm1__mid_ph + 1u);'''
+
+LED_PLANES_DEVICE = r'''/* Melodee Remote: Melodee FM-1's three planes (felucca-bsp fm1_led_pl): plane j's buttons and keys, lit on the frames
+ * mask[j] leaves; bit NB in buttons PLAY's green LED */
+void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask)
+{
+    uint8_t pl[3][FM1_NCOL];
+    uint32_t i, j, c;
+    for (j = 0; j < 3u; j++) {
+        for (c = 0; c < FM1_NCOL; c++)
+            pl[j][c] = 0;
+        for (i = 0; i < NB + NKEYS; i++) {
+            uint32_t id = i < NB ? panel.btn[i] : 14u + (i - NB);
+            uint8_t q = led_pos[id];
+            if (q != 0xFF && (i < NB ? (buttons[j] >> i) & 1u : (keys[j] >> (i - NB)) & 1u))
+                pl[j][q >> 3] |= (uint8_t)(1u << (q & 7u));
+        }
+        if (buttons[j] & LED_PLAY_GREEN)
+            pl[j][8] |= 1u << 1;
+    }
+    for (j = 0; j < 3u; j++) {
+        fm1_led_pl_mask[j] = mask[j];
+        for (c = 0; c < FM1_NCOL; c++)
+            fm1_led_pl[j][c] = pl[j][c];
+    }
+}
+'''
+
+HOST_GLOW = "static int glow_on = 1;                 /* the device's button glow (plat_glow) */"
+
+LED_PLANES_HOST = r'''/* Melodee Remote: Melodee FM-1's three planes ("leds" shows them as the glow) */
+static uint32_t pl_keys;
+void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask)
+{
+    (void)buttons;
+    (void)mask;
+    pl_keys = keys[0] | keys[1] | keys[2];
+}
+'''
+
+PLAT_MID = 'void plat_lights_mid(uint32_t buttons, uint32_t keys);'
+
+PLAT_PLANES = PLAT_MID + '''
+/* Melodee Remote: three planes of levels, plane j lit on the frames whose count & mask[j] is 0 (mask 0: always, full;
+ * 1, 3, 7: 1/2, 1/4, 1/8 of lit), unless lit; bit NB in buttons PLAY's green LED. Each call replaces them */
+void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask);'''
+
+
 def apply(work):
+    # Melodee FM-1's light levels in the scan: three planes, each lit on the frames its mask leaves (the remote's
+    # LIGHTS: LOW 1/8 .. FULL, the idle buttons' 1/4, the breathing), beside fm1-base's lit, glow and mid.
+    p = work / 'bsp/boards/fm1/fm1_input.h'
+    s = p.read_text()
+    s = replace(s, LED_MID, LED_PLANES_STATE)
+    s = replace(s, LED_LIT, LED_PLANES_LIT)
+    s = replace(s, LED_FRAME, LED_FRAME + '\n        fm1__pl_ph++;                              /* (Melodee Remote: the planes\' frames) */')
+    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p = work / 'device/plat_fm1.c'
+    s = p.read_text()
+    s = replace(s, 'static uint8_t glow_on = 1, play_red;', LED_PLANES_DEVICE + 'static uint8_t glow_on = 1, play_red;')
+    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p = work / 'host/plat_host.c'
+    s = p.read_text()
+    s = replace(s, HOST_GLOW, LED_PLANES_HOST + HOST_GLOW)
+    s = replace(s, '(dim_keys | mid_keys) >> HOST_WHITE_K', '(dim_keys | mid_keys | pl_keys) >> HOST_WHITE_K')
+    s = replace(s, '(dim_keys | mid_keys) >> HOST_BLACK_K', '(dim_keys | mid_keys | pl_keys) >> HOST_BLACK_K')
+    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p = work / 'include/plat.h'
+    s = p.read_text()
+    s = replace(s, PLAT_MID, PLAT_PLANES)
+    p.write_text(s)
+
     # USB SysEx: every byte to the app too (app.h APP_USB_SYSEX_BYTE), not one frame at a time.
     p = work / 'bsp/chip/usb.c'
     s = p.read_text()

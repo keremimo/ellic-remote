@@ -34,7 +34,6 @@ static uint32_t recorded_step(const recorded_note_t *r)
 static uint32_t recorded_exponent(const recorded_note_t *r) { return r->owner >> 5; }
 static int recorded_gate(const recorded_note_t *r) { return (r->length & 1u) != 0; }
 static int recorded_rounded(const recorded_note_t *r) { return (r->step & 64u) != 0; }
-static int recorded_wrapped(const recorded_note_t *r) { return (r->step & 128u) != 0; }
 static void recorded_set_owner(recorded_note_t *r, uint32_t owner)
 {
     r->owner = (uint8_t)((r->owner & 224u) | (owner & 31u));
@@ -50,6 +49,4 @@ static void recorded_set_step(recorded_note_t *r, uint32_t step, int rounded, in
     r->step = (uint8_t)((step & 63u) | (rounded ? 64u : 0u) | (wrapped ? 128u : 0u));
     r->extended = (uint8_t)((r->extended & 1u) | ((step >> 5) & 2u));
 }
-static uint32_t recorded_legacy_length(const recorded_note_t *r)
-{return r->length|((uint32_t)r->extended<<1);}
 #endif

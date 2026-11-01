@@ -2,10 +2,8 @@
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio)
  * Portions Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Melodee menu (HOME held): COLOR, FONT (the type: RUBIK or PIXEL, ui.c TY_*), HOLD (the layer threshold), LIGHTS (the keys' and buttons'
- * glow: ui_input.c ui_leds), KNOB ACCEL (ui_input.c accel_by), USB AUDIO (IN+OUT, IN, OUT or OFF; usb.c ua_off_set),
- * USB INPUT (stereo master or four track stems; usb.c ua_tracks_set),
- * AUTOSAVE (automatic project saves after five seconds stopped and untouched), HOME SELECT (what SELECT turns on HOME:
- * ui.c HS_*), GLO SELECT (what SELECT turns with GLO held, on any page: the same choices), UNUSED TRACKS (SHOW:
+ * glow: ui_input.c ui_leds), AUDIO CLICK, CLICK LEVEL, COUNT-IN, NOTE PREVIEW, CHORD ENTRY, KNOB ACCEL (ui_input.c
+ * accel_by), HOME SELECT (what SELECT turns on HOME: ui.c HS_*), GLO SELECT (what SELECT turns with GLO held, on any page: the same choices), UNUSED TRACKS (SHOW:
  * Stage and MIXER keep a greyed "Add track" row for each place not in use; HIDE: the tracks in use only, ui.c
  * stage_rows),
  * CALIBRATION (the setup screen: HARDWARE CALIBRATION), ABOUT.
@@ -13,31 +11,11 @@
 /* ------------------------------------------------------------ menu --- */
 #define MENU_HEAD H_HEAD                 /* the menu's own title strip */
 enum { MI_COLOR, MI_FONT, MI_HOLD, MI_LIGHTS,
-#if MELODEE_USB_AUDIO
-       MI_USB, MI_USB_INPUT,
-#endif
-#if MELODEE_BLE
-       MI_BLE,
-#endif
-       MI_MIDI_KNOBS, MI_MIDI_MODE,
-       MI_CLICK, MI_CLICK_LEVEL, MI_COUNTIN, MI_PREVIEW, MI_ADD, MI_AUTOSAVE, MI_PICKER, MI_ACCEL, MI_HOME_SEL, MI_GLO_SEL, MI_TRACKS, MI_SCREEN, MI_PANEL, MI_ABOUT, MI_DESIGNER, MI_BACK,
+       MI_CLICK, MI_CLICK_LEVEL, MI_COUNTIN, MI_PREVIEW, MI_ADD, MI_PICKER, MI_ACCEL, MI_HOME_SEL, MI_GLO_SEL, MI_TRACKS, MI_SCREEN, MI_PANEL, MI_ABOUT, MI_BACK,
        MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "FONT", "HOLD", "LIGHTS",
-#if MELODEE_USB_AUDIO
-                                              "USB AUDIO", "USB INPUT",
-#endif
-#if MELODEE_BLE
-                                              "BLUETOOTH",
-#endif
-                                              "MIDI KNOBS", "MIDI MODE",
                                               "AUDIO CLICK", "CLICK LEVEL", "COUNT-IN", "NOTE PREVIEW", "CHORD ENTRY",
-                                              "AUTOSAVE", "PICKER POPUPS", "KNOB ACCEL", "HOME SELECT", "GLO SELECT", "UNUSED TRACKS", "SCREEN OFF", "CALIBRATION", "ABOUT", "SOUND DESIGNER", "BACK"};
-#if MELODEE_USB_AUDIO
-/* USB AUDIO's four settings, as ua_off_want (UA_OFF_OUT | UA_OFF_IN) */
-static const char *const MI_USB_NAME[4] = {"IN+OUT", "IN", "OUT", "OFF"};
-#endif
-static const char *const MI_MIDI_KNOB_NAME[MK_PROFILES] = {"OFF", "GENERAL", "MINILAB"};
-static const char *const MI_MIDI_MODE_NAME[MK_MODES] = {"ABSOLUTE", "REL 1", "REL 2", "REL 3"};
+                                              "PICKER POPUPS", "KNOB ACCEL", "HOME SELECT", "GLO SELECT", "UNUSED TRACKS", "SCREEN OFF", "CALIBRATION", "ABOUT", "BACK"};
 
 /* https://keremimo.github.io/melodee, QR version 3, correction M (segno; checked with a decoder).
  * One row per word, leftmost module in bit 0; the constant matrix needs no encoder or RAM. */
@@ -66,12 +44,6 @@ static void draw_about_qr(int32_t x, int32_t y)
 enum { MC_TEXT, MC_TITLE, MC_URL };
 typedef struct { const char *text; uint8_t kind; } menu_credit_t;
 static const menu_credit_t MENU_CREDITS[] = {
-#if MELODEE_BLE
-    {"OPTIMIST / BLE MIDI", MC_TITLE},
-    {"w0ts/optimist contributors / GPL-3.0-only", MC_TEXT},
-    {"https://github.com/w0ts/optimist", MC_URL},
-    {"", MC_TEXT},
-#endif
     {"FELUCCA / UPSTREAM", MC_TITLE},                  /* Melodee is a modified Felucca */
     {"H\xFCgelton Instruments, Leo Kuroshita / GPL-3.0", MC_TEXT},
     {"https://github.com/hugelton/Felucca", MC_URL},
@@ -196,15 +168,9 @@ static int32_t menu_scroll_max(void)
 
 /* the menu's header (0..24): its title, the REC mark, the way back */
 static void enc_drop(void);
-#if MELODEE_BLE
-#include "ui_ble.c"
-#endif
 static void menu_head(void)
 {
     if (head_shared_status()
-#if MELODEE_BLE
-        || mb.on || ui.menu == 3
-#endif
         ) { draw_head(); return; }
     cv_begin(240, MENU_HEAD, T_BG);
     cv_text(8, ty_y(MENU_HEAD / 2, TY_TX), TY_TX, ui.menu == 2 ? "About" : "Settings", T_THEME);
@@ -249,15 +215,8 @@ static void menu_words(char *d, const char *s, uint32_t n)
 }
 static void draw_menu(void)
 {
-#if MELODEE_BLE
-    if (ui.menu == 3) { draw_ble_page(); return; }
-#endif
     uint32_t i, pass, sig = ui.menu * 7u + ui.menu_sel * 131u + settings.palette * 1009u + settings.lowcut * 7919u +
-                            settings_hold * 3511u + settings_lights * 6151u + settings_autosave * 15485863u +
-                            settings_midi_knobs * 997u + settings_midi_knob_mode * 10007u +
-#if MELODEE_USB_AUDIO
-                            ua_off_want * 92821u + ua_tracks_want * 324161u +
-#endif
+                            settings_hold * 3511u + settings_lights * 6151u +
                             song.rec * 65537u + song.sel * 13u +
                             (ui.menu == 2 ? ui.menu_scroll * 48611u : 0u);
     if (!ui.force && sig == ui.menu_sig) {
@@ -305,20 +264,13 @@ static void draw_menu(void)
                       i==MI_COUNTIN?(const char *const[]){"OFF","1 BAR","2 BARS"}[settings_countin%3u]:
                       i==MI_PREVIEW?(settings_preview?"ON":"OFF"):(settings_chord_add?"ADD":"HOLD");
                 if (i == MI_ACCEL) value = PREF_BITS & PREF_ACCEL_OFF ? "OFF" : "ON";
-                if (i == MI_MIDI_KNOBS) value = MI_MIDI_KNOB_NAME[settings_midi_knobs % MK_PROFILES];
-                if (i == MI_MIDI_MODE) value = MI_MIDI_MODE_NAME[settings_midi_knob_mode % MK_MODES];
                 if (i == MI_PICKER) value = PREF_BITS & PREF_PICK_OFF ? "OFF" : "ON";
                 if (i == MI_FONT) value = TY_PIXEL ? "PIXEL" : "RUBIK";
-                if (i == MI_AUTOSAVE) value = settings_autosave ? "ON" : "OFF";
                 if (i == MI_HOME_SEL) value = HS_NAME[home_select()];
                 if (i == MI_GLO_SEL) value = HS_NAME[glo_select()];
                 if (i == MI_TRACKS) value = GLO_SELECT & TRACKS_HIDE ? "HIDE" : "SHOW";
                 if (i == MI_SCREEN) value = (const char *const[]){"NEVER", "5 MIN", "15 MIN", "30 MIN", "60 MIN"}[scr_get()];
                 if (i == MI_LIGHTS) value = LIGHTS_NAME[settings_lights % LIGHTS_N];
-#if MELODEE_USB_AUDIO
-                if (i == MI_USB_INPUT) value = ua_tracks_want ? "4 TRACKS" : "STEREO";
-                if (i == MI_USB) value = (const char *const[]){"In + Out", "In", "Out", "Off"}[ua_off_want & 3u];
-#endif
                 if (i == MI_HOLD) {                         /* "0.4 s" */
                     str_cpy(b, "0.4 s", sizeof b);
                     b[2] = (char)('0' + HOLD_MS[settings_hold % 4u] / 100u);
@@ -360,9 +312,6 @@ static void enc_drop(void)                             /* knob turns nobody take
 
 static void menu_close(void)
 {
-#if MELODEE_BLE
-    mel_ble_scan(0);
-#endif
     settings_save();                                   /* palette / panel table, if changed */
     ui.menu = 0;
     ui.force = 1;
@@ -372,9 +321,6 @@ static void menu_close(void)
 /* menu: PRESETS moves, OCT+ confirms, OCT- cancels (ABOUT -> list -> close) */
 static void menu_input(uint32_t oct)                  /* oct: ui_input.c oct_taps */
 {
-#if MELODEE_BLE
-    if (ui.menu == 3) { ble_page_input(oct); return; }
-#endif
     int32_t s;
     uint32_t ok = (oct >> 1) & 1u, back = oct & 1u;
     if (back) {
@@ -392,35 +338,12 @@ static void menu_input(uint32_t oct)                  /* oct: ui_input.c oct_tap
         ui.menu_scroll = (uint16_t)clamp((int32_t)ui.menu_scroll + clamp(s, -128, 128) * 18, 0, menu_scroll_max());
     }
     s = panel_enc(EN_K1);
-    if ((s || ok) && ui.menu == 1 && (ui.menu_sel == MI_MIDI_KNOBS || ui.menu_sel == MI_MIDI_MODE)) {
-        volatile uint8_t *p = ui.menu_sel == MI_MIDI_KNOBS ? &settings_midi_knobs : &settings_midi_knob_mode;
-        uint32_t n = ui.menu_sel == MI_MIDI_KNOBS ? MK_PROFILES : MK_MODES, v = *p % n;
-        *p = (uint8_t)(s > 0 ? (v + 1u < n ? v + 1u : v) : s < 0 ? (v ? v - 1u : 0u) : (v + 1u) % n);
-        ui.force = 1; ok = 0;
-        /* No old mapping's pending turns may edit rows under the new mapping. */
-        memset(midi_panel_delta, 0, sizeof midi_panel_delta);
-        midi_panel_mask = 0;
-    }
     if (s != 0 && ui.menu == 1 && ui.menu_sel == MI_COLOR) {
         settings.palette = (settings.palette + (s > 0 ? 1u : NPALETTES - 1u)) % NPALETTES;   /* (wraps) */
         palette_set(settings.palette);              /* (the menu signature redraws) */
         ui.force = 1;
     }
 
-#if MELODEE_USB_AUDIO
-    if ((s != 0 || ok) && ui.menu == 1 && ui.menu_sel == MI_USB_INPUT) {
-        ua_tracks_set(s > 0 ? 1 : s < 0 ? 0 : !ua_tracks_want, fm1_ms);
-        ok = 0;
-    }
-    if ((s != 0 || ok) && ui.menu == 1 && ui.menu_sel == MI_USB) {
-        /* KNOB 1 steps IN+OUT IN OUT OFF, OCT+ steps and wraps; the host gets it once it rests (main.c) */
-        uint32_t v = ua_off_want & 3u;
-        v = s > 0 ? (v < 3u ? v + 1u : 3u) : s < 0 ? (v ? v - 1u : 0u) : (v + 1u) % 4u;
-        ua_off_set(UA_OFF_OUT, !(v & UA_OFF_OUT), fm1_ms);
-        ua_off_set(UA_OFF_IN, !(v & UA_OFF_IN), fm1_ms);
-        ok = 0;
-    }
-#endif
     if ((s != 0 || ok) && ui.menu == 1 && ui.menu_sel == MI_LIGHTS) {
         /* KNOB 1 steps OFF .. FULL, OCT+ steps and wraps (saved when the menu closes) */
         uint32_t v = settings_lights % LIGHTS_N;
@@ -444,10 +367,6 @@ static void menu_input(uint32_t oct)                  /* oct: ui_input.c oct_tap
         value=s>0?(value<top?value+1:value):s<0?(value?value-1:0):(value+1)%(top+1);
         if(id==0)settings_click=value;else if(id==2)settings_countin=value;else if(id==3)settings_preview=value;else settings_chord_add=value;
         ok=0;ui.force=1;
-    }
-    if ((s || ok) && ui.menu == 1 && ui.menu_sel == MI_AUTOSAVE) {
-        settings_autosave = (uint8_t)(s > 0 ? 1u : s < 0 ? 0u : !settings_autosave);
-        ui.force = 1; ok = 0;
     }
     if ((s || ok) && ui.menu == 1 && ui.menu_sel == MI_FONT) {   /* KNOB 1 right PIXEL, left RUBIK; OCT+ toggles */
         uint32_t px = s > 0 ? 1u : s < 0 ? 0u : !TY_PIXEL;
@@ -491,15 +410,9 @@ static void menu_input(uint32_t oct)                  /* oct: ui_input.c oct_tap
             palette_set(settings.palette);
             ui.force = 1;
             break;
-#if MELODEE_BLE
-        case MI_BLE: ble_page_open(); break;
-#endif
         case MI_PANEL:
             panel_setup();
             ui.force = 1;
-            break;
-        case MI_DESIGNER:
-            menu_close();designer_open();
             break;
         case MI_ABOUT:
             ui.menu = 2;

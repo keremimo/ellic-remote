@@ -39,6 +39,7 @@ uint32_t plat_master(void);             /* MASTER's position, 0..4096 */
 int32_t plat_enc(int role);             /* detents since the last call, + = clockwise; role panel.c EN_* */
 void plat_lights(uint32_t buttons, uint32_t keys, uint32_t dim_buttons, uint32_t dim_keys, int glow);
 void plat_lights_mid(uint32_t buttons, uint32_t keys);
+void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask);   /* (the overlay's) */
 void plat_midi_send(uint32_t pkt, uint32_t to);
 uint32_t plat_midi_out_room(uint32_t to);
 void plat_yield(void);

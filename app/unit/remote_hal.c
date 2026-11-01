@@ -35,8 +35,6 @@ static uint32_t fm1_ticks(void) { return plat_ms() * 1000u; }
 static void fm1_wdt_feed(void) {}
 static void fm1_irq_off(void) {}         /* (no audio interrupt shares the model here) */
 static void fm1_irq_on(void) {}
-static uint32_t fm1_icfg(void) { return 0; }
-static void fm1_icfg_set(uint32_t v) { (void)v; }
 static void fm1_delay_ms(uint32_t ms) { uint32_t t = plat_ms(); while (plat_ms() - t < ms) plat_yield(); }
 
 static int32_t fm1_enc_take(uint32_t e)
@@ -60,18 +58,6 @@ static uint32_t fm1_input_note_edges(void)
     fm1_in.notes_pressed = 0;
     return p;
 }
-static void fm1_led_key(uint32_t id, int on)
-{
-    uint32_t p, r;
-    for (p = 0; p < FM1_NCOL; p++)
-        for (r = 1; r < 5u; r++)
-            if (FM1_KEYMAP[r][p] == (int8_t)id) {
-                if (on)
-                    fm1_led[p] |= (uint8_t)(1u << r);
-                else
-                    fm1_led[p] &= (uint8_t)~(1u << r);
-            }
-}
 
 /* the LCD: fm1-base's (and its mirror's) */
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) { app_lcd_fill(x, y, w, h, c); }
@@ -87,10 +73,13 @@ static struct {
 static const uint8_t *hal_btn;           /* matrix id of each label (panel.btn) */
 static const uint8_t *hal_enc;           /* matrix encoder of each role (panel.enc) */
 static const int8_t *hal_dir;
+static uint32_t hal_touched_ms;          /* a key, a button or a knob last moved (the LEDs follow it at once) */
 static void hal_poll(void)
 {
     static uint32_t buttons, keys;
     uint32_t b = plat_buttons(), k = plat_keys() & 0x7FFFFFFu, m = 0, i, t = fm1_ticks();
+    if (b != buttons || k != keys)
+        hal_touched_ms = plat_ms();
     for (i = 0; i < 14u; i++)
         if ((b >> i) & 1u)
             m |= 1u << hal_btn[i];
@@ -106,47 +95,88 @@ static void hal_poll(void)
     buttons = b;
     for (i = 0; i < 7u; i++) {
         int32_t s = plat_enc((int)i);
-        if (s)
+        if (s) {
             fm1_in.enc_steps[hal_enc[i]] = (int16_t)(fm1_in.enc_steps[hal_enc[i]] + s * hal_dir[i]);
+            hal_touched_ms = plat_ms();
+        }
     }
 }
 
 /* -------------------------------------------- the LEDs out, by label --- */
-/* Melodee FM-1's picture (fm1_led: lit; fm1_led_dim's planes: the keys' and the buttons' glow, the breathing) read
- * back by key id and given to fm1-base by label: lit, its glow (dim), the breathing (its mid level) */
+/* Melodee FM-1's picture (fm1_led: lit; fm1_led_dim's three planes, each lit on the frames fm1_led_dim_mask leaves: the
+ * keys' glow at the LIGHTS level, the idle buttons' quarter, the breathing) read back by key id and given to fm1-base by
+ * label as it is: lit, and the planes with their masks (the scan's plat_lights_planes: LIGHTS FULL is lit, LOW .. HIGH
+ * an eighth .. a half). A pass of its own over the picture as the pages left it: a light going darker (lit to a plane,
+ * a plane to a fainter one or dark) holds HAL_HOLD_MS first unless the panel moved meanwhile, so a picture the mirror
+ * leaves half told for a frame never blinks; brighter shows at once, the breathing as it breathes */
+#define HAL_NLED (14u + 27u)
+#define HAL_HOLD_MS 24u
+static uint8_t hal_led_pos[HAL_NLED];    /* (column << 3 | row bit) of each light, buttons by label then keys; 0xFF none */
+static uint8_t hal_shown[HAL_NLED];      /* what each shows: bit 0 lit, 1 and 2 the planes 0, 1 (the simulator checks it) */
+static uint32_t hal_level(uint32_t bits) /* how bright: lit 256, a plane 256 / (its mask + 1) */
+{
+    uint32_t v = 0, j;
+    if (bits & 1u)
+        return 256u;
+    for (j = 0; j < 2u; j++)
+        if ((bits >> (j + 1u)) & 1u && 256u / (fm1_led_dim_mask[j] + 1u) > v)
+            v = 256u / (fm1_led_dim_mask[j] + 1u);
+    return v;
+}
 static void hal_lights(void)
 {
-    uint32_t i, id, lit_b = 0, lit_k = 0, dim_b = 0, dim_k = 0, mid_b = 0, mid_k = 0;
-    static uint32_t last[6];
-    for (i = 0; i < 14u + 27u; i++) {
-        uint32_t p, r, q = 0xFFu, on, dim, mid;
-        id = i < 14u ? hal_btn[i] : i;
-        for (p = 0; p < FM1_NCOL && q == 0xFFu; p++)
-            for (r = 1; r < 5u; r++)
-                if (FM1_KEYMAP[r][p] == (int8_t)id)
-                    q = p << 3 | r;
+    static uint8_t ready;
+    static uint32_t since[HAL_NLED], last[8];
+    uint32_t i, now = plat_ms(), local = now - hal_touched_ms < 2u * HAL_HOLD_MS;
+    uint32_t b[4] = {0, 0, 0, 0}, k[4] = {0, 0, 0, 0};
+    uint8_t mask[3];
+    if (!ready) {
+        for (i = 0; i < HAL_NLED; i++) {
+            uint32_t p, r, id = i < 14u ? hal_btn[i] : i;
+            hal_led_pos[i] = 0xFFu;
+            for (p = 0; p < FM1_NCOL; p++)
+                for (r = 1; r < 5u; r++)
+                    if (FM1_KEYMAP[r][p] == (int8_t)id)
+                        hal_led_pos[i] = (uint8_t)(p << 3 | r);
+        }
+        ready = 1;
+    }
+    for (i = 0; i < HAL_NLED; i++) {
+        uint32_t q = hal_led_pos[i], c, bit, want, j;
         if (q == 0xFFu)
             continue;
-        on = fm1_led[q >> 3] >> (q & 7u) & 1u;
-        dim = (fm1_led_dim[0][q >> 3] | fm1_led_dim[1][q >> 3]) >> (q & 7u) & 1u;
-        mid = fm1_led_dim[2][q >> 3] >> (q & 7u) & 1u;
-        if (i < 14u) {
-            lit_b |= on << i;
-            dim_b |= dim << i;
-            mid_b |= mid << i;
+        c = q >> 3;
+        bit = q & 7u;
+        want = (fm1_led[c] >> bit & 1u) | (fm1_led_dim[0][c] >> bit & 1u) << 1 | (fm1_led_dim[1][c] >> bit & 1u) << 2;
+        if (want != hal_shown[i]) {
+            if (local || hal_level(want) >= hal_level(hal_shown[i]) || (since[i] && now - since[i] >= HAL_HOLD_MS)) {
+                hal_shown[i] = (uint8_t)want;
+                since[i] = 0;
+            } else if (!since[i]) {
+                since[i] = now | 1u;              /* (going darker: held a moment) */
+            }
         } else {
-            lit_k |= on << (i - 14u);
-            dim_k |= dim << (i - 14u);
-            mid_k |= mid << (i - 14u);
+            since[i] = 0;
         }
+        want = hal_shown[i] | (fm1_led_dim[2][c] >> bit & 1u) << 3;   /* (the breathing: as it breathes) */
+        for (j = 0; j < 4u; j++)
+            if ((want >> j) & 1u) {
+                if (i < 14u)
+                    b[j] |= 1u << i;
+                else
+                    k[j] |= 1u << (i - 14u);
+            }
     }
+    mask[0] = fm1_led_dim_mask[0];
+    mask[1] = fm1_led_dim_mask[1];
+    mask[2] = fm1_led_dim_mask[2];
     {
-        uint32_t now[6] = {lit_b, lit_k, dim_b, dim_k, mid_b, mid_k};
-        if (!memcmp(now, last, sizeof now))
+        uint32_t pic[8] = {b[0], k[0], b[1], k[1], b[2], k[2], b[3] | (uint32_t)mask[0] << 16 | (uint32_t)mask[1] << 24,
+                           k[3] | (uint32_t)mask[2] << 27};
+        if (!memcmp(pic, last, sizeof pic))
             return;
-        memcpy(last, now, sizeof now);
+        memcpy(last, pic, sizeof pic);
     }
-    /* the keys' glow at Melodee FM-1's LIGHTS level (its plane 0's duty: 0 full, else less) */
-    plat_lights(lit_b, lit_k, dim_b, dim_k, fm1_led_dim_mask[0] == 0u ? 2 : 1);
-    plat_lights_mid(mid_b, mid_k);
+    plat_lights(b[0], k[0], 0, 0, 0);
+    plat_lights_planes(b + 1, k + 1, mask);
 }

@@ -58,16 +58,6 @@ static void sec_build(void)
             const char *nm;
             if (PAGES[i].fam != FAM_EDIT || !page_visible(i))
                 continue;
-            if (PAGES[i].scope == SC_FMOP) {            /* the operators: a section each, on their first page */
-                if (pass || (sec.n && sec.op[sec.n - 1u]))
-                    continue;
-                for (k = 0; k < 6u && sec.n < SEC_MAX; k++) {
-                    sec.name[sec.n] = SEC_OP[k];
-                    sec.first[sec.n] = (uint8_t)i;
-                    sec.op[sec.n++] = (uint8_t)(k + 1u);
-                }
-                continue;
-            }
             nm = sec_rule(i, 0);
             if (sec_store(nm) != (int)pass)
                 continue;
@@ -82,16 +72,11 @@ static void sec_build(void)
     for (k = 0; k < sec.n; k++)
         sec.last[k] = sec.first[k];
 }
-static uint32_t sec_of(uint32_t i)                      /* page i's section (an operator page: fm6_opsel's) */
+static uint32_t sec_of(uint32_t i)                      /* page i's section */
 {
     uint32_t k;
     const char *nm;
     sec_build();
-    if (PAGES[i].scope == SC_FMOP) {
-        for (k = 0; k < sec.n && sec.op[k] != fm6_opsel % 6u + 1u; k++)
-            ;
-        return k < sec.n ? k : 0u;
-    }
     nm = sec_rule(i, 0);
     for (k = 0; k < sec.n && !str_eq(sec.name[k], nm); k++)
         ;
@@ -159,34 +144,6 @@ static void sec_short(uint32_t i, char *b, uint32_t n)   /* .. in words ("Flt en
 }
 
 /* tabs under the header: name[cur] filled, its neighbours; as many as fit around it (sig: what they show) */
-static void tabs_draw(const char *const *name, uint32_t n, uint32_t cur, uint32_t sig)
-{
-    static uint32_t drawn;
-    uint32_t k, first;
-    int32_t x, w;
-    if (!ui.force && sig == drawn)
-        return;
-    drawn = sig;
-    for (first = cur; first > 0u; first--) {           /* from the furthest back that still lets cur fit */
-        for (x = 2, k = first - 1u; k <= cur; k++)
-            x += text_w(TY_LB, name[k]) + 20;
-        if (x > 238)
-            break;
-    }
-    cv_begin(240, SEC_TAB_H, T_BG);
-    for (x = 2, k = first; k < n; k++) {
-        int on = k == cur, far = (k > cur ? k - cur : cur - k) > 2u;
-        w = text_w(TY_LB, name[k]) + 16;
-        if (x + w > 238)
-            break;
-        if (on)
-            cv_rrect(x, 1, w, 24, 6, T_THEME, T_BG), cv_rrect(x + 1, 2, w - 2, 22, 5, ux_mix(T_BG, T_THEME, 22), T_THEME);
-        cv_text_c(x + w / 2, ty_y(13, TY_LB), TY_LB, name[k], on ? T_THEME : far ? T_DIM : T_MID,
-                  on ? ux_mix(T_BG, T_THEME, 22) : T_BG);
-        x += w + 4;
-    }
-    cv_blit(0, H_HEAD);
-}
 
 /* ---------------------------------------------------------- the map --- */
 static uint32_t smap_pages(uint32_t r, uint8_t *pg)     /* section r's pages (an operator's: the operator pages) */
@@ -195,7 +152,7 @@ static uint32_t smap_pages(uint32_t r, uint8_t *pg)     /* section r's pages (an
     for (i = 0; i < NPAGES && n < 8u; i++) {
         if (PAGES[i].fam != FAM_EDIT || !page_visible(i))
             continue;
-        if (sec.op[r] ? PAGES[i].scope == SC_FMOP : PAGES[i].scope != SC_FMOP && str_eq(sec_rule(i, 0), sec.name[r]))
+        if (str_eq(sec_rule(i, 0), sec.name[r]))
             pg[n++] = (uint8_t)i;
     }
     return n;

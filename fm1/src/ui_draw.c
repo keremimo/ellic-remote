@@ -9,10 +9,6 @@
  * in Melodee Pixel. A value too wide for its cell is set a role smaller (never under the label face); free text (names, messages)
  * is ellipsised. */
 static void draw_menu(void);
-static int name_on(void);                              /* NAME (ui_name.c) */
-static void name_draw(void);
-static int new_on(void);                               /* NEW SONG (ui_new.c) */
-static void new_draw(void);
 
 /* --------------------------------------------------------- drawing --- */
 #define COL_W CARD_W                                  /* a knob's cell: 57 x 48 at x 2 + 60 c, y 32 */
@@ -21,14 +17,6 @@ static void new_draw(void);
 static int32_t batt_level(void)                         /* thresholds 531 / 561 / 591 on ADC ch3 */
 {
     return song.batt_raw >= 591 ? 3 : song.batt_raw >= 561 ? 2 : song.batt_raw >= 531 ? 1 : 0;
-}
-/* A USB host powers us; there is no separate charger status line.
- * 4 means external power (a steady bolt inside the battery), otherwise its level. */
-static int32_t batt_shown(void)
-{
-    if (usb.config && !usb.suspended)
-        return 4;
-    return batt_level();
 }
 
 /* REC: filled, the selected track ready/recording; outlined, waiting or another track armed. */
@@ -158,12 +146,7 @@ static void head_chip_text(char *b)
 {
     const page_t *pg = cur_page();
     uint32_t e = TSEL->eng_req % NENGINES;
-    if (designer_on() && !name_on() && designer_head_chip(b)) {   /* the designer's START, FEATURES, original */
-    } else if (song_punch_on()) {
-        str_cpy(b, "SONG FX", 16);
-    } else if (new_on()) {                                     /* NEW SONG */
-        str_cpy(b, "NEW SONG", 16);
-    } else if (ptc_on()) {                              /* PATTERNS' Copy to: "copy 3 to 5", another track's "to T2 5" */
+    if (ptc_on()) {                              /* PATTERNS' Copy to: "copy 3 to 5", another track's "to T2 5" */
         str_cpy(b, "copy ", 16);
         pat_num(b + 5, ui.ptc_src);
         str_cpy(b + str_len(b), ui.ptc_to != ui.ptc_trk ? " to T" : " to ", 8);
@@ -180,9 +163,6 @@ static void head_chip_text(char *b)
         str_cpy(b, ENGINES[e]->name, 16);
     } else if (pg->graph == GR_ROLL && grid_on()) {     /* the drum grid */
         str_cpy(b, "STEP", 16);
-    } else if (pg->graph == GR_FMEG) {                  /* FM6's EG RATE / LVL: "OP3 EG" */
-        str_cpy(b, "OP1 EG", 16);
-        b[2] = (char)('1' + fm6_opsel % 6u);
     } else if (pg->fam == FAM_FX && pg->graph == GR_NONE) {   /* an FX slot: its effect */
         str_cpy(b, N_FX[clamp((pg->scope == SC_GLOBAL ? song.g : TSEL->p)[pg->id[0] - 1u], 0, FX_COUNT - 1)], 16);
     } else if (pg->scope != SC_ENGINE && sec_on()) {   /* an engine in sections: the page's name in its section */
@@ -196,14 +176,11 @@ static void head_chip_text(char *b)
 static void head_pages(int32_t x, int32_t x1)          /* (x: after the transport's marks; x1: where the chip, or the
                                                          * battery, starts) */
 {
-    if (song_punch_on()) return;
     const page_t *pg = cur_page();
     uint32_t i, n = 0, k = 0, sc = sec_on() ? sec_of(ui.page) + 1u : 0u;
-    if (designer_on() && !name_on())                    /* the designer: its stage's pages */
-        designer_pages(&n, &k);
-    else for (i = 0; i < NPAGES; i++)                   /* (an engine in sections: the section's pages) */
+    for (i = 0; i < NPAGES; i++)                   /* (an engine in sections: the section's pages) */
         if (PAGES[i].fam == pg->fam && page_visible(i) &&
-            (!sc || (PAGES[i].scope == SC_FMOP ? PAGES[ui.page].scope == SC_FMOP : sec_of(i) + 1u == sc))) {
+            (!sc || sec_of(i) + 1u == sc)) {
             if (i == ui.page)
                 k = n;
             n++;
@@ -233,9 +210,6 @@ static int head_waiting(void) { return (song.rec_wait >> song.sel) & 1u; }
 static int head_shared_status(void)
 {
     return head_waiting()
-#if MELODEE_BLE
-        || mb.on
-#endif
         ;
 }
 static const char *head_msg(void) { return ui.msg_t ? ui.msg : ui.layer ? layer_head() : song_edit_status(); }
@@ -250,30 +224,9 @@ static int head_toast(int32_t x)
         w += 40;                                        /* (a keycap: its pill wider than its word) */
     return m[0] && w > 236 - x;
 }
-#if MELODEE_BLE
-static void ble_head_text(char text[24])
-{
-    text[0] = 0;
-    uint32_t code = mel_ble_code();
-    if (code != BLE_NO_PASSKEY) {
-        str_cpy(text, "PIN 000000", 24);
-        for (uint32_t n = 0; n < 6; n++) { text[9u - n] = (char)('0' + code % 10u); code /= 10u; }
-    } else if (mb.on && !mb.ready) {
-        const char *s = mel_ble_status();
-        if (str_eq(s,"CONNECTION TIMEOUT")) s = "BLE TIMEOUT";
-        else if (str_eq(s,"WAITING FOR MIDI")) s = "BLE WAIT";
-        else if (str_eq(s,"FINDING MIDI")) s = "BLE SETUP";
-        str_cpy(text, s, 24);
-    }
-    else if (ui.menu == 3) str_cpy(text, mel_ble_status(), 24);
-}
-#endif
 static void draw_head(void)
 {
     char b[16], chip[20];                               /* (chip: "copy 16 to T2 16") */
-#if MELODEE_BLE
-    char ble_text[24]; ble_head_text(ble_text);
-#endif
     int32_t x;
     uint32_t low = !(usb.config && !usb.suspended) && batt_level() <= 1, msg = ui.msg_t || ui.layer || song_edit_status()[0];
     uint32_t sig, moved = 0;
@@ -284,9 +237,6 @@ static void draw_head(void)
           song.sel * 13131u + (msg ? str_hash(7u, head_msg()) : str_hash(5u, chip)) +
           (ui.bpm_t != 0) * 31u + low * 7777u + (chain.running ? (chain.row + 1u) * 104729u : 0u) + ux.gen * 977u +
           (ui.home ? ui.home_pg * 40503u : ui.page * 2654435761u) + page_sheet() * 524287u;
-#if MELODEE_BLE
-    sig ^= str_hash(mel_ble_signature() + 17u, ble_text);
-#endif
     if (bpm != ui.roll_bpm) {
         char a[8];
         fmt_int(a, ui.roll_bpm);
@@ -323,20 +273,12 @@ static void draw_head(void)
         cv_text_r(236, ty_y(H_HEAD / 2, TY_TX), TY_TX, "ERASING", T_REC, T_BG);
     } else if (head_waiting()) {
         cv_text_r(236, ty_y(H_HEAD / 2, TY_TX), TY_TX, "WAIT LOOP", T_REC, T_BG);
-#if MELODEE_BLE
-    } else if (ble_text[0] && (!msg || mel_ble_code() != BLE_NO_PASSKEY)) {
-        const aafont_t *f = ty_fit(TY_TX, ble_text, 236 - x - 6);
-        cv_text_r(236, ty_y(H_HEAD / 2, f), f, ble_text, T_THEME, T_BG);
-#endif
     } else if (msg) {                                   /* a message, or the layer's name (may hold a keycap) */
         cv_free_hint(x + 6, ty_y(H_HEAD / 2, TY_TX), head_msg(), T_TEXT, T_BG, 236 - x - 6);
     } else {
         const aafont_t *cf = TY_TX;                     /* (where you are: plain words in the track's colour;
                                                          * PATTERNS plain, the grid is in colour) */
         const char *tag = "";
-#if MELODEE_BLE
-        if (mb.on) tag = tag[0] ? "HOST BLE" : "BLE";
-#endif
         int32_t hw = tag[0] ? text_w(TY_LB, tag) + 10 : 0;
 
         int32_t cw = text_w(cf, chip) + 4;
@@ -388,9 +330,6 @@ static void draw_head(void)
         if (low)                                        /* the battery, only when it runs low */
             cv_icon_mid(236 - cw - 20, H_HEAD / 2, 16, batt_level() ? ICON_X_BAT1 : ICON_X_BAT0, T_REC, T_BG);
         uint16_t tag_color = T_THEME;
-#if MELODEE_BLE
-        if (mb.ready) tag_color = T_THEME;
-#endif
         if (hw)
             cv_text_on(236 - cw - (low ? 22 : 0) - hw + 4, ty_y(H_HEAD / 2, TY_LB), TY_LB, tag, tag_color, T_BG);
         cv_text_r(236, ty_y(H_HEAD / 2, cf), cf, chip,
@@ -454,7 +393,6 @@ static uint8_t col_style;
 static int32_t card_y = Y_LABEL;                        /* the strip's row (sections' tabs: lower) */
 static uint16_t card_tc[4];                             /* a cell's label colour (0: the track's; the GLO layer: each's) */
 static void pv_words(const char *label, const char *val, const char *unit, char *lb, char *v, char *u);   /* ui_pages.c */
-static void pv_value_c(uint32_t c, int32_t xc, int32_t y, const char *val, const char *unit, uint16_t vc, uint16_t bg, int32_t room);
 /* a label as its cell shows it: in full when it fits (55 px), else its short form */
 static const struct { const char *k, *s; } CELL_SHORT[] = {
     {"STROKE", "DIR"}, {"PRIORITY", "PRIO"}, {"VEL AMP", "V.AMP"}, {"VEL FLT", "V.FLT"}, {"RELEASE", "REL"}, {"ENV AMT", "ENV"},
@@ -611,26 +549,15 @@ static void sound_name(const track_t *t, char *b)
         str_cpy(b, eng_preset(e, t->preset % e->npresets)->name, 16);
 }
 
-#if MELODEE_UART
-#define MIDI_TRS_STATE "ON"                               /* (the input is on; no cable detection) */
-#else
 #define MIDI_TRS_STATE "OFF"
-#endif
 /* SYSTEM's MIDI column: input trs (0 USB, 1 TRS) received something in the last 250 ms (synths accept both;
  * MIDI Track also uses this selection unless its additional TRS input is enabled).
  * Sampled whenever the column draws */
 static int midi_rx_recent(uint32_t trs)
 {
-#if MELODEE_BLE
-    if (trs == 2u) return mb.ready && fm1_ms - mb.epoch_ms < 250u;
-#endif
     static uint32_t last[2], at[2];
     static uint8_t seen[2];
-#if MELODEE_UART
-    uint32_t n = trs ? um.bytes : usb.rx_pkts;
-#else
     uint32_t n = trs ? 0u : usb.rx_pkts;
-#endif
     if (n != last[trs & 1u]) {
         last[trs & 1u] = n;
         at[trs & 1u] = fm1_ms;
@@ -722,24 +649,6 @@ static void draw_columns(void)
     if (ui.home)                                        /* Stage: its knobs drop in when turned (ui_stage.c stage_knobs);
                                                          * the page left (DRUM SOUND ..) draws none under them */
         return;
-    if(cur_page()->scope==SC_DRUM){
-        char v[12];uint32_t sound=ui.drum_sound%drum_sound_count(TSEL);const int8_t *c=drum_patch_of(song.sel)->c[sound];
-        draw_column(0,"DRUM",drum_sound_name(TSEL,sound),"",VAL(0u),-1,ICON_AUTO);
-        if(cur_page()->id[1]==4){fmt_int(v,127-c[3]);draw_column(1,"LEVEL",v,"",VAL(1u),-1,ICON_AUTO);draw_column(2,"","","",T_THEME,-1,ICON_NONE);draw_column(3,"","","",T_THEME,-1,ICON_NONE);return;}
-        fmt_int(v,c[0]);draw_column(1,"TUNE",v,"ST",VAL(1u),-1,ICON_PITCH);
-        fmt_int(v,c[1]+64);draw_column(2,"DECAY",v,"",VAL(2u),-1,ICON_GATE);
-        fmt_int(v,c[2]+64);draw_column(3,(drum_is909(TSEL)?drum_character(sound):drum_issid(TSEL)?"SNAP":sound==D9_SD?"SNAPPY":"TONE"),v,"",VAL(3u),-1,ICON_AUTO);return;
-    }
-    if(cur_page()->scope==SC_DRUMHIT){
-        char v[12];uint32_t i=drum_hit_selected();const recorded_note_t *r=i<RECORD_MAX?&recording[i]:0;
-        fmt_int(v,ui.cursor+1);draw_column(0,"STEP",v,"",VAL(0u),-1,ICON_AUTO);
-        draw_column(1,"DRUM",drum_sound_name(TSEL,ui.drum_sound%drum_sound_count(TSEL)),"",VAL(1u),-1,ICON_AUTO);
-        fmt_int(v,r?r->pitch:0);draw_column(2,"PITCH",v,"ST",VAL(2u),-1,ICON_PITCH);
-        if(r && recorded_gate(r)){uint32_t x=((uint32_t)r->duration*(1u<<(recorded_exponent(r)))*100u+RECORD_UNIT/2)/RECORD_UNIT;fmt_int(v,x/100);str_cpy(v+str_len(v),".",2);if(x%100<10)str_cpy(v+str_len(v),"0",2);fmt_int(v+str_len(v),x%100);}
-        else str_cpy(v,"FREE",sizeof v);
-        draw_column(3,"LENGTH",v,"",VAL(3u),-1,ICON_GATE);return;
-    }
-
     uint32_t c;
     char val[12];
     const char *unit;
@@ -759,40 +668,6 @@ static void draw_columns(void)
         draw_column(1, "PAN", val, unit, VAL(1u), RATIO(&TP[P_PAN], t->p[P_PAN]), param_icon(&TP[P_PAN], t->p[P_PAN]));
         draw_column(2, "", "", "", T_DIM, -1, ICON_NONE);
         draw_column(3, "MUTE", t->p[P_MUTE] ? "ON" : "OFF", "", t->p[P_MUTE] ? T_ACCENT : VAL(3u), -1, ICON_AUTO);
-        return;
-    }
-#if MELODEE_SLICE
-    if (cur_page()->graph == GR_SLICES) {                /* SLICE POS, then SPLIT JOIN (ui_slice.c) */
-        uint32_t n = slice_count(), j = slice_sel(), src, div, ok = slice_src(&src, &div) && src;
-        char u[8];
-        if (j < n) {
-            fmt_int(val, (int32_t)j + 1);
-            str_cpy(u, "/", 8);
-            fmt_int(u + 1, (int32_t)n);
-        } else {
-            str_cpy(val, n ? "END" : "--", sizeof val);
-            u[0] = 0;
-        }
-        draw_column(0, "SLICE", val, u, VAL(0u), -1, ICON_SLICE);
-        slice_time(val, slice_mark(j));
-        draw_column(1, "POS", val, "S", ok ? VAL(1u) : T_DIM, -1, ICON_AUTO);
-        draw_act_column(2, "SPLIT", ok ? T_THEME : T_DIM, ICON_AUTO);
-        draw_act_column(3, "JOIN", ok ? T_THEME : T_DIM, ICON_AUTO);
-        return;
-    }
-#endif
-    if (cur_page()->graph == GR_MOD) {                   /* the route's SRC, the route, its DST AMT */
-        const track_t *t = TSEL;
-        uint32_t id = P_M1SRC + 3u * mod_ui_slot;
-        int32_t s = t->p[id], d = t->p[id + 1u], a = t->p[id + 2u];
-        list_words(val, N_MSRC[clamp(s, 0, MS_N - 1)], sizeof val);   /* (the chips: words, no labels) */
-        draw_column(0, "", val, "", s ? VAL(0u) : T_DIM, -1, mod_src_icon(s));
-        fmt_int(val, (int32_t)mod_ui_slot + 1);
-        draw_column(1, "SLOT", val, "/4", VAL(1u), (int32_t)mod_ui_slot * 1000 / 3, mod_src_icon(MS_OFF));   /* (the mod icon) */
-        list_words(val, mod_dst_name(t, d), sizeof val);
-        draw_column(2, "", val, "", d ? VAL(2u) : T_DIM, -1, mod_dst_icon(t, d));
-        param_format(&TP[id + 2u], a, val, &unit);
-        draw_column(3, "", val, unit[0] ? " %" : "", a ? VAL(3u) : T_DIM, RATIO(&TP[id + 2u], a), mod_src_icon(MS_OFF));
         return;
     }
     if (cur_page()->graph == GR_ROLL && !grid_on()) {
@@ -899,12 +774,6 @@ static void draw_columns(void)
         }
         if (cur_page()->id[c] == G_MIDI && cur_page()->scope == SC_GLOBAL) {   /* KNOB 1: which input's status */
             uint32_t trs = (uint32_t)song.g[G_MIDI], rx = midi_rx_recent(trs);
-#if MELODEE_BLE
-            if (trs == 2u) {
-                draw_column(c, "MIDI", "BLE", mb.ready ? "ON" : "WAIT", rx ? T_ACCENT : T_THEME, -1, ICON_AUTO);
-                continue;
-            }
-#endif
             str_cpy(val, trs ? "TRS" : "USB", 12);
             unit = rx ? "RX" : trs ? MIDI_TRS_STATE :
                    !usb.up ? "OFF" : usb.config ? "ON" : usb.setups ? "ENUM" : usb.sof_seen ? "BUS" : "WAIT";
@@ -932,9 +801,6 @@ static void draw_columns(void)
                 str_cpy(val, FX_FAM_NAME[fx_family(*vp)], sizeof val);
         }
         draw_column(c, d->names == N_NOTE_FX ? "NOTE" : d->label, val, unit, fx_names(d) && col_style != CS_CAPTURE ? fx_fam_col(fx_family(*vp)) :
-                    (cur_page()->scope == SC_CZ1 &&   /* CZ-1: no effect on the tone as it is */
-                    !cz_ed_active(cz_patch_of(song.sel % NTRK)->raw, cur_page()->id[c])) ||
-                    (cur_page()->scope == SC_P5 && !p5_ed_active(TSEL, cur_page()->id[c])) ||
                     (vp == &TSEL->p[P_LRATE] && TSEL->p[P_LSYNC]) ? T_DIM : VAL(c),   /* LFO 2 SYNC on: RATE does nothing */
                     d->fmt == F_ENUM && d->max < 2 ? -1 : RATIO(d, *vp), param_icon(d, *vp));
     }
@@ -981,27 +847,11 @@ static void confirm_text(char *a, char *b)
         str_cpy(a, "CLEAR TRACK ", 24);
         str_cpy(a + 12 + trk_num(a + 12, k), "?", 2);
         break;
-    case CF_OVR_PROJ:
-        str_cpy(a, "OVERWRITE PROJECT 00?", 24);
-        a[18] = (char)('0' + (k % PROJ_SLOTS + 1u) / 10u); a[19] = (char)('0' + (k % PROJ_SLOTS + 1u) % 10u);
-        if (!project_name(k % PROJ_SLOTS, b) || !b[0])          /* the project's name, else what SONG plays from it */
-            str_cpy(b, "Its song and patterns change", 32);
-        break;
-    case CF_ERASE_PROJ:
-        str_cpy(a, "ERASE PROJECT 00?", 24);
-        a[14] = (char)('0' + (k % PROJ_SLOTS + 1u) / 10u); a[15] = (char)('0' + (k % PROJ_SLOTS + 1u) % 10u);
-        if (!project_name(k % PROJ_SLOTS, b) || !b[0])
-            str_cpy(b, "Its song and patterns go", 32);
-        break;
     case CF_DEL_ROW:
         str_cpy(a, "DELETE SONG ROW?", 24);
         break;
     case CF_CLEAR_SONG:
         str_cpy(a, "CLEAR SONG ORDER?", 24);
-        break;
-    case CF_NEW_SONG:                                   /* what is lost */
-        str_cpy(a, "START A NEW SONG?", 24);
-        str_cpy(b, "Unsaved changes", 24);
         break;
     case CF_TAKE_JAM:                                   /* the rows it replaces */
         str_cpy(a, "SONG FROM JAM?", 24);
@@ -1034,52 +884,9 @@ static void confirm_text(char *a, char *b)
     case CF_CLEAR_MOTION:
         str_cpy(a, "CLEAR T", 24); str_cpy(a + 7 + trk_num(a + 7, k), " MOTION?", 9);
         break;
-#if MELODEE_BLE
-    case CF_BLE_FORGET:
-        str_cpy(a, "FORGET BLE PAIRINGS?", 24);
-        str_cpy(b, "Forget Melodee on the peer too", 32);
-        break;
-#endif
     case CF_CLEAR_SHARED:                               /* SHARED's sheet */
         str_cpy(a, "CLEAR SHARED FX?", 24);
         str_cpy(b, "All tracks \xB7 three slots off", 32);
-        break;
-    case CF_OVR_USER:
-        if (up_old_bank(k)) { str_cpy(a, "REPLACE OLD BANK?", 24); str_cpy(b, "All 18 old slots replaced", 32); break; }
-        str_cpy(a, "OVERWRITE ", 24);
-        up_slot_label(a + str_len(a), k);
-        str_cpy(a + str_len(a), "?", 2);
-        up_name(k, b);                             /* the sound stored there */
-        break;
-    case CF_DISCARD_DESIGN:
-        str_cpy(a, "DISCARD THE DESIGN?", 24);
-        str_cpy(b, "The original sound returns", 32);
-        break;
-    case CF_IMPORT:
-        for (uint32_t slot = sx_import.first; slot < sx_import.first + sx_import.count; slot++) {
-            if (up_old_bank(slot)) {
-                str_cpy(a, "REPLACE OLD BANKS?", 24); str_cpy(b, "All slots in old banks replaced", 32); return;
-            }
-        }
-        str_cpy(a,"OVERWRITE USER SLOTS?",24);
-        fmt_int(b,sx_import.count);str_cpy(b+str_len(b)," incoming patches",20);break;
-    case CF_BULK_ERASE:
-        str_cpy(a,"ERASE SELECTED PRESETS?",24);
-        str_cpy(b,"Selected slots will be empty",32);break;
-    case CF_ERASE_USER:
-        if (up_old_bank(k)) { str_cpy(a, "ERASE OLD BANK?", 24); str_cpy(b, "All 18 old slots erased", 32); break; }
-        str_cpy(a, "ERASE ", 24);
-        up_slot_label(a + str_len(a), k);
-        str_cpy(a + str_len(a), "?", 2);
-        up_name(k, b);
-        break;
-    case CF_OLD_SETTINGS:
-        str_cpy(a, "REPLACE OLD SETTINGS?", 24);
-        str_cpy(b, "Old settings/template replaced", 32);
-        break;
-    case CF_OLD_TEMPLATE:
-        str_cpy(a, "REPLACE OLD TEMPLATE?", 24);
-        str_cpy(b, "Old settings/template replaced", 32);
         break;
     case CF_PAT_KEY: {                                  /* SEQ + a white key held: its length, what its keys do now
                                                          * (b: CF_DETAIL) */
@@ -1177,11 +984,7 @@ static void draw_confirm(void)
 #include "ui_pages.c"                                   /* the redesign's other pages (R5) */
 #include "ui_list.c"                                    /* list pages */
 #include "ui_popup.c"                                   /* action sheets, pickers */
-#include "ui_song_punch.c"                              /* direct master FX lane */
-#include "ui_slots.c"                                   /* PROJECT, USER, the STOREs: their slots */
-#include "ui_motion.c"                                  /* MOTION: its lanes */
 #include "ui_scales.c"                                  /* SCALES: a screen of its own */
-#include "ui_designer.c"                                /* guided native sound creation */
 static int own_screen(void)                             /* a page drawn whole by its own code, no cards or footer */
 {
     uint32_t g = cur_page()->graph;
@@ -1197,16 +1000,7 @@ static void draw_page(void)
         page_entered();
     }
     cursor_fix();
-    if (song_punch_on()) {
-        song_punch_draw();
-        return;
-    } else if (designer_screen()) {                            /* the sound designer's START, FEATURES (ui_designer.c) */
-        designer_draw();
-    } else if (!own_screen() && slot_kind()) {          /* a slot page (ui_slots.c) */
-        slot_draw();
-    } else if (!own_screen() && motion_page()) {        /* MOTION's lanes (ui_motion.c) */
-        motion_draw();
-    } else if (!own_screen() && list_on()) {            /* a list page (ui_list.c) */
+    if (!own_screen() && list_on()) {            /* a list page (ui_list.c) */
         list_draw();
     } else if (!own_screen() && pv_kind()) {            /* the redesign's other pages (ui_pages.c) */
         pv_draw();
@@ -1237,7 +1031,7 @@ static void draw_page(void)
             draw_graph();
     }
     melodee_dbg.stage = 6;
-    if (!ui.home && !own_screen() && !pv_kind() && !list_on() && !slot_kind() && !motion_page())
+    if (!ui.home && !own_screen() && !pv_kind() && !list_on())
         draw_foot();
 }
 /* the toast: a message too long for the header on a card under it, wrapped (nothing cut); when it goes, what it covered
@@ -1329,20 +1123,6 @@ static void ui_draw_frame(void)
         return;
     }
     pick_poll();
-    if (song_punch_on()) {
-        song_punch_draw();
-        draw_toast();
-        if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {
-            str_cpy(ui.msg, ui.msg2, sizeof ui.msg);
-            ui.msg2[0] = 0;
-            ui.msg_t = 60;
-        }
-        if (ui.bpm_t) ui.bpm_t--;
-        if (ui.hot_t) ui.hot_t--;
-        ui.force = 0;
-        scr_shown();
-        return;
-    }
     if (pop.on) {                                       /* a popup over the page, dimmed (ui_popup.c); a knob's picker
                                                          * over it as it is (it comes with every turn of a list knob:
                                                          * dimming sent the whole screen twice, ~150 ms on the SPI) */
@@ -1355,14 +1135,6 @@ static void ui_draw_frame(void)
         }
         pop_draw();
         ui.force = 0;
-        return;
-    }
-    if (name_on()) {                                    /* NAME: a user preset's or a project's (ui_name.c) */
-        name_draw();
-        return;
-    }
-    if (new_on()) {                                     /* NEW SONG (ui_new.c) */
-        new_draw();
         return;
     }
     if (ui.layer) {                                     /* a layer's map over the page (ui_layer.c) */

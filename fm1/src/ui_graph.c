@@ -48,34 +48,6 @@ static void graph_adsr_v(int32_t va, int32_t vd, int32_t vs, int32_t vr, int32_t
 #undef EGY
 }
 
-/* FM6: a DX7 envelope, four rates (a segment's width: slower is wider) and four levels, held at L3 while the key is
- * down, then R4 to L4; it starts at L4 (as the DX7's). r, l: 0..99 each. pitch: a pitch envelope (50 = the note's
- * own pitch, a line there). The column just turned in ACCENT */
-static void graph_dxenv(const uint8_t *r, const uint8_t *l, int pitch, uint16_t c)
-{
-    const page_t *pg = cur_page();
-    int32_t x = PANEL_X0, i, top = 6, bot = 88, y0, y1, hot = ui.hot_t ? (int32_t)(ui.hot_col & 3u) : -1;
-#define FMY(v) (bot - (v) * (bot - top) / 99)
-    cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
-    if (pitch)
-        cv_rect(PANEL_X0, FMY(50), PANEL_W, 1, T_RAISE);   /* the note's own pitch */
-    y0 = FMY(l[3]);
-    for (i = 0; i < 4; i++) {
-        int32_t w = 8 + (99 - r[i]) * 38 / 99, xe;
-        uint16_t sc = i == hot ? T_ACCENT : c;
-        if (i == 3) {                                    /* held at L3, then the release */
-            cv_line_t(x, y0, x + 30, y0, c, 2);
-            x += 30;
-        }
-        xe = x + w;
-        y1 = FMY(l[i]);
-        cv_line_t(x, y0, xe, y1, (pg->id[0] == FP_L1 || pg->id[0] == FP_PL1) && i == hot ? T_ACCENT : sc, 2);
-        x = xe;
-        y0 = y1;
-    }
-    cv_line_t(x, y0, PANEL_X0 + PANEL_W, y0, T_DIM, 2);
-#undef FMY
-}
 
 static void graph_lfo(const track_t *t, uint16_t c)
 {
@@ -343,7 +315,7 @@ static void graph_grid(const track_t *t, uint16_t c)
     for (l = 0; l < NLANE; l++) {
         int32_t y = y0 + 4 + (int32_t)l * 14;
         int sel = l == ui.lane;
-        int pick = sel && cur_page()->scope == SC_DRUMHIT && drum_lane(drum_sound_note(t, sound)) == l;   /* (as pv_grid) */
+        int pick = 0;
         uint16_t row = sel ? T_RAISE : T_SURF;
         if (sel)
             cv_rrect(6, y, 226, 14, 3, T_RAISE, T_SURF);
@@ -480,114 +452,15 @@ static uint32_t str_hash(uint32_t h, const char *s)
     return h;
 }
 
-#if MELODEE_SLICE
-/* SLICES (ui_slice.c): the waveform from the marker before the selected one to the one after it (the selected
- * slice tinted, its marker the accent, outside the slices DIM), under it the whole material with every marker and
- * the view; then the selected slice's length and the source */
-static void graph_slices(void)
-{
-    uint32_t a, b, len, n = slice_count(), j = slice_sel(), i, src, div, ma, mb;
-    char t[20], u[12];
-    if (!slice_src(&src, &div) || !n) {
-        panel_note("NO SAMPLE", "SRC: BREAK OR USR1-3", 0);
-        return;
-    }
-    slice_view(&a, &b, &len);
-    slice_env(a, b);
-    ma = slice_mark(0);
-    mb = slice_mark(n);
-#define SPX(p) (12 + (int32_t)((uint32_t)((p) - a) * SP_COLS / (b - a)))   /* p in [a, b] */
-    if (j < n) {                                     /* the selected slice */
-        uint32_t s0 = slice_mark(j), s1 = slice_mark(j + 1u);
-        int32_t x0 = SPX(s0 > a ? s0 : a), x1 = SPX(s1 < b ? s1 : b);
-        if (x1 > x0)
-            cv_rect(x0, 6, x1 - x0, 80, T_TINT);
-    }
-    for (i = 0; i < SP_COLS; i++) {
-        uint32_t p = a + (uint32_t)((uint32_t)i * (b - a) / SP_COLS);
-        cv_line(12 + (int32_t)i, 46 - sp.hi[i] * 38 / 64, 12 + (int32_t)i, 46 - sp.lo[i] * 38 / 64,
-                p >= ma && p < mb ? T_THEME : T_DIM);
-    }
-    for (i = 0; i <= n; i++) {                       /* the markers in the view (the selected one last: on top) */
-        uint32_t p = slice_mark(i);
-        if (i != j && p >= a && p <= b)
-            cv_rect(SPX(p), 4, 1, 84, T_MID);
-    }
-    {
-        uint32_t p = slice_mark(j);
-        if (p >= a && p <= b)
-            cv_rect(SPX(p) > 226 ? 226 : SPX(p), 2, 2, 88, T_ACCENT);
-    }
-#undef SPX
-    cv_rrect(12, 96, (int32_t)SP_COLS, 3, 1, T_RAISE, T_SURF);   /* the whole: every marker, the view */
-    for (i = 0; i <= n; i++)
-        cv_rect(12 + (int32_t)((uint32_t)slice_mark(i) * (SP_COLS - 1u) / len), 94, 1, 7, i == j ? T_ACCENT : T_MID);
-    {
-        int32_t x0 = 12 + (int32_t)((uint32_t)a * SP_COLS / len), x1 = 12 + (int32_t)((uint32_t)b * SP_COLS / len);
-        cv_rect(x0, 103, x1 - x0 < 2 ? 2 : x1 - x0, 2, T_THEME);
-    }
-    str_cpy(t, "LEN ", sizeof t);
-    slice_time(u, j < n ? slice_mark(j + 1u) - slice_mark(j) : len - mb);
-    str_cpy(t + 4, u, sizeof t - 4);
-    str_cpy(t + str_len(t), " S", sizeof t - str_len(t));
-    cv_text(12, ty_y(114, TY_LB), TY_LB, t, T_MID);
-    cv_text_r(228, ty_y(114, TY_LB), TY_LB, src ? N_SLC_SRC[src] : "BREAK", src ? T_THEME : T_DIM, T_SURF);
-}
-#endif
 
 /* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
  * their footages under them */
-#if MELODEE_LEGACY_EXTRAS
-static void graph_wheel(const track_t *t, uint16_t c)
-{
-    uint32_t k;
-    static const char *const names[9] = {"16", "5.3", "8", "4", "2.7", "2", "1.6", "1.3", "1"};
-    for (k = 0; k < 9u; k++) {
-        int32_t x = 11 + (int32_t)k * 25, level = drw_level(t->p, k);
-        if (t->p[P_E4] && k == 8u) level = 0; /* DSP's percussion cancels the 1-foot bar. */
-        int hot = ui.hot_t && cur_page()->id[0] == P_E0 &&
-                  (ui.hot_col == 0u || ui.hot_col == (k < 2u ? 1u : k < 4u ? 2u : 3u));
-        cv_rrect(x + 7, 2, 4, 73, 2, T_RAISE, T_SURF);
-        if (level) cv_rrect(x + 3, 75 - level * 8, 12, level * 8, 3, hot ? T_ACCENT : c, T_SURF);
-        else cv_rrect(x + 3, 73, 12, 2, 1, hot ? T_ACCENT : T_DIM, T_SURF);
-        cv_text_c(x + 9, ty_y(88, TY_LB), TY_LB, names[k], T_MID, T_SURF);
-    }
-}
-#endif
 /* The FM charts' parts: an operator box 21 x 17 (rows 23 px apart, columns 24), junction dots, Manhattan routes */
 #define FM_BH 17
-static void fm_dot(int32_t x, int32_t y, uint16_t c) { cv_rect(x - 1, y - 1, 3, 3, c); }
 /* a Manhattan route, 1 px: down from (x0, y0) to the jog row jy, across to x1, down to y1 */
-static void fm_route(int32_t x0, int32_t y0, int32_t x1, int32_t jy, int32_t y1, uint16_t c)
-{
-    cv_rect(x0, y0, 1, jy - y0, c);
-    cv_rect(x0 < x1 ? x0 : x1, jy, (x0 < x1 ? x1 - x0 : x0 - x1) + 1, 1, c);
-    cv_rect(x1, jy, 1, y1 - jy, c);
-}
 /* a feedback loop on the operator box at (x, y): out of its right side, up, back in on top with an arrow */
-static void fm_loop(int32_t x, int32_t y, uint16_t c)
-{
-    cv_rect(x + 11, y + 5, 5, 1, c);
-    cv_rect(x + 15, y - 4, 1, 9, c);
-    cv_rect(x, y - 4, 15, 1, c);
-    cv_rect(x, y - 4, 1, 4, c);
-    cv_line(x - 2, y - 3, x - 1, y - 2, c); cv_line(x + 2, y - 3, x + 1, y - 2, c);
-}
 /* A return from a lower operator, outside the right edge of the whole stack. */
-static void fm_stack_loop(int32_t x, int32_t from_y, int32_t to_y, uint16_t c)
-{
-    cv_rect(x + 11, from_y + 5, 5, 1, c);
-    cv_rect(x + 15, to_y - 4, 1, from_y + 10 - to_y, c);
-    cv_rect(x, to_y - 4, 15, 1, c);
-    cv_rect(x, to_y - 4, 1, 4, c);
-    cv_line(x - 2, to_y - 3, x - 1, to_y - 2, c); cv_line(x + 2, to_y - 3, x + 1, to_y - 2, c);
-}
 /* the output bus under the carriers (the leftmost at cl, the rightmost at cr) at y bus, an arrow out on the right */
-static void fm_bus(int32_t cl, int32_t cr, int32_t bus)
-{
-    cv_rect(cl, bus, cr + 24 - cl, 1, T_MID);
-    cv_line(cr + 20, bus - 3, cr + 23, bus, T_MID); cv_line(cr + 20, bus + 3, cr + 23, bus, T_MID);
-}
 
 #ifndef FM6_CHART_HOOK
 #define FM6_CHART_HOOK(kind, a, b) ((void)0)   /* ui_render.c (host tests): the chart's parts one by one (its lint) */
@@ -612,147 +485,14 @@ static const uint8_t FM6_CELL[32][6] = {
     {0x00, 0x01, 0x02, 0x03, 0x04, 0x13}, {0x00, 0x01, 0x11, 0x02, 0x12, 0x13}, {0x00, 0x01, 0x11, 0x03, 0x13, 0x14},
     {0x00, 0x10, 0x01, 0x11, 0x21, 0x02}, {0x00, 0x01, 0x02, 0x12, 0x03, 0x13}, {0x00, 0x01, 0x02, 0x12, 0x22, 0x03},
     {0x00, 0x01, 0x02, 0x03, 0x04, 0x14}, {0x00, 0x01, 0x02, 0x03, 0x04, 0x05}};
-/* algorithm a's routes: m[i] bit j: operator j + 1 modulates operator i + 1. FM6_ALG runs the operators sixth
- * first, each reading a bus (or none) and writing one (or adding to it): who wrote a bus modulates its reader */
-static void fm6_routes(uint32_t a, uint8_t *m)
-{
-    const uint8_t *f = FM6_ALG[a & 31u];
-    uint8_t bus[4] = {0, 0, 0, 0};
-    uint32_t k;
-    for (k = 0; k < 6u; k++) {
-        uint32_t op = 5u - k, in = (f[k] >> 4) & 3u, o = f[k] & 3u;
-        m[op] = in ? bus[in] : 0u;
-        bus[o] = (uint8_t)(((f[k] & FM6_OADD) ? bus[o] : 0u) | 1u << op);
-    }
-}
 /* the operator with feedback in algorithm a (0..5: operator 1..6) */
-static uint32_t fm6_fb_op(uint32_t a)
-{
-    uint32_t k;
-    for (k = 0; k < 5u && (FM6_ALG[a & 31u][5u - k] & 0xC0u) != 0xC0u; k++)
-        ;
-    return k;
-}
 /* MARK I returns OP4 / OP5 in algorithms 4 / 6; MODERN and OPL return OP6 itself. */
-static uint32_t fm6_fb_source(uint32_t a, uint32_t eng)
-{
-    uint32_t k, src = fm6_fb_op(a);
-    if (eng == FM6_MARK1)
-        for (k = 0; k < 6u; k++)
-            if (FM6_ALG[a & 31u][k] & FM6_FBOUT)
-                src = 5u - k;
-    return src;
-}
 /* the carriers of algorithm a: bit k operator k + 1 (fm6_carriers counts the sixth first) */
-static uint32_t fm6_car_ops(uint32_t a)
-{
-    uint32_t c = fm6_carriers(a), r = 0, k;
-    for (k = 0; k < 6u; k++)
-        r |= (c >> (5u - k) & 1u) << k;
-    return r;
-}
 /* the algorithm FM6 plays on track t (0..31): ALG, or the patch's at PAT */
-static uint32_t fm6_alg_of(const track_t *t)
-{
-    return t->p[P_E0] >= 1 && t->p[P_E0] <= 32 ? (uint32_t)t->p[P_E0] - 1u : fm6_patch_of((t - trk) % NTRK)[FP_ALG] & 31u;
-}
-/* FM6's EDIT pages: the algorithm, drawn as graph_fm draws DIGITAL's, "ALG 05" top left. Carriers THEME with INK
- * numerals, modulators RAISE with THEME ones; an operator at output level 0: a DIM numeral (a carrier on RAISE).
- * Routes THEME, the feedback loop MID (DIM at feedback 0), the output bus MID. The knob just turned in ACCENT:
- * ALG and PTCH the label, FB the loop, MLVL the routes, MRAT MEG VMOD the modulators, DTUN the carriers. */
-static void graph_fm6(const track_t *t, uint16_t c)
-{
-    uint32_t alg = fm6_alg_of(t), k, j, car = fm6_car_ops(alg), top = 0, hi = 0, fbop = fm6_fb_op(alg), hotset = 0;
-    uint32_t fbsrc = fm6_fb_source(alg, fm6_fn[(t - trk) % NTRK][FN_ENGINE]);
-    uint32_t hot = ui.hot_t ? (uint32_t)cur_page()->id[ui.hot_col & 3u] : 0u;
-    const uint8_t *pt = fm6_patch_of((t - trk) % NTRK);
-    int32_t x[6], y[6], bus, cl = 240, cr = 0, fb = clamp(pt[FP_FB] + t->p[P_E1], 0, 7);
-    uint8_t m[6], fan[6] = {0, 0, 0, 0, 0, 0};
-    uint16_t rc = hot == P_E2 ? T_ACCENT : c;
-    char b[7] = {'A', 'L', 'G', ' ', (char)('0' + (alg + 1u) / 10u), (char)('0' + (alg + 1u) % 10u), 0};
-    if (cur_page()->scope == SC_FMOP)                /* FM6's operator pages: the operator they show */
-        hotset = 1u << (fm6_opsel % 6u), hot = 0;
-    else if (cur_page()->scope == SC_FM6)
-        hot = 0;                                     /* (their columns are no macros) */
-    else if (hot == P_E3 || hot == P_E4 || hot == P_E5)
-        hotset = 63u & ~car;
-    else if (hot == P_E6)
-        hotset = car;
-    fm6_routes(alg, m);
-    for (k = 0; k < 6u; k++) {
-        uint32_t col = FM6_CELL[alg][k] & 7u, row = FM6_CELL[alg][k] >> 4;
-        hi = col > hi ? col : hi;
-        top = row > top ? row : top;
-        for (j = 0; j < 6u; j++)
-            fan[j] += (uint8_t)(m[k] >> j & 1u);
-    }
-    bus = 50 + (27 + 23 * (int32_t)top) / 2;         /* the chart centred on the 100 px scale */
-    for (k = 0; k < 6u; k++) {
-        x[k] = 120 + (int32_t)(FM6_CELL[alg][k] & 7u) * 24 - (int32_t)hi * 12;
-        y[k] = bus - 6 - FM_BH - 23 * (int32_t)(FM6_CELL[alg][k] >> 4);
-        if (car >> k & 1u) { cl = x[k] < cl ? x[k] : cl; cr = x[k] > cr ? x[k] : cr; }
-    }
-    for (k = 0; k < 6u; k++) {                       /* into k: its sources down to its jog row, across, down */
-        for (j = 0; j < 6u; j++)
-            if (m[k] >> j & 1u) {
-                FM6_CHART_HOOK(FMH_ROUTE, j, k);
-                fm_route(x[j], y[j] + FM_BH, x[k], y[k] - 3, y[k], rc);
-                if (fan[j] > 1u) fm_dot(x[j], y[k] - 3, rc);          /* one operator modulating several */
-                if (m[k] & (m[k] - 1u)) fm_dot(x[k], y[k] - 3, rc);   /* several modulating one */
-            }
-        if (car >> k & 1u) {
-            FM6_CHART_HOOK(FMH_CAR, k, 0);
-            cv_rect(x[k], y[k] + FM_BH, 1, bus - y[k] - FM_BH, T_MID);
-            if (x[k] != cl) fm_dot(x[k], bus, T_MID);
-        }
-    }
-    FM6_CHART_HOOK(FMH_BUS, 0, 0);
-    fm_bus(cl, cr, bus);
-    FM6_CHART_HOOK(FMH_FB, fbop, fbsrc);
-    if (fbsrc != fbop)
-        fm_stack_loop(x[fbop], y[fbsrc], y[fbop], hot == P_E1 ? T_ACCENT : fb ? T_MID : T_DIM);
-    else
-        fm_loop(x[fbop], y[fbop], hot == P_E1 ? T_ACCENT : fb ? T_MID : T_DIM);
-    for (k = 0; k < 6u; k++) {
-        uint32_t on = pt[(5u - k) * FP_OP + FP_OL] != 0, fill_c = (car >> k & 1u) && on;
-        uint16_t f = hotset >> k & 1u ? T_ACCENT : c, fill = fill_c ? f : T_RAISE;
-        char n[2] = {(char)('1' + k), 0};
-        FM6_CHART_HOOK(FMH_BOX, k, 0);
-        cv_rrect(x[k] - 10, y[k], 21, FM_BH, 3, fill, T_SURF);
-        cv_text_c(x[k] + 1, ty_y(y[k] + FM_BH / 2, TY_LB), TY_LB, n, fill_c ? T_INK : on ? f : T_DIM, fill);
-    }
-    FM6_CHART_HOOK(FMH_LABEL, 0, 0);
-    if (graph_oy == GOY)                             /* (raised under the designer's tabs: no room for it) */
-        cv_text(10, ty_y(12 - GOY, TY_LB), TY_LB, b, hot == P_E0 || hot == P_E7 ? T_ACCENT : T_MID);
-    FM6_CHART_HOOK(FMH_END, alg, 0);
-}
 
 /* The slots' names live in project.c's metadata (RAM, filled at boot and on each save); the redraw signature over
  * all of them refreshes twice a second */
 static uint32_t graph_pname_sig, graph_pmask;
-static int graph_project_used(uint32_t slot)
-{
-    static uint32_t ms, frame;
-    static uint8_t ready;
-    if (!ready || fm1_ms - ms >= 500u || (ui.force && frame != ui.frame)) {
-        char b[13];
-        uint32_t h = 2166136261u;
-        graph_pmask = 0;
-        for (uint32_t i = 0; i < PROJ_SLOTS; i++) {
-            if (project_name(i, b)) graph_pmask |= 1u << i;
-            h = fnv(h, b, str_len(b) + 1u);
-        }
-        graph_pname_sig = h;
-        ready = 1; ms = fm1_ms; frame = ui.frame;
-    }
-    return (int)((graph_pmask >> (slot % PROJ_SLOTS)) & 1u);
-}
-static const char *graph_project_name(uint32_t slot)  /* (after graph_project_used) */
-{
-    static char b[13];
-    if (!project_name(slot % PROJ_SLOTS, b)) b[0] = 0;
-    return b;
-}
 
 /* play 0: without the playhead of NOTES and the drum grid (ui_pages.c sends it alone) */
 static uint32_t graph_sig(int play)
@@ -763,7 +503,7 @@ static uint32_t graph_sig(int play)
     if (ui.home)
         return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
-    if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_MOTION) h ^= ui.frame / 2u;
+    if (pg->graph == GR_NONE || pg->graph == GR_ARP) h ^= ui.frame / 2u;
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u;
@@ -783,26 +523,13 @@ static uint32_t graph_sig(int play)
             h = (h ^ chord_last[song.sel].note[i]) * 16777619u;
         h ^= (uint32_t)t->engine * 389u;             /* (MONO and kits follow the sounding engine) */
     }
-    if (pg->scope == SC_FM6 || pg->scope == SC_FMOP) {   /* FM6's pages: the patch, switches, functions, bank */
-        h ^= fm6_pgen[song.sel % NTRK] * 2654435761u + fm6_on[song.sel % NTRK] * 40503u + fm6_opsel * 131u +
-             up_gen * 104729u;
-        for (i = 0; i < FM6_NFN; i++)
-            h = (h ^ fm6_fn[song.sel % NTRK][i]) * 16777619u;
-    }
-#if MELODEE_SLICE
-    if (pg->graph == GR_SLICES && slice_page_ok()) h ^= slice_sig();
-#endif
-    if (pg->scope == SC_ENGINE && ((MELODEE_LEGACY_EXTRAS && t->eng_req % NENGINES == 7u) || t->eng_req % NENGINES == ENGI_FM6))
+    if (pg->scope == SC_ENGINE && (t->eng_req % NENGINES == ENGI_FM6))
         h ^= (ui.hot_t ? ui.hot_col + 1u : 0u) * 65537u;
-    if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6)   /* the patch (PAT's algorithm, levels, FB) */
-        h ^= (fm6_pgen[(t - trk) % NTRK] + 1u) * 2246822519u + fm6_fn[(t - trk) % NTRK][FN_ENGINE] * 40503u;
-    if (pg->graph == GR_STEPS || pg->graph == GR_ROLL || pg->graph == GR_DRUMHIT) {
+    if (pg->graph == GR_STEPS || pg->graph == GR_ROLL) {
         uint32_t ph = song.playing ? t->seq_idx : 0xFFFFu;
         if (pg->graph != GR_STEPS && (ph / 16u != ui.bank || (!play && pg->graph == GR_ROLL)))
             ph = 0xFFFFu;                            /* the roll shows the cursor's bank only */
         h ^= steps_hash(t) + ph * 31u + ui.cursor * 7919u + ui.lane * 104723u + ui.bank * 613u;
-        if (pg->graph == GR_DRUMHIT)                 /* (the lane shows KNOB 2's drum) */
-            h ^= (ui.drum_sound + 1u) * 2654435761u;
     }
     return h;
 }
@@ -965,9 +692,7 @@ static uint32_t notes_fit(char *b, const uint8_t *note, uint32_t n, const aafont
 }
 
 /* oscilloscope of the output, triggered on a rising zero crossing: a RAISE centre line, the trace 2 px */
-#include "scratch.h"
-#define scope_snap (main_scratch.snap)       /* refilled by each HOME/Stage scope draw */
-_Static_assert(sizeof scope_snap == SCOPE_N * sizeof(int16_t), "scope scratch holds a snapshot");
+static int16_t scope_snap[SCOPE_N];          /* refilled by each HOME/Stage scope draw */
 static void graph_scope(uint16_t c, int32_t top, int32_t h)
 {
     int16_t *snap = scope_snap;
@@ -1021,7 +746,6 @@ static void draw_graph(void)
             case GR_STEPS:
                 graph_steps(t, c);
                 break;
-            case GR_DRUMHIT:
             case GR_ROLL:
                 cv_oy = 0;
                 if (grid_on()) graph_grid(t, c);
@@ -1040,28 +764,9 @@ static void draw_graph(void)
                 cv_oy = 0;
                 graph_chord(t, c);
                 break;
-#if MELODEE_SLICE
-            case GR_SLICES:
-                cv_oy = 0;
-                graph_slices();
-                break;
-#endif
-            case GR_FMEG: {                                  /* FM6: operator fm6_opsel's envelope */
-                const uint8_t *op = &fm6_patch_of(song.sel % NTRK)[(5u - fm6_opsel % 6u) * FP_OP];
-                graph_dxenv(op + FP_R1, op + FP_L1, 0, c);
-                break;
-            }
-            case GR_FMPEG:                                   /* FM6: the pitch envelope */
-                graph_dxenv(fm6_patch_of(song.sel % NTRK) + FP_PR1, fm6_patch_of(song.sel % NTRK) + FP_PL1, 1, c);
-                break;
             default:
-#if MELODEE_LEGACY_EXTRAS
-                if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == 7u) graph_wheel(t, c);
-                else
-#endif
-                if ((pg->scope == SC_ENGINE || pg->scope == SC_FM6 || pg->scope == SC_FMOP) &&
-                         t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c);   /* EDIT 1 and 2, FM6's pages */
-                else { cv_oy = 0; graph_scope(c, 0, H_GRAPH); }
+                cv_oy = 0;
+                graph_scope(c, 0, H_GRAPH);
                 break;
             }
         }

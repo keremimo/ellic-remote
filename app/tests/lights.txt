@@ -1,0 +1,39 @@
+# The remote's lights (app/unit/remote_hal.c hal_lights) and SAVE: Melodee FM-1's levels go to the scan as planes, a key
+# played lights at once, and SAVE only asks Melodee to save (no page, no slots).
+#   app/build/host/melodee-remote_host app/tests/lights.txt app/build/tests
+wait 1500
+expect home 1
+# LIGHTS MID: the playable keys in the LIGHTS plane, a quarter lit (mask 3)
+expect lights_mask 3
+expect key0 2
+# a key held: lit at once (the panel moved), its plane too; let go: back to the plane
+key 0 down
+wait 40
+expect key0 3
+key 0 up
+wait 40
+expect key0 2
+# LIGHTS FULL (the menu: HOME held; KNOB 2 to LIGHTS, KNOB 1 to its end): the plane every frame, as lit
+press HOME
+wait 900
+release HOME
+wait 40
+expect menu 1
+turn K2 3
+wait 40
+turn K1 4
+wait 40
+expect lights_mask 0
+press HOME
+wait 900
+release HOME
+wait 40
+expect menu 0
+# SAVE: a save asked of Melodee (claimed first: requests go to the Melodee that has the remote), HOME stays
+sysex F0 7D 4D 52 01 03 F7
+wait 50
+expect host 1
+tap SAVE
+wait 100
+expect last_req 17
+expect home 1

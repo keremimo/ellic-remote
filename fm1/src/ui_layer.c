@@ -49,7 +49,7 @@ static const uint32_t LY_DTAP_MS=300u;
 
 
 
-static int layer_allowed(void) { return !ui.menu && !ui.confirm && !ui.uboot && !name_on() && !new_on() && !pop.on && !smap.on; }
+static int layer_allowed(void) { return !ui.menu && !ui.confirm && !ui.uboot && !pop.on && !smap.on; }
 static uint32_t ly_bit(uint32_t l) { return 1u << panel.btn[LAYERS[l].btn]; }
 static uint32_t ly_down(uint32_t l) { return l && ((fm1_in.buttons & ly_bit(l)) != 0u || ui.lock == l); }
 static uint32_t layer_bits(void)
@@ -330,7 +330,6 @@ static uint32_t layer_leds(void)
 {
     uint32_t k, m = 0, blink = ((fm1_ms / 250u) & 1u) == 0u, l = ui.layer;
     uint32_t mask = scale_mask(TSEL), root = (uint32_t)TSEL->p[P_ROOT] % 12u;
-    if (l == LAYER_FX) return punch_selector_leds(punch.req);
     for (k = 0; k < 27u; k++) {
         uint32_t p = key_place(k), b = (uint32_t)key_black(k), on = 0, e;
         if (l == LAYER_GLO) {

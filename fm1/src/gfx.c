@@ -91,14 +91,6 @@ static union {
 static uint16_t cv_alt[CV_ALT_MAX] __attribute__((section(".pool")));
 static uint16_t *cv_px = cv_primary;
 static const uint16_t *cv_flight;
-static void *cv_work(void)
-{
-    if (cv_flight == cv_primary) {
-        lcd_sync();
-        cv_flight = 0;
-    }
-    return cv_primary_u.work;
-}
 static uint32_t cv_w, cv_h;
 /* Logical canvas coordinates are stable across physical RGB565 bands. */
 static uint32_t cv_top, cv_rows;
@@ -216,9 +208,6 @@ static int palette_track(uint32_t t)
 }
 
 /* settings store a tagged id (UI_PAL_TAG + index); any other id reads as the default */
-static int palette_stored_ok(uint32_t v) { return v >= UI_PAL_TAG && v - UI_PAL_TAG < NPALETTES; }
-static uint32_t palette_from_stored(uint32_t v) { return palette_stored_ok(v) ? v - UI_PAL_TAG : UI_DEFAULT_INDEX; }
-static uint32_t palette_to_stored(uint32_t i) { return UI_PAL_TAG + i % NPALETTES; }
 
 static inline uint16_t swap16(uint32_t c) { return (uint16_t)(((c >> 8) & 0xFFu) | ((c & 0xFFu) << 8)); }
 

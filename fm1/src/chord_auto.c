@@ -54,49 +54,6 @@ static int chord_auto_same(const track_t *t, const chord_auto_t *h)
 {
     return chord_auto_config(t, h) && chord_auto_clock - h->at < 2u * beat_samples();
 }
-static void chord_auto_forget(uint32_t k)
-{
-    memset(&chord_auto[k], 0, sizeof chord_auto[k]);
-    memset(&chord_melody[k], 0, sizeof chord_melody[k]);
-}
-static void chord_auto_tick(uint32_t samples)
-{
-    chord_auto_clock += samples;
-    uint32_t enabled = 0, previous = chord_auto_enabled;
-    for (uint32_t k = 0; k < NTRK; k++)
-        if (trk[k].p[P_CHRD] == CH_AUTO && !micro_scale(&trk[k])) enabled |= 1u << k;
-    chord_auto_enabled = enabled;
-    if (!enabled) {
-        if (previous) { memset(chord_auto, 0, sizeof chord_auto); memset(chord_melody, 0, sizeof chord_melody); }
-        return;
-    }
-    for (uint32_t k = 0; k < NTRK; k++) {
-        /* A long held chord is still the current harmony. The phrase gap begins
-         * at release, not at its original press; slow songs keep their context. */
-        if (chord_auto_config(&trk[k], &chord_auto[k]) &&
-            (live_held[k][0] || live_held[k][1] || live_held[k][2] || live_held[k][3] || trk[k].nheld))
-            chord_auto[k].at = chord_auto_clock;
-        if (trk[k].p[P_CHRD] != CH_AUTO || micro_scale(&trk[k]) ||
-            (chord_auto[k].n && !chord_auto_same(&trk[k], &chord_auto[k]))) chord_auto[k].n = 0;
-        /* Eager expiry also prevents timestamp wrap reviving ancient notes. */
-        if (trk[k].p[P_CHRD] != CH_OFF || micro_scale(&trk[k])) chord_melody[k].n = 0;
-        else if (chord_melody[k].n) {
-            uint32_t newest = (chord_melody[k].next + 3u) % 4u;
-            if (chord_auto_clock - chord_melody[k].at[newest] >= 8u * FS) chord_melody[k].n = 0;
-        }
-    }
-}
-static void chord_auto_observe(const track_t *t, uint32_t note)
-{
-    if (!chord_auto_enabled || t->p[P_CHRD] != CH_OFF || micro_scale(t) || chord_kit(t) || note > 127u) return;
-    uint32_t k = trk_index(t);
-    if (!chord_melody[k].n) chord_melody[k].next = 0;
-    uint32_t at = chord_melody[k].next;
-    chord_melody[k].note[at] = (uint8_t)(note % 12u);
-    chord_melody[k].at[at] = chord_auto_clock;
-    chord_melody[k].next = (uint8_t)((at + 1u) % 4u);
-    if (chord_melody[k].n < 4u) chord_melody[k].n++;
-}
 static uint32_t chord_auto_melody(const track_t *t, uint32_t allowed)
 {
     uint32_t pcs = 0;

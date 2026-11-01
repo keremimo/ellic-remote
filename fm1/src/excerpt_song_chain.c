@@ -23,12 +23,6 @@ static uint32_t chain_block_end(uint32_t row, uint32_t track)
     while (row + 1u < chain_config.count && chain_patterns[row+1u][track] == CHAIN_HOLD) row++;
     return row + 1u;
 }
-static uint32_t chain_fx_count(uint32_t row)
-{
-    uint32_t n = 0;
-    for (uint32_t j = 0; j < CHAIN_FX_EVENTS; j++) n += chain_config.fx[row][j].fx != 0;
-    return n;
-}
 static const step_t *seq_steps(const track_t *t)
 {
     return t->step;

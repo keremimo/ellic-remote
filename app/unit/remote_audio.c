@@ -9,5 +9,3 @@ static uint32_t scope_w;
 /* CPU1's worker (audio_worker.h): never online, nothing to hand it */
 static uint8_t audio_worker_online;
 typedef void (*audio_worker_fn)(void *);
-static int audio_worker_submit(audio_worker_fn fn, void *arg) { (void)fn; (void)arg; return 0; }
-static int audio_worker_join(void) { return 1; }

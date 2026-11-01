@@ -142,7 +142,6 @@ static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c)
     lk.req_w = (uint8_t)(w + 1u);
 }
 
-static void link_project_saved(uint32_t slot, const uint8_t *raw, uint32_t len) { (void)slot; (void)raw; (void)len; }
 
 /* ------------------------------------------------------------ steps --- */
 /* a step: its 11 bytes in 13 7-bit ones (the high bits first) */

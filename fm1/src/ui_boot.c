@@ -60,42 +60,6 @@ static void boot_work_draw(void)
     fm1_wdt_feed();
 #endif
 }
-static void boot_work_begin(const char *title, uint32_t total, uint32_t presets)
-{
-    scr_wake_now();
-    boot_work.title = title;
-    boot_work.done = 0;
-    boot_work.total = (uint16_t)total;
-    boot_work.state = 1;
-    boot_work.presets = (uint8_t)presets;
-    boot_work_draw();
-}
-static void boot_work_progress(uint32_t done)
-{
-    boot_work.done = (uint16_t)(done > boot_work.total ? boot_work.total : done);
-    boot_work_draw();
-}
-static void boot_work_end(int failed)
-{
-    boot_work.state = failed ? 2u : 0u;
-    boot_work_draw();
-    ui.force = 1;
-}
-/* Input is consumed by this modal screen until the operation has finished.
- * Ignore simultaneous OCT keys: entering a confirmation never confirms it. */
-static void boot_work_input(uint32_t pressed)
-{
-    uint32_t dn = 1u << panel.btn[B_OCTDN], up = 1u << panel.btn[B_OCTUP];
-    uint32_t keys = pressed & (dn | up);
-    if ((fm1_in.buttons & (dn | up)) == (dn | up)) return;
-    if (boot_work.state == 2u) {
-        if (keys == dn && boot_work.presets) { boot_work.state = 3; ui.force = 1; }
-        else if (keys == up) { boot_work.state = 0; ui.force = 1; }
-    } else if (boot_work.state == 3u) {
-        if (keys == dn) { boot_work.state = 2; ui.force = 1; }
-        else if (keys == up) (void)shared_wipe();
-    }
-}
 #define BOOT_WORK_BEGIN(title, total) boot_work_begin(title, total, 0)
 #define BOOT_PRESET_BEGIN(title, total) boot_work_begin(title, total, 1)
 #define BOOT_WIPE_BEGIN(title, total) boot_work_begin(title, total, 2)

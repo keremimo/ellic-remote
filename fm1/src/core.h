@@ -25,19 +25,10 @@
 #define MELODEE_ADMISSION 0 /* enable only with a calibrated performance contract */
 #endif
 #define VOICE_BUDGET_DEFAULT (MELODEE_ADMISSION ? 16u : VBUDGET)
-#ifndef MELODEE_AUDIO_BENCH
-#define MELODEE_AUDIO_BENCH 0 /* laboratory fixed-voice admission bypass; never a release default */
-#endif
 #ifndef NMIDI
 #define NMIDI 4                  /* MIDI-only tracks: tracks 5..8, the MIDI Track engine and no audio */
 #endif
 #define NTRK (NPART + NMIDI)     /* tracks: the parts, then the MIDI-only ones (a project's first NPART on its FUN wire) */
-#ifndef MELODEE_MIDI_PLACES
-#define MELODEE_MIDI_PLACES 1    /* the tracks after the parts are MIDI Tracks by their place (0: every track a part) */
-#endif
-#ifndef MELODEE_TAKES
-#define MELODEE_TAKES 1          /* takes are recorded here, their notes naming their pattern in seven bits */
-#endif
 /* Shared with engine-buffer placement: the queued recorder needs one runtime
  * counter per event, while the reference countdown implementation needs two. */
 #ifndef MELODEE_RECORD_CURSOR
@@ -65,24 +56,10 @@
 #define RES_OK() 1                               /* melodee.c: the resource region (res.c) is installed */
 #endif
 #define NPAT_V1 8u
-#if MELODEE_MIDI_PLACES
-#define trk_npat(k) ((uint32_t)(k) < NPART ? NPAT : NPAT_MIDI)   /* the patterns track k has */
-#else
 #define trk_npat(k) ((void)(k), NPAT)
-#endif
-_Static_assert(NSTEP <= 128u && (NTRK * NPAT <= 128u || !MELODEE_TAKES), "recorded-note identifiers (seven bits)");
 #define HALF_FRAMES 128          /* I2S half buffer: 2.9 ms at 44.1 kHz (a key waits 0..1 half, then plays 1 half later) */
-/* SLICE retired. Keep its stored engine number reserved. */
-#ifdef MELODEE_SLICE
-#undef MELODEE_SLICE
-#endif
-#define MELODEE_SLICE 0
 #ifndef P5_OVERSAMPLE
 #define P5_OVERSAMPLE 1 /* prototype: benchmark base rate before enabling optional 2x */
-#endif
-#ifndef MELODEE_LEGACY_EXTRAS
-#define MELODEE_LEGACY_EXTRAS 0 /* reference tests only: retired TRIO, WHEEL and PHYS; PHASE, VOICE and NOISE (retired
-                                 * 2026-10-10: the flash for the redesign; CZ-1 keeps PHASE's phase-distortion core) */
 #endif
 #define MELODEE_PROPHET 1
 #define ENGI_FM6 12u
@@ -96,9 +73,9 @@ _Static_assert(NSTEP <= 128u && (NTRK * NPAT <= 128u || !MELODEE_TAKES), "record
 #define USER_NONE 65535u
 #define ENGI_ANALOG 0u           /* retired in 1.2: never selectable (eng_ok), its stored sounds play silent */
 #define ENGI_DIGITAL 1u          /* retired: never selectable (eng_ok), its stored sounds play silent */
-#define NENG_SHOWN (6u + MELODEE_SLICE + 6u * MELODEE_LEGACY_EXTRAS)   /* the engines one can pick: PRESETS, the EDIT
+#define NENG_SHOWN 6u   /* the engines one can pick: PRESETS, the EDIT
                                                 * layer, the editor, in the display order of engines.c ENGINE_ORDER */
-#define ENGI_SLICE 13u           /* reserved without MELODEE_SLICE: never selectable (eng_ok) */
+#define ENGI_SLICE 13u           /* reserved: never selectable (eng_ok) */
 #ifdef SMP_USER_SLOTS
 #undef SMP_USER_SLOTS
 #endif
@@ -172,11 +149,6 @@ static int fx_is_midi(int32_t type) { return type == FX_MIDIVERB || type == FX_M
 #define FX_CHAIN_COUNT 1u /* the shared rack only; tracks retain note-effect controls */
 #define FX_STATE_COUNT (FX_CHAIN_COUNT*FX_SLOTS)
 #define FX_TONE_MAX 63
-static int fx_track_type(int32_t type) { return fx_is_midi(type) ? type : FX_OFF; }
-static void track_fx_normalize(int16_t *p)
-{
-    for(uint32_t slot=0;slot<FX_SLOTS;slot++)p[P_FXTYPE+slot*FX_PARAMS]=(int16_t)fx_track_type(p[P_FXTYPE+slot*FX_PARAMS]);
-}
 static int param_fx_tone(uint32_t id) { return id>=P_FXTONE && id<=P_FX3TONE; }
 static int fx_has_tone(int32_t type) { return type==FX_ROOM || type==FX_REVERB; }   /* fx.c FX_ECHO, FX_ROOM, FX_REVERB */
 static int param_fx(uint32_t id) { return (id>=P_FXTYPE && id<=P_FX3CHAR) || param_fx_tone(id); }
@@ -253,41 +225,11 @@ static int param_master_fx(uint32_t id){return id>=G_MFXTYPE && id<=G_MFX3CHAR;}
 #define G_SAFETY G_RESERVED9
 #define G_DRREV G_RESERVED26
 
-static int param_reserved(uint32_t id)
-{ return (id>=P_RESERVED33 && id<=P_RESERVED36) || (id>=P_RESERVED45 && id<=P_RESERVED48); }
-static int global_reserved(uint32_t id)
-{ return (id>=G_RESERVED4 && id<=G_RESERVED11) || (id>=G_RESERVED24 && id<=G_RESERVED26); }
 
-/* stored parameters of an older layout -> today's P_* order. A store keeps np = the P_COUNT it was
- * written with; common parameters are only ever added just before P_E0, so the first np - 8 are
- * P_LEVEL.. in order and the last 8 are P_E0..P_E7; the parameters a store does not have take def[]
- * (user presets, projects of formats 1 and 2) */
-static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const int16_t *def)
-{
-    uint32_t i, nc = np - 8u;
-    for (i = 0; i < P_E0; i++)
-        out[i] = i < nc ? in[i] : def[i];
-    for (i = 0; i < 8u; i++)
-        out[P_E0 + i] = in[nc + i];
-    for (i = 0; i < FX_SLOTS; i++)
-        out[P_FXTYPE + i * FX_PARAMS] = (int16_t)fx_track_type(out[P_FXTYPE + i * FX_PARAMS]);
-}
 
 /* engine indices the stores name (engines.c ENGINES[]: append-only) */
 #define ENGI_PHYS 9u
 #define ENGI_DRUM 10u
-/* PHYS MODEL DRUM (MODEL 4, before 1.0) -> the DRUM engine, its E values in place: {MODEL, TUNE, TONE, DECY,
- * SNAP, ACC, KICK 0..127, PERC 0..127} -> {KIT, TUNE, TONE, DECY, SNAP, ACC, KICK 0..1, DRV 0}. 1 = it was one
- * (its engine is ENGI_DRUM now); projects (project.c) and user presets (upreset.c) */
-static int drum_from_phys(uint32_t engine, int16_t *e)
-{
-    if (engine != ENGI_PHYS || e[0] != 4)
-        return 0;
-    e[0] = 4; /* Retired custom drum variants now play the synthesized 808. */
-    e[6] = (int16_t)(e[6] >= 64);                                       /* KICK: PUNCH, ROUND */
-    e[7] = 0;
-    return 1;
-}
 
 /* ------------------------------------------------- voices, engines --- */
 enum { V_POLY, V_MONO, V_LEGATO, V_UNISON };   /* P_VOICE */
@@ -303,11 +245,7 @@ typedef struct {
     int32_t fine;                /* unison detune: phase increment * (1 + fine / 4096) */
     int32_t scale_fine;          /* note-on snapshot: scale pitch below 1/16 semitone */
     uint32_t ph[3];
-#if MELODEE_LEGACY_EXTRAS
-    int32_t s[8];                /* retired VOICE/NOISE also use slots 6 and 7 */
-#else
     int32_t s[6];                /* current engines: slots 0..5, including drum gates */
-#endif
     uint32_t age;
     uint8_t mvel;                /* mod.c: the note-on velocity (before UNISON scaling) and RAND of the note */
     int16_t mrnd;
@@ -398,33 +336,7 @@ enum { ST_NOTE, ST_TIE, ST_REST };
 typedef struct { int8_t c[16][4]; } drum_patch_t;
 static drum_patch_t drum_patch[NPART], drum_patch_none;   /* the parts'; a MIDI-only track's: none (never heard) */
 static drum_patch_t *drum_patch_of(uint32_t k) { return k < NPART ? &drum_patch[k] : &drum_patch_none; }
-static int drum_patch_valid(const drum_patch_t *p)
-{
-    for(uint32_t i=0;i<16;i++)if(p->c[i][0]<-24 || p->c[i][0]>24 || p->c[i][1]<-64 || p->c[i][1]>63 || p->c[i][2]<-64 || p->c[i][2]>63 || p->c[i][3]<0)return 0;
-    return 1;
-}
 #define DRUM_WIRE_BYTES 54u /* 16 voices x (6-bit tune, 7-bit decay/character/attenuation) */
-static void drum_patch_pack(uint8_t *b,const drum_patch_t *p)
-{
-    memset(b,0,DRUM_WIRE_BYTES);uint32_t pos=0;
-    for(uint32_t i=0;i<16;i++){
-        wire_bits_put(b,&pos,(uint32_t)(p->c[i][0]+24),6);
-        wire_bits_put(b,&pos,(uint32_t)(p->c[i][1]+64),7);
-        wire_bits_put(b,&pos,(uint32_t)(p->c[i][2]+64),7);
-        wire_bits_put(b,&pos,(uint32_t)p->c[i][3],7);
-    }
-}
-static int drum_patch_unpack(drum_patch_t *p,const uint8_t *b)
-{
-    uint32_t pos=0;
-    for(uint32_t i=0;i<16;i++){
-        p->c[i][0]=(int8_t)((int32_t)wire_bits_get(b,&pos,6)-24);
-        p->c[i][1]=(int8_t)((int32_t)wire_bits_get(b,&pos,7)-64);
-        p->c[i][2]=(int8_t)((int32_t)wire_bits_get(b,&pos,7)-64);
-        p->c[i][3]=(int8_t)wire_bits_get(b,&pos,7);
-    }
-    return drum_patch_valid(p);
-}
 
 #define NLANE 8                  /* drum lanes of a step (the DRUM engine's: eng_drum.c DRUM_LANE_NOTE) */
 typedef struct {                 /* acid-style step: up to 4 notes (POLY), time, accent, slide; drum hits */
@@ -445,8 +357,6 @@ typedef struct {                 /* a step as formats 1..4 (projects to FUN4) st
 /* Probability keeps zero-initialized and legacy patterns at 100%. */
 static uint32_t step_chance(const step_t *s) { return !s->probability ? 100u : s->probability <= 100u ? s->probability : 0u; }
 static void step_set_chance(step_t *s, uint32_t chance) { s->probability = (uint8_t)(chance >= 100u ? 0u : chance ? chance : 101u); }
-static uint32_t step_gate(const step_t *s) { return s->hit ? 0u : s->acc; }
-static int step_acc_valid(const step_t *s) { return s->hit ? !(s->acc & ~s->hit) : s->time != ST_REST || !s->acc; }
 #define MOTION_MAX 64u
 /* Four tracks x64 steps fit one byte. Values retain their signed parameter range. */
 typedef struct { uint8_t place, param; int16_t value; } motion_event_t;
@@ -589,7 +499,7 @@ static inline uint32_t trk_n(void) { return song.ntrk - 1u < NTRK ? song.ntrk : 
 /* the parts in use: the tracks the audio renders and mixes (a MIDI-only track never sounds) */
 static inline uint32_t trk_parts(void) { uint32_t n = trk_n(); return n < NPART ? n : NPART; }
 /* track k can only be a MIDI Track (tracks 5..8) */
-static inline int trk_midi_slot(uint32_t k) { return MELODEE_MIDI_PLACES && k >= NPART && k < NTRK; }
+static inline int trk_midi_slot(uint32_t k) { (void)k; return 0; }
 
 #include "microtonal.h"
 

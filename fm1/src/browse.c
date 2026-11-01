@@ -22,11 +22,6 @@ static const uint8_t CAT_ORDER[] = {CAT_BASS, CAT_LEAD, CAT_PAD, CAT_KEYS, CAT_O
  * length against its engine's preset count. An engine without one: cat_of_engine */
 static const char *const PRESET_CAT[NENGINES] = {
     [ENGI_MIDI] = "O",                                  /* non-audio destination: OTHER */
-#if MELODEE_LEGACY_EXTRAS                                /* (retired: PHASE VOICE NOISE) */
-    [2] = "RGSLEU",                                     /* PHASE: BRASS ORGAN STRING RESO BELL WIRE */
-    [5] = "PLBF",                                       /* VOICE: CHOIR AAH, VOX LEAD, WOW BASS, WHISPER */
-    [11] = "FFFF",                                      /* NOISE */
-#endif
     [3] = "OLBBBBBBLLLLLLLLPSPPGGKKUUERFFFF",          /* SID */
     [10] = "DDDDDD",                                    /* DRUM: the kits (808, 909, SID, SID DIGI, CR78, FM) */
     [12] = "KEBRPEGUKRBEEKGSPLUEWEBEO",                 /* FM6, INIT VOICE */
@@ -243,7 +238,6 @@ static uint32_t trk_list(uint32_t t)                        /* the LIST track t 
     return list_cat(entry_cat(src, k));
 }
 static uint32_t list_mode(void) { return trk_list(song.sel); }
-static void list_forget(void) { memset(list_trk, 0, sizeof list_trk); }   /* every track: the last LIST picked */
 static void list_set(uint32_t m)                            /* the selected track's LIST (the others keep theirs) */
 {
     uint32_t t;
@@ -315,18 +309,6 @@ static uint32_t list_cur(uint32_t *total)                   /* the loaded sound'
     return list_scan(list_mode(), s, k, 0xFFFFFFFFu, &as, &ak, total);
 }
 /* the whole list (ALL), whatever LIST shows: the loaded sound's place, entry n */
-static uint32_t preset_all_pos(uint32_t *total)
-{
-    uint32_t s, k, as, ak;
-    cur_entry(&s, &k);
-    return list_scan(LM_ALL, s, k, 0xFFFFFFFFu, &as, &ak, total);
-}
-static uint32_t preset_all_at(uint32_t n, uint32_t *k)
-{
-    uint32_t total, src;
-    list_scan(LM_ALL, 0xFFFFFFFFu, 0, n, &src, k, &total);
-    return src;
-}
 static int browse_pending(void) { return brw.on && brw.trk == song.sel && brw.mode == list_mode(); }
 static void recent_loaded(void)                            /* after a browsing load: the sound joins RECENT */
 {

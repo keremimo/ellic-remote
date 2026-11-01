@@ -15,14 +15,15 @@
   sequencer, pattern store, takes, song chain, projects, presets or undo arena, nor any factory data: the model is
   Melodee's, mirrored (`app/unit/remote_model.c`, `remote_sounds.c`, `remote_project.c`), edits and requests sent to
   Melodee (`app/unit/link.c`).
-- `fm1/` is copied by `tools/sync_fm1.py` (never edit it by hand): Kerem Kilic's and Leo Kuroshita's lines only (Leo's
-  under hugelton/felucca-bsp#4; credit him), others' rewritten in `tools/fm1_overlay.py` (checked passages), pure
-  functions of left-out files as `EXCERPTS`. A file Melodee FM-1's pages include that the remote leaves out has a
-  stand-in of the same name in `app/unit/` that answers it is absent.
+- `fm1/` is the remote's own, forked from Melodee FM-1 (`fm1/SOURCE`): edit it directly, never sync it again. Its
+  lines are Kerem Kilic's and Leo Kuroshita's (Leo's under hugelton/felucca-bsp#4; keep his notices, credit him);
+  bring nobody else's. Cut what a remote has no use for (storage, presets, engines' own pages, settings that mean
+  nothing to Melodee) rather than stubbing it.
 - The unit (`app/unit/unit.c`) is its own compilation unit (fm1.toml `o2`): its names never meet fm1-base's; it reaches
   the platform only through `app/unit/unit.h`.
 - fm1-base is a pinned dependency: change it only through `tools/base_overlay.py`, whose `replace` fails when a line
   it changes is gone.
 - fm1-base's platform shares app.c's namespace (one unity build): it already uses `remote` and `mr_`/`MR_` (its screen
   mirror).
-- `docs/PROTOCOL.md` and `app/unit/link.c` describe the same protocol: change them together, and only by adding.
+- `docs/PROTOCOL.md` and `app/unit/link.c` describe the same protocol: change them together; a change Melodee's side
+  must follow bumps the version (HELLO), and Melodee iOS (`MelodeeKit/Sources/MelodeeUI/Remote*.swift`) moves with it.

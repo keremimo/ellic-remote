@@ -115,6 +115,10 @@ int fm1u_expect(const char *what, int *got)
     else if (!strcmp(what, "last_cmd")) v = lk.last_cmd;
     else if (!strcmp(what, "instruments")) v = (int)remote_eng_n;
     else if (!strcmp(what, "pattern")) v = trk[song.sel].pattern;
+    else if (!strncmp(what, "key", 3) && what[3] >= '0' && what[3] <= '9')   /* keyN: what key N's light shows (bit 0
+                                                                            * lit, 1 the LIGHTS plane, 2 the buttons') */
+        v = hal_shown[14u + (uint32_t)strtoul(what + 3, 0, 10) % 27u];
+    else if (!strcmp(what, "lights_mask")) v = fm1_led_dim_mask[0];
     else return 0;
     *got = v;
     return 1;

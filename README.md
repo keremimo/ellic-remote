@@ -34,7 +34,7 @@ settings) is kept: the projects and sounds are Melodee's, and Melodee FM-1's men
 
 ## Status
 
-Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`), 32 tracks: Bluetooth build 457 KB,
-62 of 96 KB of RAM, 292 of 344 KB of the pool. Installed on an FM-1 over USB, which answers HELLO and PING; the pages and the
-link tested in fm1-base's host simulator (`app/tests/`). Melodee iOS speaks version 2 (melodee-ios `0639f4b`); its
-version 3 is being written.
+Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`, forked and cut down to a remote),
+32 tracks: Bluetooth build 420 KB, 62 of 96 KB of RAM, 291 of 344 KB of the pool. Installed on an FM-1 over USB, which
+answers HELLO and PING; the pages, the link and the lights tested in fm1-base's host simulator (`app/tests/`). Melodee
+iOS speaks version 3 (melodee-ios `e3a8ab8`).

@@ -33,20 +33,15 @@ static struct {
     const sheet_row_t *rows;
     uint32_t t, sig;
 } pop;
-static int song_punch_on(void) { return pop.on == POP_SONG_PUNCH; }
 static uint16_t song_punch_epoch;
 
 static void confirm_open(uint32_t kind, uint32_t trk);  /* ui_input.c */
 static void edit_param(uint32_t slot, int32_t steps);
 static void notes_place(void);                 /* ui_input.c */
 static void jam_take(void);
-static int name_on(void);
-static int new_on(void);
 static void menu_words(char *d, const char *s, uint32_t n);   /* ui_menu.c */
-static uint32_t slot_kind(void);                        /* ui_slots.c */
 static void step_delete_edit(void);                     /* ui_input.c */
 static int live_rec_sel(void);
-static void slot_save_sheet(void);
 static int track_remove(uint32_t k);                    /* tracks.c */
 static void track_add(void);
 static int track_create_to(uint32_t k);
@@ -62,7 +57,7 @@ static void pop_close(void)
 static int preset_pick_on(void)
 {
     return ui.preset_audition && pop.on == POP_PRESET && pop.col == song.sel && !ui.home &&
-        cur_page()->graph == GR_PATGRID && !ui.menu && !ui.confirm && !ui.ly && !name_on();
+        cur_page()->graph == GR_PATGRID && !ui.menu && !ui.confirm && !ui.ly;
 }
 static void preset_pick_touch(void)
 {
@@ -96,24 +91,12 @@ static void sheet_open(const char *title, const char *sub, const sheet_row_t *ro
     ui.force = 1;
 }
 
-/* ----------------------------------------------------- the sheets --- */
-/* the sound's (Stage, the sound pages) */
-static void ps_save(void)
-{
-    uint32_t i;
-    for (i = 0; i < NPAGES && PAGES[i].graph != GR_USER; i++)
-        ;
-    ui.home = 0;
-    ui.page = (uint8_t)i;
-    page_entered();
-    slot_save_sheet();                                  /* (OCT+ then: its slot's sheet on Save here) */
-}
 static void ps_fav_v(char *b) { str_cpy(b, preset_favorite() ? "On" : "Off", 8); }
 static void ps_fav(void) { preset_mark(!preset_favorite()); }
 static void ps_undo(void) { undo_step(0); }
 static const sheet_row_t SHEET_SOUND[] = {
-    {"Init sound", 0, 0, 0, CF_INIT_SOUND}, {"Save as user\x85", 0, 0, ps_save, 0}, {"Favourite", ps_fav_v, 0, ps_fav, 0},
-    {"Undo last load", 0, 0, ps_undo, 0}, {"Sound designer", 0, 0, designer_open, 0}};
+    {"Init sound", 0, 0, 0, CF_INIT_SOUND}, {"Favourite", ps_fav_v, 0, ps_fav, 0},
+    {"Undo last load", 0, 0, ps_undo, 0}};
 /* Stage's: the sound's, then the tracks: the one added (the next), the one removed (the selected: its question) */
 static void ps_trk_v(char *b, uint32_t k, int none)
 {
@@ -127,8 +110,8 @@ static void ps_trk_v(char *b, uint32_t k, int none)
 static void ps_add_v(char *b) { ps_trk_v(b, trk_n(), trk_n() >= NTRK); }
 static void ps_remove_v(char *b) { ps_trk_v(b, song.sel, trk_n() < 2u); }
 static const sheet_row_t SHEET_STAGE[] = {
-    {"Init sound", 0, 0, 0, CF_INIT_SOUND}, {"Save as user\x85", 0, 0, ps_save, 0}, {"Favourite", ps_fav_v, 0, ps_fav, 0},
-    {"Undo last load", 0, 0, ps_undo, 0}, {"Sound designer", 0, 0, designer_open, 0},
+    {"Init sound", 0, 0, 0, CF_INIT_SOUND}, {"Favourite", ps_fav_v, 0, ps_fav, 0},
+    {"Undo last load", 0, 0, ps_undo, 0},
     {"Add track", ps_add_v, 0, track_add, 0}, {"Remove track", ps_remove_v, 0, 0, CF_DEL_TRACK}};
 /* the song's (SONG) */
 static int ps_song_free(void)
@@ -329,7 +312,7 @@ static int step_enter(void)
 static uint32_t page_sheet(void)
 {
     uint32_t fam;
-    if (designer_on() || ui.menu || ui.confirm || ui.layer || pop.on || name_on() || new_on() || slot_kind() || ptc_on())
+    if (ui.menu || ui.confirm || ui.layer || pop.on || ptc_on())
         return 0;
     if (ui.home)
         return 1;

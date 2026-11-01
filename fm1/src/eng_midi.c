@@ -16,7 +16,7 @@ static const engine_t ENG_MIDI = {
     .knob = {P_E0, P_E1, 255, 255},
 };
 /* a MIDI Track: by its engine, or by its place (tracks 5..8 are nothing else) */
-static int midi_track_only(const track_t *t) { return t->eng_req == ENGI_MIDI || (MELODEE_MIDI_PLACES && t >= &trk[NPART] && t < &trk[NTRK]); }
+static int midi_track_only(const track_t *t) { return t->eng_req == ENGI_MIDI; }
 static int midi_track_audio_disabled(uint32_t engine, uint32_t id)
 {
     return engine == ENGI_MIDI && (id == P_LEVEL || id == P_PAN || id == P_SPRD ||

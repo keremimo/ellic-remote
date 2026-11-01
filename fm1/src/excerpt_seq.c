@@ -39,7 +39,6 @@ static uint32_t scale_count(const track_t *t)
     }
     return count;
 }
-static int32_t mpc_degree(const track_t *t) { return clamp(t->p[P_MPCDEG], 1, (int32_t)scale_count(t)); }
 /* scale degree `degree` from C4 (0 = the ROOT above C4) in the track's scale, + offset semitones and TRN. strict: a
  * note off the MIDI range is silent (else clamped). Scales of 5, 6, 8 or 12 notes repeat no degree */
 static uint32_t scale_degree_map(const track_t *t, int32_t degree, int32_t offset, int strict)

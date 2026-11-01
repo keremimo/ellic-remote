@@ -23,4 +23,3 @@ static int punch_needs_ring(int32_t fx) { (void)fx; return 0; }
 enum { IT_OFF, IT_SOFT };
 static inline int32_t ins_shape(uint32_t ty, int32_t v, uint32_t sh) { (void)ty; (void)sh; return v; }
 static struct { uint8_t type, mono, decim, failed; } fx_state[FX_STATE_COUNT];
-static void fx_clear_all(void) {}

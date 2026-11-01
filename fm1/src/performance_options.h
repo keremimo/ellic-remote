@@ -5,12 +5,6 @@
  * retain the reference paths for diagnostics and parity checks. */
 #ifndef MELODEE_PERFORMANCE_OPTIONS_H
 #define MELODEE_PERFORMANCE_OPTIONS_H
-#ifndef MELODEE_RAM_AUDIO
-#define MELODEE_RAM_AUDIO 1
-#endif
-#ifndef MELODEE_CACHE_RAM
-#define MELODEE_CACHE_RAM 1
-#endif
 #ifndef MELODEE_MOD_CACHE
 #define MELODEE_MOD_CACHE 1
 #endif

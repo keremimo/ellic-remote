@@ -66,17 +66,13 @@ static int stage_knobs_out(void) { return stage.knob_ms && fm1_ms - (stage.knob_
 /* a knob's label: the panel's, plain words for CZ-1's (its panel says R1, L1 ..) */
 static const char *stage_label(uint32_t k, const param_desc_t *d)
 {
-    static const char *const CZ_L[4] = {"WAVE", "DCW", "DETUNE", "VIBRATO"};
-    return stage_pg.scope == SC_CZ1 ? CZ_L[k & 3u] : d->label;
+    (void)k;
+    return d->label;
 }
-/* a knob's value as Stage shows it: the Prophet's 0..127 panel values in % (the mockup's CUTOFF 62 %) */
+/* a knob's value as Stage shows it */
 static void stage_value(const page_t *sp, const param_desc_t *d, int32_t v, char *val, const char **unit)
 {
-    if (sp->scope == SC_P5 && d->fmt == F_INT && d->min == 0 && d->max == 127) {
-        fmt_int(val, (v * 100 + 63) / 127);
-        *unit = "%";
-        return;
-    }
+    (void)sp;
     param_format(d, v, val, unit);
 }
 /* the four cards (while the knobs are out): a value without effect on the sound as it is drawn dim */
@@ -89,8 +85,7 @@ static void stage_columns(void)
         const char *unit;
         char val[12];
         const param_desc_t *d = page_desc(sp, c, &vp);
-        int dim = (sp->scope == SC_CZ1 && !cz_ed_active(cz_patch_of(song.sel % NTRK)->raw, sp->id[c])) ||
-                  (sp->scope == SC_P5 && !p5_ed_active(TSEL, sp->id[c]));
+        int dim = 0;
         if (!d || !vp || !d->label || d->label[0] == '-') {
             draw_column(c, "", "", "", T_THEME, -1, ICON_NONE);
             continue;
@@ -168,7 +163,6 @@ static int stage_notes(int32_t x1, int32_t cy)
     return (int)(1u + (held != 0u));
 }
 /* HOME's notes alone (tests/ui_test.c): 1 = there were notes */
-static int graph_notes(void) { return stage_notes(220, ST_BAND_H / 2) != 0; }
 
 /* a DRUM track: its eight lanes across the band, a lane's name lit (the track's colour, a bar under it) while it hits
  * (drum_flash: the ISR's), else dim */
@@ -186,8 +180,8 @@ static void stage_hits(void)
     }
 }
 
-/* While the knobs are out, the picture under them: what the one turning shapes (a filter's response: cutoff, resonance,
- * the Prophet's envelope amount too; an envelope: its attack .. release); 0 = the waveform */
+/* While the knobs are out, the picture under them: what the one turning shapes (a filter's response: cutoff, resonance;
+ * an envelope: its attack .. release); 0 = the waveform */
 enum { SP_NONE, SP_FILTER, SP_ENV };
 static uint32_t stage_picture(int32_t *v)
 {
@@ -195,19 +189,6 @@ static uint32_t stage_picture(int32_t *v)
     uint32_t hot = ui.hot_col & 3u, id = sp->id[hot], k;
     if (!stage.out)                                     /* (the frame's: the clock may pass ST_KNOB_MS while it draws) */
         return SP_NONE;
-    if (sp->scope == SC_P5) {
-        const uint8_t *r = p5_patch_of(TSEL)->raw;
-        if (id == P5_CUTOFF || id == P5_RESONANCE || id == P5_ENV_FILTER) {
-            v[0] = r[P5_CUTOFF];
-            v[1] = r[P5_RESONANCE];
-            return SP_FILTER;
-        }
-        if (id == P5_RELEASE_AMP) {
-            v[0] = r[P5_ATTACK_AMP]; v[1] = r[P5_DECAY_AMP]; v[2] = r[P5_SUSTAIN_AMP]; v[3] = r[P5_RELEASE_AMP];
-            return SP_ENV;
-        }
-        return SP_NONE;
-    }
     if (sp->scope != SC_ENGINE)
         return SP_NONE;
     if (id >= P_COUNT) return SP_NONE;

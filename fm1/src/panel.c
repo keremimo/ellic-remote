@@ -10,7 +10,6 @@
 enum { B_FX, B_SCL, B_ENV, B_LFO, B_EDIT, B_GLO, B_HOME, B_SAVE, B_ARP, B_SEQ, B_PLAY, B_REC,
        B_OCTDN, B_OCTUP, NB };
 enum { EN_SELECT, EN_ALGO, EN_PRESET, EN_K1, EN_K2, EN_K3, EN_K4, NE };
-#include "midi_knobs.h"
 static const char *const B_NAME[NB] = {"FX", "SCL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE",
                                         "ARP", "SEQ", "PLAY", "REC", "OCT-", "OCT+"};
 static const char *const E_NAME[NE] = {"SELECT", "ALGORITHM", "PRESETS", "KNOB 1", "KNOB 2",
@@ -59,18 +58,9 @@ static uint32_t panel_btn_of(uint32_t matrix_id)        /* label of a matrix but
 
 /* steps of a role, + = clockwise */
 static uint8_t panel_moved;
-static int32_t midi_panel_delta[NE];
-static int16_t midi_panel_absolute[NE];
-static uint8_t midi_panel_mask;
-static int32_t midi_edit_value = -1;             /* scoped to page_knob's normal parameter editor */
 static int32_t panel_enc(uint32_t role)
 {
-    int32_t value=fm1_enc_take(panel.enc[role]) * panel.dir[role];
-    if (value) {                               /* a local turn wins over remote input in this pass */
-        midi_panel_absolute[role] = -1;
-        midi_panel_mask &= (uint8_t)~(1u << role);
-    } else value = midi_panel_delta[role];
-    midi_panel_delta[role] = 0;
+    int32_t value = fm1_enc_take(panel.enc[role]) * panel.dir[role];
     panel_moved |= value != 0;
     return value;
 }
@@ -94,12 +84,6 @@ static uint8_t settings_hold = HOLD_DEF;
 enum { LIGHTS_OFF, LIGHTS_LOW, LIGHTS_MID, LIGHTS_HIGH, LIGHTS_FULL, LIGHTS_N };
 static const char *const LIGHTS_NAME[LIGHTS_N] = {"OFF", "LOW", "MID", "HIGH", "FULL"};
 static uint8_t settings_lights = LIGHTS_MID;
-static uint32_t hold_from_stored(uint32_t v) { return (v & ~3u) == HOLD_TAG ? v & 3u : HOLD_DEF; }
-static uint32_t hold_to_stored(uint32_t old, uint32_t i)
-{
-    return i % 4u != HOLD_DEF ? HOLD_TAG | (i & 3u) : old > 1u ? 0u : old;
-}
-static int hold_stored_ok(uint32_t v) { return v <= 1u || (v & ~3u) == HOLD_TAG; }
 
 static void settings_init(void)
 {

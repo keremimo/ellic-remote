@@ -39,6 +39,9 @@ The package identity is `FM-1_1400` for development builds and `FM-1_14XXYYZZ` f
 - Saadet's peripheral fixes: a fresh link negotiates its own subscription and MTU, the subscription bit is read
   alone, GAP name reads past the end are answered, BLE-only builds route the SDK's `sys_timer` timers to the main
   loop, and Bluetooth switched off while starting stays off.
+- Melodee FM-1's light levels: felucca-bsp's scan gets three planes, each lit as a lit LED on the frames its mask
+  leaves (full, 1/2, 1/4, 1/8), set by `plat_lights_planes` (plat.h): LIGHTS LOW .. FULL, the idle buttons' quarter,
+  the breathing. fm1-base's short glow pulse is not used.
 
 ## The unit
 
@@ -49,9 +52,12 @@ FM-1 its zero-filled statics go to fm1-base's pool and its functions are built f
 hardware or a model of its own: `remote_hal.c` (the panel, LEDs and LCD by fm1-base, through `unit.h`),
 `remote_sounds.c` (the engine table: Melodee's instruments), `remote_model.c` (the sequencer, patterns, takes and
 song: Melodee's, mirrored), `remote_project.c` (projects and tracks: requests), `remote_keys.c` (the keys as MIDI),
-`link.c` (the protocol), `remote_main.c` (the start and the loop). Files named as Melodee FM-1's (`click.c`,
-`cz_edit.h`, `ui_designer.c`, `upreset.c` ..) are stand-ins answering that its engines, sounds and designer are absent.
-`tools/sync_fm1.py` refreshes `fm1/` from Melodee FM-1's repository (run it, build, run the tests).
+`link.c` (the protocol), `remote_main.c` (the start and the loop). `upreset.c`, `absent_engines.h` and
+`absent_sound.h` answer what the pages still ask of Melodee FM-1's sounds and engines: absent.
+
+`fm1/` is the remote's own, forked from Melodee FM-1 (`fm1/SOURCE` names the commit) and edited here: what a remote
+has no use for is cut (Melodee FM-1's engine pages, user presets, projects and slots, NAME, NEW SONG, MIDI knobs,
+MOTION, the polyphony budget's pages, autosave), and SAVE only asks Melodee to save. It is never synced again.
 
 ## Tests
 

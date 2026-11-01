@@ -1,5 +1,7 @@
-Melodee FM-1 (Felucca, nightly) at dc0a39bb81b4c3202731adb55911dd1c2e5cf2fa, copied by tools/sync_fm1.py: Kerem Kilic's and Leo
-Kuroshita's lines only, under MPL-2.0 (LICENSING.md); tools/fm1_overlay.py's rewrites in place of others'.
+Forked from Melodee FM-1 (Felucca, nightly) at dc0a39bb81b4c3202731adb55911dd1c2e5cf2fa (2026-11-01): Kerem Kilic's
+and Leo Kuroshita's lines only, under MPL-2.0 (LICENSING.md), as the retired tools/sync_fm1.py copied them (git blame
+checked, other contributors' lines rewritten). The remote's own since: edited here, never synced again. The files
+first copied:
 
 src/build_options.h
 src/performance_options.h

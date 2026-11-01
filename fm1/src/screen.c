@@ -39,13 +39,6 @@ static void scr_wake(void)
         scrn.st = SCR_WAKE;
     scrn.eat = 1;
 }
-static void scr_wake_now(void)                         /* main.c: the crash screen, UPDATE, UBOOT */
-{
-    if (scrn.st != SCR_ON)
-        UI_LCD_WAKE();
-    scrn.st = SCR_ON;
-    scrn.idle = fm1_ms;
-}
 /* ui_input, every pass: 1 = the pass is swallowed (the screen dark or waking, or the wake gesture going on) */
 static int scr_input(uint32_t pressed, uint32_t notes)
 {

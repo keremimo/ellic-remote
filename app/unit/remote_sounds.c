@@ -116,9 +116,7 @@ static const preset_t *eng_preset(const engine_t *e, uint32_t k)
     return &made[turn];
 }
 
-static int eng_extra_retired(uint32_t e) { (void)e; return 0; }
 static int eng_ok(uint32_t e) { return e < NENGINES && ENGINES[e] != &ENG_NONE; }
-static uint32_t eng_sound_idx(uint32_t e) { return eng_ok(e) ? e : ENGINE_ORDER[0]; }
 static uint32_t eng_vis(uint32_t n) { return ENGINE_ORDER[n % NENG_SHOWN]; }
 static uint32_t eng_rank(uint32_t e)
 {
@@ -138,11 +136,6 @@ static uint32_t trk_def_engine(uint32_t k) { return TRK_DEF[k % NPART][0]; }
 static uint32_t trk_def_preset(uint32_t k) { return TRK_DEF[k % NPART][1]; }
 
 /* no instrument's working state here (engines.c's eng_state_*) */
-static void *fm6_part(uint32_t part) { (void)part; return 0; }
-static uint32_t eng_state_size(uint32_t e) { (void)e; return 0; }
-static void eng_state_clear(uint32_t part) { (void)part; }
-static void eng_state_reset(void) {}
-static int eng_state_prepare(const track_t *t) { (void)t; return 1; }
 
 /* ------------------------------------------- Melodee's instruments in --- */
 /* text kept for instrument n: 0 if there is no room left (its names shorter, then) */
