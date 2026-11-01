@@ -13,7 +13,8 @@ Saadet's pinned revisions, with Saadet's fixes to the Bluetooth peripheral link,
 both directions, which the link with Melodee needs and the base does not carry.
 
 - [The protocol](docs/PROTOCOL.md): what Melodee sends and what it gets back.
-- [The web installer](web/install/): installs it over USB from Chrome or Edge.
+- [Install Melodee Remote](https://keremimo.github.io/melodee-remote/install/): over USB from Chrome or Edge (the
+  installer: [web/install/](web/install/)).
 - [Building and testing](BUILDING.md).
 - [Licensing](LICENSING.md).
 
