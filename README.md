@@ -20,8 +20,9 @@ both directions, which the link with Melodee needs and the base does not carry.
 
 It starts on Melodee FM-1's Stage, its tracks empty, and says **MELODEE NOT HERE** to any control that asks Melodee
 for something while none has it; the keys already play (notes on the selected track's channel). In Melodee, connect
-to **Melodee Remote** (Bluetooth MIDI): once Melodee says HELLO (protocol version 3), its instruments, tracks (up to 32,
-every one a part, shown four at a time as Melodee FM-1 shows them), steps and patterns fill the pages. MASTER is Melodee's master level.
+to **Melodee Remote** (Bluetooth MIDI): once Melodee says HELLO (protocol version 4), its instruments, tracks (up to 32,
+every one a part, shown four at a time as Melodee FM-1 shows them), the selected track's sound pages, steps and
+patterns fill the pages. MASTER is Melodee's master level.
 
 Updates and recovery are fm1-base's: its installer (`build/fm1-base-platform/tools/fm1_install.py`), and
 m-bootloader's recovery menu (hold PLAY while switching on) if it is installed. See BUILDING.md.
@@ -30,7 +31,8 @@ m-bootloader's recovery menu (hold PLAY while switching on) if it is installed. 
 
 The remote keeps fm1-base's records in the FM-1's flash: the panel's calibration at `0xA2000` (where Saadet keeps it,
 so the two share it) and Bluetooth's address and pairing at `0xB0000`. Nothing of Melodee FM-1's (projects, sounds,
-settings) is kept: the projects and sounds are Melodee's, and Melodee FM-1's menu settings last until power-off.
+settings) is kept: the projects and sounds are Melodee's, and so are the menu's settings, which Melodee keeps and tells
+the remote when it claims it (PREFS in the protocol).
 
 ## Status
 
