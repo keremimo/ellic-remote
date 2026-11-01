@@ -10,17 +10,19 @@
 
 - Melodee Remote is MPL-2.0 file by file. Take nothing from Saadet but Kerem Kilic's own lines (check `git blame` there),
   and never its factory sound data, engines, Felucca-derived UI, or GPL-3.0-only tools and web pages.
-- The screen is Melodee FM-1's drawing (`~/code/personal/Felucca`, branch `nightly`; call it Melodee FM-1, never
-  Felucca), ported in `app/ui/` and `tools/` under MPL-2.0: Kerem Kilic's own code, and Leo Kuroshita's Felucca code
-  under his permission (hugelton/felucca-bsp#4: "Anyone may use the Felucca code for which I personally hold the
-  copyright under MPL-2.0"; credit him). No other contributor's lines: check `git blame` there before porting more
-  (the USB HOST lines in its `ui_draw.c` and `ui_menu.c` are another's).
-- Port Melodee FM-1's screens as its renderer draws them now (`tests/ui_render.c`, `build/ui_new/NIGHT`), not its
-  older `docs/design/ref` pictures; replace its model's reads with the mirror (`mel_v2_t`, `ui/ui_base.c` V, TSEL).
-  `tests/scenes.py` paints each page as Melodee would; `tools/compare_shots.py` puts the shots beside Melodee FM-1's.
+- The remote is a pure remote: it runs Melodee FM-1's pages and controls (`~/code/personal/Felucca`, branch `nightly`;
+  call it Melodee FM-1, never Felucca) and keeps no music. Never bring Melodee FM-1's engines, voices, mixer, effects,
+  sequencer, pattern store, takes, song chain, projects, presets or undo arena, nor any factory data: the model is
+  Melodee's, mirrored (`app/unit/remote_model.c`, `remote_sounds.c`, `remote_project.c`), edits and requests sent to
+  Melodee (`app/unit/link.c`).
+- `fm1/` is copied by `tools/sync_fm1.py` (never edit it by hand): Kerem Kilic's and Leo Kuroshita's lines only (Leo's
+  under hugelton/felucca-bsp#4; credit him), others' rewritten in `tools/fm1_overlay.py` (checked passages), pure
+  functions of left-out files as `EXCERPTS`. A file Melodee FM-1's pages include that the remote leaves out has a
+  stand-in of the same name in `app/unit/` that answers it is absent.
+- The unit (`app/unit/unit.c`) is its own compilation unit (fm1.toml `o2`): its names never meet fm1-base's; it reaches
+  the platform only through `app/unit/unit.h`.
 - fm1-base is a pinned dependency: change it only through `tools/base_overlay.py`, whose `replace` fails when a line
   it changes is gone.
-- fm1-base's platform shares the app's namespace (one unity build): it already uses `remote` and `mr_`/`MR_` (its
-  screen mirror). The app's own names start with `mel_`/`MEL_`. fm1-base's gfx.c and Melodee FM-1's share names: the
-  app takes Melodee FM-1's under `ux_` names (`app/ui/gfx_names.h`) and gives them back at its end.
-- `docs/PROTOCOL.md` and `app/mel_proto.h` describe the same protocol: change them together, and only by adding.
+- fm1-base's platform shares app.c's namespace (one unity build): it already uses `remote` and `mr_`/`MR_` (its screen
+  mirror).
+- `docs/PROTOCOL.md` and `app/unit/link.c` describe the same protocol: change them together, and only by adding.

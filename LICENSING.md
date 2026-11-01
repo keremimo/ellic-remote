@@ -6,28 +6,33 @@ are MPL-2.0 (`LICENSE`), by Kerem Kilic (Ellic Studio).
 | What | Licence |
 | --- | --- |
 | The app (`app/`), the build wrapper and overlay (`tools/`), the tests (`tests/`), the docs | MPL-2.0, Kerem Kilic (Ellic Studio) |
-| The screen's drawing, ported from Melodee FM-1 (`app/ui/`; `tools/gen_aa_font.py`, `aa_raster.py`, `gen_icons.py`, `gen_ui_palettes.py`, `gen_aa_keycaps.py`; `assets/icons.json`, `assets/fonts/melodee_pixel.txt`) | MPL-2.0: Kerem Kilic (Ellic Studio), with Leo Kuroshita's Felucca code where the files say so, under his permission (below) |
-| Rubik by The Rubik Project Authors (<https://github.com/googlefonts/rubik>): the screen's text and keycap labels, rasterised at build time (the generated tables are not offered as a font; the font declares no Reserved Font Name) | SIL OFL 1.1: `assets/fonts/Rubik[wght].ttf`, `LICENSES/OFL-Rubik.txt` |
+| Melodee FM-1's pages and controls, copied by `tools/sync_fm1.py` into `fm1/` (`fm1/src`, its font, icon, keycap, palette and table makers in `fm1/tools`, `fm1/assets/icons.json`, `fm1/assets/fonts/melodee_pixel.txt`) | MPL-2.0: Kerem Kilic (Ellic Studio), with Leo Kuroshita's Felucca code where the files say so, under his permission (below) |
+| Rubik by The Rubik Project Authors (<https://github.com/googlefonts/rubik>): the screen's text and keycap labels, rasterised at build time (the generated tables are not offered as a font; the font declares no Reserved Font Name) | SIL OFL 1.1: `fm1/assets/fonts/Rubik[wght].ttf`, `LICENSES/OFL-Rubik.txt` |
 | fm1-base and felucca-bsp, fetched at pinned revisions into `build/` (never committed) | Their own: MPL-2.0 file by file (Charles Vestal; Leo Kuroshita's Felucca code under his MPL-2.0 permission, hugelton/felucca-bsp#4), with their fonts (SIL OFL 1.1) and their third-party notices |
 | JieLi's AC79 SDK and Bluetooth libraries, linked into the Bluetooth build from `$AC79_SDK` | JieLi's (Apache-2.0 for the SDK files fm1-base builds; see fm1-base's LICENSING.md) |
 
 ## From Melodee FM-1
 
-The screen is Melodee FM-1's (Melodee's FM-1 firmware: its renderer `gfx.c`, its icons, its pages `ui_draw.c`,
-`ui_stage.c`, `ui_view.c`, `ui_pages.c`, `ui_list.c`, `ui_scales.c`, `ui_popup.c`, `ui_patterns.c`, `ui_layer.c`, parts
-of `ui_graph.c`, `ui.c` and `ui_menu.c`, and the tools that make its fonts, icons, keycaps and palettes), ported here.
-Melodee FM-1 is GPL-3.0-only; the ported code is here under MPL-2.0, as its authors allow:
+The remote runs Melodee FM-1's pages and controls (Melodee's FM-1 firmware), copied into `fm1/` by
+`tools/sync_fm1.py` from its repository at the commit `fm1/SOURCE` names. Melodee FM-1 is GPL-3.0-only; what is
+copied is here under MPL-2.0 (each file's licence line rewritten, its copyright lines kept), as its authors allow:
 
 - Kerem Kilic's own code (Melodee's UI and its design are his).
-- Leo Kuroshita's Felucca code that Melodee FM-1 keeps (in `app/ui/gfx.c`, `icons.c`, `ui_draw.c`, `ui_stage.c`,
-  `ui_pages.c`, `ui_base.c` and the font, keycap and palette tools, each file's header saying so; and
-  `assets/icons.json`, the icons' names, his): "Anyone may use the Felucca
-  code for which I personally hold the copyright under MPL-2.0" (Leo Kuroshita, hugelton/felucca-bsp#4), with his
-  name in the credits: Leo Kuroshita (@kurogedelic), Hügelton Instruments.
-- No other contributor's code: Melodee FM-1's history was checked line by line (`git blame`) for what was ported; the
-  header's octave pill takes Melodee FM-1's form from before another contributor's change to it.
+- Leo Kuroshita's Felucca code that Melodee FM-1 keeps (each file's header says where), and `fm1/assets/icons.json`,
+  the icons' names, his: "Anyone may use the Felucca code for which I personally hold the copyright under MPL-2.0"
+  (Leo Kuroshita, hugelton/felucca-bsp#4), with his name in the credits: Leo Kuroshita (@kurogedelic), Hügelton
+  Instruments.
+- No other contributor's lines: the sync checks every copied line (`git blame`) and refuses another author's unless
+  `tools/fm1_overlay.py` rewrites it (the remote's own code: the USB HOST lines left out, the header's room for its
+  pills, the knob acceleration, the nearest microtonal degree).
+- No other people's code or data: the files that port other projects (FM6's Dexed and MSFA, SID's reSID, the 909's
+  9W9, SLOOP's effects, CrispyZebra, DaisySP, Rings, MAME's uPD933) and the factory data (Casio's CZ-1 tones,
+  Sequential's Prophet programs) are never copied, and `gen_tables.py` comes without its reSID and FM6 tables. The
+  remote has no engine: where Melodee FM-1's pages name one, `app/unit/` answers that it is absent.
 
-Melodee FM-1's own copies stay GPL-3.0-only there.
+A few pure functions of files the remote leaves out (the keys' layout, the song's rows, a take's notes, the matrix's
+names) are copied as they are into `fm1/src/excerpt_*.c`, under the same checks. Melodee FM-1's own copies stay
+GPL-3.0-only there.
 
 ## From Saadet
 

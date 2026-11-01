@@ -1,0 +1,56 @@
+# The link with Melodee (docs/PROTOCOL.md): a stand-in Melodee claims the remote, tells it an instrument, two tracks,
+# a value, a step and that the music plays; the remote's controls tell it back what they change and ask.
+#   app/build/host/melodee-remote_host app/tests/link.txt app/build/tests
+wait 1300
+expect host 0
+expect last_cmd 1
+sysex F0 7D 4D 52 01 02 F7
+wait 50
+expect host 1
+expect last_cmd 3
+# an instrument: BROFAT, two sounds, HOME's knobs P_E0..P_E3 (116..119), EDIT's titles; its first parameter; its sounds
+sysex F0 7D 4D 52 40 00 02 40 74 75 76 77 42 52 4F 46 41 54 00 4F 53 43 00 46 49 4C 54 45 52 00 F7
+sysex F0 7D 4D 52 41 00 00 00 00 40 7F 40 40 40 00 44 52 49 56 45 00 00 F7
+sysex F0 7D 4D 52 42 00 00 40 02 42 72 6F 20 42 61 73 73 00 57 6F 62 62 6C 65 00 F7
+sysex F0 7D 4D 52 43 01 F7
+expect instruments 1
+# two tracks: Bro Bass and Wobble; track 1's DRIVE 100; 98 BPM; a C4 on track 1's first step; playing
+sysex F0 7D 4D 52 44 02 00 00 00 40 00 01 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 7F 00 40 F7
+sysex F0 7D 4D 52 45 00 74 40 64 40 F7
+sysex F0 7D 4D 52 46 00 62 40 F7
+sysex F0 7D 4D 52 47 00 00 01 00 00 3C 00 00 00 01 00 00 64 00 00 00 F7
+sysex F0 7D 4D 52 49 01 00 00 00 00 00 00 00 F7
+wait 100
+expect tracks 2
+expect bpm 98
+expect playing 1
+expect frames_in 10
+text page HOME
+shot l_stage.png
+# K1 on Stage turns the selected track's first knob (DRIVE): told to Melodee
+turn K1 2
+wait 100
+expect last_cmd 69
+# PLAY while playing: asks Melodee to stop
+tap PLAY
+wait 100
+expect last_req 2
+# SCL: K1 is ROOT
+tap SEL
+wait 100
+shot l_scl.png
+turn K1 1
+wait 100
+expect last_cmd 69
+# PING: STATE; BYE: let go
+sysex F0 7D 4D 52 04 F7
+wait 20
+expect last_cmd 3
+sysex F0 7D 4D 52 02 F7
+wait 20
+expect host 0
+# an older Melodee (version 1) does not claim it: it hears the remote's HELLO, version 2
+sysex F0 7D 4D 52 01 01 F7
+wait 20
+expect host 0
+expect last_cmd 1

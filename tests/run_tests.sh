@@ -1,8 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
-# Melodee Remote's tests: the protocol on its own, the app in fm1-base's host simulator (app/tests/*.txt, screenshots
-# in app/build/tests), and Bluetooth MIDI SysEx as the overlay patches it. Builds the simulator first.
+# Melodee Remote's tests: Melodee FM-1's pages and controls and the link with Melodee in fm1-base's host simulator
+# (app/tests/*.txt, screenshots in app/build/tests), and Bluetooth MIDI SysEx as the overlay patches it. Builds the
+# simulator first.
 #   tests/run_tests.sh      (PYTHON: a Python with Pillow; FM1_BASE_MIRROR: see tools/build_base.py)
 set -u
 cd "$(dirname "$0")/.."
@@ -21,10 +22,9 @@ run() {
         FAIL=1
     fi
 }
-run proto sh -c "$CC -std=c99 -Wall -Wextra -I app -o $OUT/proto_test tests/proto_test.c && $OUT/proto_test"
 run host-build env PYTHON="$PY" ./build.sh --host
-for t in app/tests/*.txt; do
-    run "host-$(basename "$t" .txt)" app/build/host/melodee-remote_host "$t" app/build/tests
+for t in app/tests/*.txt; do                     # (each at most a minute: a hang fails, it does not wait)
+    run "host-$(basename "$t" .txt)" perl -e 'alarm 60; exec @ARGV' app/build/host/melodee-remote_host "$t" app/build/tests
 done
 run ble-midi "$PY" tests/ble_midi_test.py
 exit $FAIL

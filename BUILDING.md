@@ -40,51 +40,42 @@ The package identity is `FM-1_1400` for development builds and `FM-1_14XXYYZZ` f
   alone, GAP name reads past the end are answered, BLE-only builds route the SDK's `sys_timer` timers to the main
   loop, and Bluetooth switched off while starting stays off.
 
-## The screen
+## The unit
 
-`app/ui/` is Melodee FM-1's drawing, ported: its renderer (`gfx.c`: canvases sent where they changed, theme tokens,
-Rubik in four roles, keycaps), its icons, and its pages (`ui_draw.c` the header, cards and sound bar; `ui_stage.c`
-Stage; `ui_view.c` the chord wheel; `ui_pages.c` the knob pages, pictures, racks and MIXER; `ui_list.c`, `ui_scales.c`,
-`ui_popup.c`, `ui_patterns.c`, `ui_layer.c`), reading the mirror Melodee fills (`mel_v2_t`) where Melodee FM-1 reads its
-model. `ui_generic.c` draws protocol version 1's screen (and the remote's own) in the same look; `ui_frame.c` picks
-the page. fm1-base's own `gfx.c` stays for its screens (boot, update, crash); the two share names, so the app takes
-Melodee FM-1's under `ux_` names (`ui/gfx_names.h`).
+`app/unit/unit.c` is Melodee FM-1's pages and controls as one compilation unit of their own (fm1.toml `o2`), its
+files from `fm1/` in Melodee FM-1's order, built for size. Beside them, the remote's own sections where Melodee FM-1 has
+hardware or a model of its own: `remote_hal.c` (the panel, LEDs and LCD by fm1-base, through `unit.h`),
+`remote_sounds.c` (the engine table: Melodee's instruments), `remote_model.c` (the sequencer, patterns, takes and
+song: Melodee's, mirrored), `remote_project.c` (projects and tracks: requests), `remote_keys.c` (the keys as MIDI),
+`link.c` (the protocol), `remote_main.c` (the start and the loop). Files named as Melodee FM-1's (`click.c`,
+`cz_edit.h`, `ui_designer.c`, `upreset.c` ..) are stand-ins answering that its engines, sounds and designer are absent.
+`tools/sync_fm1.py` refreshes `fm1/` from Melodee FM-1's repository (run it, build, run the tests).
 
 ## Tests
 
-`tests/run_tests.sh` runs:
+`tests/run_tests.sh` (about 10 s) runs:
 
-- `proto`: the protocol on its own (`tests/proto_test.c` on `app/mel_proto.c`): every message read, malformed ones
-  changing nothing, SysEx gathered a byte at a time, HELLO packed as USB-MIDI.
-- `host-*`: the app in fm1-base's host simulator, `app/tests/*.txt`. The app adds commands for the scripts: `sysex`
-  (a frame from USB) and `blesysex` (from Bluetooth, a byte at a time), hex with `"TEXT"` for a text (its length, then
-  its letters); `text WHERE WORDS` (a text on the screen: title, info, line0..2, row0..5, rowv0..5, cell0..11,
-  cellv0..11, popup0..1, say0..1); `quiet` (no MIDI since the last `out`); and `expect` values (host, octave, setup,
-  own, body, keys_ch, frames, popup, selected, set_*, theme, btn_lit, keys_lit). Screenshots land in
-  `app/build/tests/`.
+- `host-*`: the app in fm1-base's host simulator, `app/tests/*.txt`, each at most a minute. `pages` walks the pages
+  with the controls; `link` plays Melodee: it claims the remote, tells it an instrument, tracks, a value, a step and the
+  transport, and checks what the controls send back. The app adds script commands: `sysex HEX..` (a frame from USB),
+  `blesysex HEX..` (from Bluetooth), `text page TITLE`, and `expect` values (home, page, menu, pop, confirm, layer,
+  sel, playing, rec, bpm, octave, tracks, list_row, list_first, host, frames_in, frames_out, last_req, last_cmd,
+  instruments, pattern). Screenshots land in `app/build/tests/`.
 - `ble-midi`: the overlay's Bluetooth parser and sender, cut out of the build copy's `le_midi.c` and compiled against
   stand-ins for JieLi's stack (`tests/ble_midi_harness.c`): SysEx whole, split, with clock inside, cut short; sent and
   read back byte for byte at MTU 20 and 182.
 
-- `v2_*` (in `host-*`): each of version 2's pages painted as Melodee would (`tests/scenes.py` writes them:
-  `build/venv/bin/python tests/scenes.py`), its shot in `app/build/tests/v2_<scene>.png`; `session` (PING, STATE, HELLO
-  again, a stray claim, silence, a link lost, a port taking it) and `scale_keys` (QNT WHITE, SNAP, ALL, the transpose).
-- `tools/compare_shots.py`: each scene's shot beside Melodee FM-1's own render of the same state
-  (`~/code/personal/Felucca/build/ui_new/NIGHT`, its `tests/ui_render.c`), in `app/build/compare/`.
-
-None of this runs on an FM-1, and the Bluetooth stack itself is not in the tests. On an FM-1: a build with fm1-base's
-screen mirror (`FM1B_MIRROR=1 ./build.sh`), installed, then `tools/play_scene.py` (Saadet's `build/venv`, which has
-mido) plays the scenes to it over USB and saves its screen in `app/build/device/`. The mirror sends what fits its ring
-and asks the app to draw again; rows that are not the screen's whole width are sent again whole each time, so a busy
-page (Stage) comes back with rows missing: the mirror's, not the screen's.
+The Bluetooth stack itself is not in the tests.
 
 ## Installing
 
 Installation is a separate, explicit step, with fm1-base's installer from the build copy:
 
 ```sh
-build/venv/bin/python build/fm1-base-platform/tools/fm1_install.py app/build/melodee-remote.fwsc --port FM-1
+~/code/personal/saadet/build/venv/bin/python build/fm1-base-platform/tools/fm1_install.py app/build/melodee-remote.fwsc --port FM-1
 ```
+
+(a Python with mido and python-rtmidi: Saadet's `build/venv` has them).
 
 A normal update keeps the device's bootloader (m-bootloader too, once installed). To go back to Saadet, install
 Saadet's package the same way.

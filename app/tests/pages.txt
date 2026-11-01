@@ -1,0 +1,28 @@
+# Melodee FM-1's pages on the remote, walked with its controls: ./build.sh --host, then
+#   app/build/host/melodee-remote_host app/tests/pages.txt app/build/tests
+wait 1500
+expect home 1
+text page HOME
+shot p_home.png
+tap SEL
+wait 100
+expect home 0
+shot p_scl.png
+turn K1 3
+wait 100
+shot p_scl_k1.png
+tap SEQ
+wait 100
+shot p_seq.png
+tap GLO
+wait 100
+shot p_glo.png
+tap FX
+wait 100
+shot p_fx.png
+tap ARP
+wait 100
+shot p_arp.png
+tap HOME
+wait 100
+expect home 1
