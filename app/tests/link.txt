@@ -164,3 +164,26 @@ tap SEQ
 wait 900
 text page NOTES
 shot l_notes32.png
+# a new track: Stage's sheet (OCT+ held), Add track: the New track sheet (what it plays, its sound, MIDI in, channel);
+# its instrument turned on, Add track: REQUEST ADD (10)
+tap HOME
+wait 300
+press OCT+
+wait 800
+release OCT+
+wait 50
+expect pop 1
+turn K2 3
+wait 30
+tap OCT+
+wait 50
+text toast_title New track
+turn K1 1
+wait 30
+shot l_newtrack.png
+turn K2 4
+wait 30
+tap OCT+
+wait 100
+expect last_req 10
+expect pop 0

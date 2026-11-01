@@ -94,7 +94,8 @@ The sound's pages are Melodee's, for the selected track as it is: its instrument
 filter on EDIT, its envelopes on ENV, its LFOs and modulation on LFO), a sampler's (ENV the selected pad: its pitch,
 level, pan, decay, filter, how it plays; LFO its sample: start, end, loop, trim and chop), an audio track's (ENV the
 selected clip: start, end, gain, fades; LFO its warp: tempo, stretch, pitch), and the track's effects (FX: each
-device's). **PAGES** lists them in order:
+device's), and every track's MIDI IN on EDIT (SOURCE: Any and Melodee's sources by name; CHANNEL: Any, 1..16).
+**PAGES** lists them in order:
 
 - **family**: 0 HOME (Stage's four knobs: one page), 1 EDIT, 2 ENV, 3 LFO, 4 FX. A button of the family steps through
   its pages; EDIT's last page is PRESETS (the sound browser, the remote's own).
@@ -153,7 +154,7 @@ messages a frame (~60 frames a second).
 | 7 | CLEAR a pattern | track, pattern |
 | 8 | DOUBLE a pattern | track, pattern |
 | 9 | HALVE a pattern | track, pattern |
-| 10 | ADD a track | the place |
+| 10 | ADD a track (the New track sheet) | the place + the MIDI source x 32 (its place in the selected track's MIDI IN SOURCE as told: 0 Any), what it plays (an instrument n; 126 audio; 127 nothing yet), the sound + the channel x 128 (0 Any, 1..16) |
 | 11 | REMOVE a track | track |
 | 12 | UNDO | 0 undo, 1 redo |
 | 13 | ERASE (EDIT held while recording) | track |

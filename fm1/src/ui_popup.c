@@ -113,6 +113,100 @@ static const sheet_row_t SHEET_STAGE[] = {
     {"Init sound", 0, 0, 0, CF_INIT_SOUND}, {"Favourite", ps_fav_v, 0, ps_fav, 0},
     {"Undo last load", 0, 0, ps_undo, 0},
     {"Add track", ps_add_v, 0, track_add, 0}, {"Remove track", ps_remove_v, 0, 0, CF_DEL_TRACK}};
+
+/* A new track's (Add track: Stage's sheet, a track key past the last on PATTERNS): what it plays (one of Melodee's
+ * instruments, from the selected track's; Audio; nothing yet), its sound, the MIDI it hears (a source of the selected
+ * track's MIDI IN as Melodee told it, a channel); Add track asks Melodee for it (REQUEST ADD: link.c) */
+#define AD_AUDIO 126u                                   /* (REQUEST ADD's b: an audio track, one with nothing yet) */
+#define AD_EMPTY 127u
+static struct { uint8_t place, kind, src, ch; uint16_t sound; } ad;
+static uint32_t ad_kinds(void) { return remote_eng_n + 2u; }
+static const engine_t *ad_engine(void) { return ad.kind < remote_eng_n ? ENGINES[REMOTE_IDX[ad.kind]] : 0; }
+static void ad_kind_v(char *b)
+{
+    const engine_t *e = ad_engine();
+    str_cpy(b, e ? e->name : ad.kind == remote_eng_n ? "Audio" : "Nothing yet", 16);
+}
+static void ad_kind_turn(int32_t s)
+{
+    ad.kind = (uint8_t)clamp((int32_t)ad.kind + (s > 0 ? 1 : -1), 0, (int32_t)ad_kinds() - 1);
+    ad.sound = 0;
+    ui.force = 1;
+}
+static void ad_kind(void) { ad.kind = (uint8_t)((ad.kind + 1u) % ad_kinds()); ad.sound = 0; ui.force = 1; }
+static void ad_sound_v(char *b)
+{
+    const engine_t *e = ad_engine();
+    if (!e || !e->npresets)
+        str_cpy(b, "-", 4);
+    else
+        str_cpy(b, eng_preset(e, ad.sound % e->npresets)->name, 16);
+}
+static void ad_sound_turn(int32_t s)
+{
+    const engine_t *e = ad_engine();
+    if (!e || !e->npresets)
+        return;
+    ad.sound = (uint16_t)clamp((int32_t)ad.sound + s, 0, (int32_t)e->npresets - 1);
+    ui.force = 1;
+}
+/* the sources: the selected track's MIDI IN SOURCE as Melodee told it (its names; the first Any) */
+static const char *const *ad_sources(uint32_t *n)
+{
+    uint32_t k;
+    *n = 0;
+    for (k = 0; told_on() && k < TOLD_K; k++)
+        if (told.desc[k].label && str_eq(told.desc[k].label, "SOURCE") && told.desc[k].names) {
+            while (told.desc[k].names[*n]) (*n)++;
+            return told.desc[k].names;
+        }
+    return 0;
+}
+static void ad_src_v(char *b)
+{
+    uint32_t n;
+    const char *const *names = ad_sources(&n);
+    str_cpy(b, names && ad.src < n ? names[ad.src] : "Any", 16);
+}
+static void ad_src_turn(int32_t s)
+{
+    uint32_t n;
+    (void)ad_sources(&n);
+    ad.src = (uint8_t)clamp((int32_t)ad.src + (s > 0 ? 1 : -1), 0, n ? (int32_t)n - 1 : 0);
+    ui.force = 1;
+}
+static void ad_ch_v(char *b)
+{
+    if (!ad.ch)
+        str_cpy(b, "Any", 4);
+    else
+        fmt_int(b, ad.ch);
+}
+static void ad_ch_turn(int32_t s) { ad.ch = (uint8_t)clamp((int32_t)ad.ch + s, 0, 16); ui.force = 1; }
+static void ad_add(void)
+{
+    uint32_t kind = ad.kind < remote_eng_n ? ad.kind : ad.kind == remote_eng_n ? AD_AUDIO : AD_EMPTY;
+    link_request(RQ_TRACK_ADD, ad.place | (uint32_t)ad.src << 5, kind, (uint32_t)ad.sound | (uint32_t)ad.ch << 7);
+    pop_close();
+    ui_message("TRACK ADDED");
+}
+static const sheet_row_t SHEET_ADD[] = {
+    {"Plays", ad_kind_v, ad_kind_turn, ad_kind, 0}, {"Sound", ad_sound_v, ad_sound_turn, 0, 0},
+    {"MIDI in", ad_src_v, ad_src_turn, 0, 0}, {"Channel", ad_ch_v, ad_ch_turn, 0, 0}, {"Add track", 0, 0, ad_add, 0}};
+static void add_sheet_open(uint32_t place)
+{
+    char sub[8] = {'T', 0};
+    if (place >= NTRK) {
+        ui_message("TRACKS FULL");
+        return;
+    }
+    ad.place = (uint8_t)place;
+    ad.kind = (uint8_t)(eng_ok(TSEL->eng_req) ? eng_rank(TSEL->eng_req) : remote_eng_n + 1u);   /* (the selected one's) */
+    ad.sound = 0;
+    ad.src = ad.ch = 0;
+    trk_num(sub + 1, place);
+    sheet_open("New track", sub, SHEET_ADD, NELEM(SHEET_ADD));
+}
 /* the song's (SONG) */
 static int ps_song_free(void)
 {

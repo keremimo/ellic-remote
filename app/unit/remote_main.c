@@ -150,6 +150,8 @@ int fm1u_host_cmd(const char *cmd, const char *a, const char *b)
         got = trk_name[strtoul(a + 4, 0, 10) % NTRK];
     else if (!strcmp(a, "toast"))                      /* what the top bar says now */
         got = ui.msg;
+    else if (!strcmp(a, "toast_title"))                /* (a sheet's title) */
+        got = pop.title;
     else
         return 0;
     if (strcmp(got, b)) {

@@ -14,6 +14,6 @@ static void project_quick_save(void) { link_save_name[0] = 0; link_request(RQ_SA
 static void settings_save(void) {}
 static uint32_t chain_prepare_from(uint32_t start) { return start; }
 
-static void track_add(void) { link_request(RQ_TRACK_ADD, trk_n(), 0, 0); }
-static int track_create_to(uint32_t k) { link_request(RQ_TRACK_ADD, k, 0, 0); return 0; }
+static void track_add(void) { add_sheet_open(trk_n()); }   /* (the new track sheet first: ui_popup.c) */
+static int track_create_to(uint32_t k) { add_sheet_open(k); return 0; }
 static int track_remove(uint32_t k) { link_request(RQ_TRACK_REMOVE, k, 0, 0); return 0; }
