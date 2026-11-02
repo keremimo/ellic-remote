@@ -251,7 +251,7 @@ static int32_t pv_hot(void) { return ui.hot_t ? (int32_t)(ui.hot_col & 3u) : -1;
 static void pv_env(int32_t h)
 {
     const page_t *pg = cur_page();
-    int told_env = pg->scope == SC_TOLD;              /* (Melodee's: its values as 0..127 of their ranges) */
+    int told_env = pg->scope == SC_TOLD;              /* (Ellic Studio's: its values as 0..127 of their ranges) */
     int32_t va = told_env ? told_value127(pg->id[0]) : TSEL->p[pg->id[0]], vd = told_env ? told_value127(pg->id[1]) : TSEL->p[pg->id[1]];
     int32_t vs = told_env ? told_value127(pg->id[2]) : TSEL->p[pg->id[2]], vr = told_env ? told_value127(pg->id[3]) : TSEL->p[pg->id[3]];
     int32_t top = 14, bot = h - 12, x0 = 12, x1 = x0 + 10 + va * 40 / 127, x2 = x1 + 16 + vd * 52 / 127;

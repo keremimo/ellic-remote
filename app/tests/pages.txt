@@ -1,5 +1,5 @@
 # Melodee FM-1's pages on the remote, walked with its controls: ./build.sh --host, then
-#   app/build/host/melodee-remote_host app/tests/pages.txt app/build/tests
+#   app/build/host/ellic-remote_host app/tests/pages.txt app/build/tests
 wait 1500
 expect home 1
 text page HOME

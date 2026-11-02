@@ -1,13 +1,13 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* Melodee FM-1's engine table (its engines.c) on a pure remote: Melodee's instruments, none sounding here. Melodee
+/* Melodee FM-1's engine table (its engines.c) on a pure remote: Ellic Studio's instruments, none sounding here. Ellic Studio
  * tells each (link.c INSTRUMENT, SOUNDS): its name and its sounds' names; its pages are the selected track's
- * (remote_told.c). Each takes an index of Melodee FM-1's table in Melodee's order; a track with no instrument (MIDI,
- * audio, a plug-in) takes ENGI_NONE_HERE, never offered. Until Melodee has told any: one, SOUND. */
+ * (remote_told.c). Each takes an index of Melodee FM-1's table in Ellic Studio's order; a track with no instrument (MIDI,
+ * audio, a plug-in) takes ENGI_NONE_HERE, never offered. Until Ellic Studio has told any: one, SOUND. */
 #include "absent_engines.h"      /* (Melodee FM-1's own engines: none of them here) */
 
 /* the working arena (resources.c): none, Melodee FM-1 keeps its undo histories and the like there; the remote's
- * undo is Melodee's */
+ * undo is Ellic Studio's */
 enum { RES_ENGINE0, RES_NOTE_HISTORY = RES_ENGINE0 + NPART, RES_FX0, RES_RECORD_UNDO = RES_FX0 + FX_STATE_COUNT,
        RES_STEP_UNDO, RES_LOAD_UNDO, RES_SONG_UNDO, RES_SONG_SOUNDS, RES_SONG_BASE, RES_SONG_PREVIEW, RES_PUNCH,
        RES_COUNT };
@@ -16,10 +16,10 @@ static void *resource_get(uint32_t id, uint32_t bytes) { (void)id; (void)bytes; 
 static void *resource_resize(uint32_t id, uint32_t bytes) { (void)id; (void)bytes; return 0; }
 static void resource_release(uint32_t id) { (void)id; }
 
-/* the indices Melodee's instruments take, in their order */
+/* the indices Ellic Studio's instruments take, in their order */
 static const uint8_t REMOTE_IDX[] = {3, 2, 4, 5, 6, 7, 8, 9, 11, 13, 14, 16};
 #define REMOTE_ENGINES ((uint32_t)sizeof REMOTE_IDX)
-#define REMOTE_PRESETS 128u      /* sounds an instrument lists (Melodee's longest: BRO-FAT's 68) */
+#define REMOTE_PRESETS 128u      /* sounds an instrument lists (Ellic Studio's longest: BRO-FAT's 68) */
 #define REMOTE_TEXT 2048u        /* an instrument's names: its own, its sounds' */
 #define ENGI_NONE_HERE 0u        /* (ENGI_ANALOG: retired, never offered: a track with no instrument) */
 
@@ -39,7 +39,7 @@ typedef struct {
 static remote_engine_t remote_eng[REMOTE_ENGINES] __attribute__((section(".pool")));
 static const engine_t *ENGINES[NENGINES];
 static uint8_t ENGINE_ORDER[REMOTE_ENGINES];
-static uint32_t remote_eng_n;                /* the instruments Melodee has told (0: SOUND alone) */
+static uint32_t remote_eng_n;                /* the instruments Ellic Studio has told (0: SOUND alone) */
 static uint8_t TRK_DEF[NPART][2];            /* the parts at power-on (engine, sound) */
 #undef NENG_SHOWN
 #define NENG_SHOWN (remote_eng_n ? remote_eng_n : 1u)
@@ -55,7 +55,7 @@ static const engine_t ENG_NONE = {           /* every index no instrument has: n
     .knob = {P_E0, P_E1, P_E2, P_E3},
 };
 static const preset_t SOUND_PRESET[] = {{.name = "Init"}};
-static const engine_t ENG_SOUND = {          /* before Melodee has told its instruments */
+static const engine_t ENG_SOUND = {          /* before Ellic Studio has told its instruments */
     .name = "SOUND",
     .page_title = {"EDIT 1", "EDIT 2"},
     .edit = {{"PARAM 1", F_INT, 0, 127, 64, 0, 0}, {"PARAM 2", F_INT, 0, 127, 64, 0, 0},
@@ -136,7 +136,7 @@ static uint32_t trk_def_preset(uint32_t k) { return TRK_DEF[k % NPART][1]; }
 
 /* no instrument's working state here (engines.c's eng_state_*) */
 
-/* ------------------------------------------- Melodee's instruments in --- */
+/* ------------------------------------------- Ellic Studio's instruments in --- */
 /* text kept for instrument n: 0 if there is no room left (its names shorter, then) */
 static const char *remote_text(remote_engine_t *r, const char *s, uint32_t n)
 {
@@ -164,7 +164,7 @@ static void remote_instrument(uint32_t n, const char *name, uint32_t nl, uint32_
     r->e.preset_make = REMOTE_SOUND[n];
     r->e.npresets = (uint8_t)(sounds < REMOTE_PRESETS ? sounds : REMOTE_PRESETS);
     r->e.name = remote_text(r, name, nl);
-    r->e.keys = remote_pad_keys;                 /* (a sampler's pads on the keys, as Melodee says: remote_told.c) */
+    r->e.keys = remote_pad_keys;                 /* (a sampler's pads on the keys, as Ellic Studio says: remote_told.c) */
     for (i = 0; i < REMOTE_PRESETS; i++)
         r->sound[i] = 0;                         /* ("" until named: the text's first byte is a name's end) */
 }

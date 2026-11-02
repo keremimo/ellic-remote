@@ -1,8 +1,8 @@
-# Melodee Remote's build settings (fm1-base tools/build.py, run by tools/build_base.py)
-name = "MELODEE-REMOTE"
+# Ellic Remote's build settings (fm1-base tools/build.py, run by tools/build_base.py)
+name = "ELLIC-REMOTE"
 id_prefix = "FM-1_14"          # package identity: dev FM-1_1400, releases FM-1_14XXYYZZ
 usb_manufacturer = "Ellic Studio"
-usb_product = "Melodee Remote FM-1"
+usb_product = "Ellic Remote FM-1"
 # Melodee FM-1's pages, controls and sequencer: a unit of their own (unit/unit.c, from ../fm1/src), beside fm1-base's
 o2 = ["unit/unit.c"]
 o2_cflags = ["-Os"]              # (the unit for size: its pages are code, not DSP)
@@ -14,12 +14,12 @@ gen = ["../fm1/tools/gen_aa_font.py {gen}/ui_fonts.h --preset rubik",
        "../fm1/tools/gen_aa_keycaps.py {gen}/ui_keycaps.h",
        "../fm1/tools/gen_ui_palettes.py {gen}/ui_palettes.h",
        "../fm1/tools/gen_tables.py {gen}/melodee_tables.h"]
-ble = true                     # Bluetooth MIDI with Melodee (--no-ble: USB only)
+ble = true                     # Bluetooth MIDI with Ellic Studio (--no-ble: USB only)
 ble_central = false            # the FM-1 is the peripheral; it connects to nothing itself
 usb_audio_in = false           # no sound
 usb_audio_out = false
 # the site (fm1-base tools/make_site.py)
-tagline = "the FM-1 as Melodee's remote"
+tagline = "the FM-1 as Ellic Studio's remote"
 repo = ""
 licence = "MPL-2.0"
 credits = "Built on fm1-base and felucca-bsp, from Saadet's Bluetooth port."

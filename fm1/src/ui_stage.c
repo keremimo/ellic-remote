@@ -451,7 +451,7 @@ static void stage_row(uint32_t k)
         entry_label(src, kk, tag, nm);
         if (!nm[0]) str_cpy(nm, tag, sizeof nm);
     } else {
-        track_label(t, nm);                             /* (its name, as Melodee tells it; none: its sound's) */
+        track_label(t, nm);                             /* (its name, as Ellic Studio tells it; none: its sound's) */
         if (!nm[0]) str_cpy(nm, ENGINES[eng_idx(t->eng_req)]->name, sizeof nm);
         stage_entry(k, &src, &kk);
     }

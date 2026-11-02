@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
-"""Build Melodee Remote on the pinned fm1-base (Saadet's pin), with its overlay, in a disposable copy.
+"""Build Ellic Remote on the pinned fm1-base (Saadet's pin), with its overlay, in a disposable copy.
 
   tools/build_base.py [--host | --no-ble | --release X.Y.Z]   (the arguments go to fm1-base's tools/build.py)
 

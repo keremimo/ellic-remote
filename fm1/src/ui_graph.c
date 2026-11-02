@@ -510,7 +510,7 @@ static uint32_t graph_sig(int play)
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u;
-    if (pg->scope == SC_TOLD)                        /* (Melodee's values, wave and marks: remote_told.c) */
+    if (pg->scope == SC_TOLD)                        /* (Ellic Studio's values, wave and marks: remote_told.c) */
         h = (h ^ told.gen) * 16777619u + (uint32_t)told.track * 31u;
     if (pg->graph == GR_ROLL && !grid_on()) {
         uint32_t chosen = notes_selected(t);

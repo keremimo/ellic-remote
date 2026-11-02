@@ -215,7 +215,7 @@ static uint32_t layer_btn(void);
 static int list_gone(uint32_t i);                        /* ui_list.c: a page in another's list */
 static int page_visible(uint32_t i)
 {
-    if (PAGES[i].scope == SC_TOLD)                    /* Melodee's: the selected track's, as told (remote_told.c) */
+    if (PAGES[i].scope == SC_TOLD)                    /* Ellic Studio's: the selected track's, as told (remote_told.c) */
         return told_visible(i);
     if (list_gone(i))
         return 0;
@@ -461,7 +461,7 @@ static void open_family(uint32_t fam)
     uint32_t i;
     for (i = 0; i < NPAGES && !(PAGES[i].fam == fam && page_visible(i)); i++)
         ;
-    if (i == NPAGES) {                                /* (Melodee told none for this sound: said, nothing moves) */
+    if (i == NPAGES) {                                /* (Ellic Studio told none for this sound: said, nothing moves) */
         ui_say(NONE[fam] ? NONE[fam] : "", told_on() ? " NONE HERE" : " NOT TOLD YET");
         return;
     }
@@ -481,7 +481,7 @@ static void open_family(uint32_t fam)
     page_entered();
 }
 
-/* GLO enters the mixer (the remote has no global pages: the project's settings are Melodee's) */
+/* GLO enters the mixer (the remote has no global pages: the project's settings are Ellic Studio's) */
 static void open_global(void)
 {
     ui.page = (uint8_t)page_first(FAM_TRK);
@@ -1010,7 +1010,7 @@ static void track_select(uint32_t i)
 
 
 /* ---------------------------------------------------- action pages --- */
-/* Columns whose purpose is an action (a told page's ACTION values: Melodee's chop, normalise, record ..): the knob
+/* Columns whose purpose is an action (a told page's ACTION values: Ellic Studio's chop, normalise, record ..): the knob
  * picks it, OCT+ does it, OCT- cancels the picked action or goes HOME (ui_input.c) */
 static uint32_t act_cols(void)                   /* the columns that are actions, a bit each; 0 = not such a page */
 {
@@ -1019,7 +1019,7 @@ static uint32_t act_cols(void)                   /* the columns that are actions
     if (ui.home || pg->scope != SC_TOLD || !told_on())
         return 0;
     for (c = 0; c < 4u; c++)
-        if (told_is_action(pg->id[c]))           /* (Melodee's: REQUEST ACTION) */
+        if (told_is_action(pg->id[c]))           /* (Ellic Studio's: REQUEST ACTION) */
             m |= 1u << c;
     return m;
 }

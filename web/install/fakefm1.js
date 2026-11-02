@@ -83,8 +83,8 @@ class Device {
     this.log = [];                            // what the device did, in words
     this.reply = null;                        // the pending read's resolver
     this.busy = false;
-    this.input = new Port(this, "Melodee Remote FM-1", "input");
-    this.output = new Port(this, "Melodee Remote FM-1", "output");
+    this.input = new Port(this, "Ellic Remote FM-1", "input");
+    this.output = new Port(this, "Ellic Remote FM-1", "output");
   }
 
   emit(bytes) {
@@ -122,7 +122,7 @@ class Device {
     this.online = false;
     this.state = state;
     if (identity) this.identity = identity;
-    this.input.name = this.output.name = state === "loader" ? "FM-1" : "Melodee Remote FM-1";
+    this.input.name = this.output.name = state === "loader" ? "FM-1" : "Ellic Remote FM-1";
     return new Promise((r) => this.clock.set(() => { this.online = true; r(); }, ms));
   }
 

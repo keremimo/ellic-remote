@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
 """Prepare a local BLE release, matching source and uploadable installer site; never publish or flash (Saadet's
-tools/prepare_public_release.py, for Melodee Remote).
+tools/prepare_public_release.py, for Ellic Remote).
 
   tools/prepare_public_release.py 0.1.0 [--out DIR] [--no-build] [--checks FILE.json]
 """
@@ -79,7 +79,7 @@ def main(argv=None):
             for path in sorted(staging.rglob("*")) if path.is_file() and path != staging / "SHA256SUMS"))
         validate_build(ROOT, package, args.version)
         shutil.move(str(staging), output)
-    print(f"Prepared Melodee Remote {args.version}: {output}")
+    print(f"Prepared Ellic Remote {args.version}: {output}")
     return output
 
 

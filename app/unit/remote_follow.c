@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* One screen with Melodee's, and the menu's settings kept by Melodee (docs/PROTOCOL.md PAGE, PREFS).
+/* One screen with Ellic Studio's, and the menu's settings kept by Ellic Studio (docs/PROTOCOL.md PAGE, PREFS).
  *   PAGE: the page shown, as a screen (Stage, a sound page, the key, the arpeggiator, the steps, PATTERNS, SONG, the
- *     mixer, TEMPO, the menu), told to Melodee whenever the remote's controls change it; Melodee's (the iPad moved)
+ *     mixer, TEMPO, the menu), told to Ellic Studio whenever the remote's controls change it; Ellic Studio's (the iPad moved)
  *     taken here as a page to go to. Neither side answers the other's: the last touched leads.
- *   PREFS: the remote keeps nothing; its menu's settings and Melodee's own the menu shows (the click, the count-in ..)
- *     are Melodee's, told on claim and told back as the menu changes them. */
+ *   PREFS: the remote keeps nothing; its menu's settings and Ellic Studio's own the menu shows (the click, the count-in ..)
+ *     are Ellic Studio's, told on claim and told back as the menu changes them. */
 static void link_send(uint32_t cmd, const uint8_t *body, uint32_t n, int port);   /* (link.c) */
 static uint32_t wr14(uint8_t *p, int32_t v);
 static int link_held(void);
@@ -96,7 +96,7 @@ static uint32_t page_by_graph(uint32_t graph)
     return i;
 }
 
-/* Melodee's screen (the iPad moved): the remote there, unless its menu, a dialog or a sheet is open; not told back */
+/* Ellic Studio's screen (the iPad moved): the remote there, unless its menu, a dialog or a sheet is open; not told back */
 static void page_follow(const uint8_t *b)
 {
     static const uint8_t FAM[TF_N] = {FAM_HOME, FAM_EDIT, FAM_ENV, FAM_LFO, FAM_FX};
@@ -140,7 +140,7 @@ static void page_follow(const uint8_t *b)
     default:
         return;
     }
-    page_now(fol.shown);                     /* (where it went is Melodee's: not told back) */
+    page_now(fol.shown);                     /* (where it went is Ellic Studio's: not told back) */
     fol.ready = 1;
 }
 
@@ -166,7 +166,7 @@ static int32_t pref_get(uint32_t id)
     default: return 0;
     }
 }
-/* a preference as Melodee keeps it (PREFS in), at once */
+/* a preference as Ellic Studio keeps it (PREFS in), at once */
 static void pref_set(uint32_t id, int32_t v)
 {
     switch (id) {
@@ -196,7 +196,7 @@ static void pref_set(uint32_t id, int32_t v)
 }
 static int pref_known(uint32_t id) { return id < PREF_OWN || (id >= PREF_CLICK && id < PREF_N); }
 
-/* the menu changed a preference: told (all of them, the first pass after a claim: Melodee's then tell it back) */
+/* the menu changed a preference: told (all of them, the first pass after a claim: Ellic Studio's then tell it back) */
 static void prefs_poll(void)
 {
     uint8_t m[60];
@@ -212,7 +212,7 @@ static void prefs_poll(void)
     if (n && link_held())
         link_send(L_PREFS_CMD, m, n, -1);
 }
-/* a new claim: Melodee hears where the remote is; its preferences come from Melodee (PREFS), not the other way */
+/* a new claim: Ellic Studio hears where the remote is; its preferences come from Ellic Studio (PREFS), not the other way */
 static void follow_claimed(void)
 {
     uint32_t id;

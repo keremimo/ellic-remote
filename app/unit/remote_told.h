@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The selected track's sound pages as Melodee tells them: the set (remote_told.c), before the page table that shows it
+/* The selected track's sound pages as Ellic Studio tells them: the set (remote_told.c), before the page table that shows it
  * (params.c SC_TOLD, page_desc). */
 #define TOLD_PAGES 32u                   /* (the page table's told slots) */
 #define TOLD_K 120u                      /* told values a set holds */
@@ -21,7 +21,7 @@ static struct {
     struct { uint8_t fam, view, k[4]; const char *title; } page[TOLD_PAGES];
     param_desc_t desc[TOLD_K];
     uint8_t action[TOLD_K / 8u];         /* bit k: value k is an action (DESC format 14) */
-    int16_t val[TOLD_K], lk[TOLD_K];     /* the values here; as Melodee last told them (what differs is the knobs') */
+    int16_t val[TOLD_K], lk[TOLD_K];     /* the values here; as Ellic Studio last told them (what differs is the knobs') */
     char text[TOLD_TEXT];
     uint16_t used;
     const char *names[TOLD_NAMES];

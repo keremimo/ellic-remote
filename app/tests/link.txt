@@ -1,7 +1,7 @@
-# The link with Melodee (docs/PROTOCOL.md, version 4): a stand-in Melodee claims the remote, tells it an instrument, two
+# The link with Ellic Studio (docs/PROTOCOL.md, version 4): a stand-in Ellic Studio claims the remote, tells it an instrument, two
 # named tracks, the selected track's sound pages and values, the tempo, a step and that the music plays; the remote's
-# controls tell it back what they change, ask and show (PAGE), and it follows Melodee's screen and preferences.
-#   app/build/host/melodee-remote_host app/tests/link.txt app/build/tests
+# controls tell it back what they change, ask and show (PAGE), and it follows Ellic Studio's screen and preferences.
+#   app/build/host/ellic-remote_host app/tests/link.txt app/build/tests
 wait 1300
 expect host 0
 expect last_cmd 1
@@ -45,22 +45,22 @@ text name0 BASS
 text name2 KEYS
 text page HOME
 shot l_stage.png
-# K1 on Stage turns told value 0 (DRIVE): told to Melodee (PARAM 4096)
+# K1 on Stage turns told value 0 (DRIVE): told to Ellic Studio (PARAM 4096)
 turn K1 2
 wait 100
 expect told0 102
 expect last_cmd 69
-# PLAY while playing: asks Melodee to stop
+# PLAY while playing: asks Ellic Studio to stop
 tap PLAY
 wait 100
 expect last_req 2
-# ENV: AMP, the told envelope; Melodee hears the page (PAGE)
+# ENV: AMP, the told envelope; Ellic Studio hears the page (PAGE)
 tap ENV
 wait 100
 text page AMP
 expect last_cmd 5
 shot l_env.png
-# LFO: SAMPLE, the wave and its marks; K4 picks CHOP, OCT+ asks Melodee (ACTION 20)
+# LFO: SAMPLE, the wave and its marks; K4 picks CHOP, OCT+ asks Ellic Studio (ACTION 20)
 sysex F0 7D 4D 52 4E 00 01 40 00 38 40 40 3F 41 3E 42 3D 43 3C 44 3B 45 3A 46 39 47 38 48 37 49 36 4A 35 4B 34 4C 33 4D 32 4E 31 4F 30 50 2F 51 2E 52 2D 53 2C 54 2B 55 2A 56 29 57 28 58 27 59 26 5A 25 5B 24 5C 23 5D 22 5E 21 5F 20 60 1F 61 1E 62 1D 63 1C 64 1B 65 1A 66 19 67 40 40 3F 41 3E 42 3D 43 3C 44 3B 45 3A 46 39 47 38 48 37 49 36 4A 35 4B 34 4C 33 4D 32 4E 31 4F F7
 sysex F0 7D 4D 52 4E 00 01 40 38 38 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 3C 46 F7
 sysex F0 7D 4D 52 4F 00 01 40 05 01 00 40 00 40 02 70 6E 00 40 05 50 4F 00 40 45 20 5F 01 40 0A 38 57 00 40 F7
@@ -81,7 +81,7 @@ text page OSC
 tap EDIT
 wait 100
 text page PRESETS
-# Melodee's screen: Stage (PAGE 0), then ENV's AMP (PAGE 1, ENV, page 2): the remote goes there, not telling back
+# Ellic Studio's screen: Stage (PAGE 0), then ENV's AMP (PAGE 1, ENV, page 2): the remote goes there, not telling back
 # (the frames sent: as many after as before)
 expect frames_out 12
 sysex F0 7D 4D 52 05 00 00 00 7F 00 F7
@@ -91,14 +91,14 @@ sysex F0 7D 4D 52 05 01 00 02 02 41 4D 50 00 F7
 wait 50
 text page AMP
 expect frames_out 12
-# SAVE: a save asked (17); Melodee's word on the screen
+# SAVE: a save asked (17); Ellic Studio's word on the screen
 tap SAVE
 wait 100
 expect last_req 17
 sysex F0 7D 4D 52 07 53 41 56 45 44 00 00 F7
 wait 20
 text toast SAVED
-# PREFS: LIGHTS FULL as Melodee keeps it
+# PREFS: LIGHTS FULL as Ellic Studio keeps it
 sysex F0 7D 4D 52 06 03 04 40 F7
 wait 50
 expect lights 4
@@ -119,7 +119,7 @@ expect last_cmd 3
 sysex F0 7D 4D 52 02 F7
 wait 20
 expect host 0
-# a Melodee of another version (3) does not claim it: it hears the remote's HELLO, version 4
+# Ellic Studio at another version (3) does not claim it: it hears the remote's HELLO, version 4
 sysex F0 7D 4D 52 01 03 F7
 wait 20
 expect host 0
@@ -139,7 +139,7 @@ tap HOME
 wait 300
 text page HOME
 shot l_stage_12.png
-# bytes lost on Bluetooth: a frame cut short (a new one starting inside it) gives a new generation, so Melodee's next
+# bytes lost on Bluetooth: a frame cut short (a new one starting inside it) gives a new generation, so Ellic Studio's next
 # PING has STATE tell it to tell everything again
 ble connect
 wait 100

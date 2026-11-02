@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
-# Melodee Remote's words for a screen reader (fm1-reader): the text on the screen <TAB> what to say.
+# Ellic Remote's words for a screen reader (fm1-reader): the text on the screen <TAB> what to say.
 # url: https://charlesvestal.github.io/fm1-base/words/
-MELODEE REMOTE	Melodee remote
+ELLIC REMOTE	Ellic remote
 OCT-+	hold octave down and octave up
 HOME: DONE	home when done

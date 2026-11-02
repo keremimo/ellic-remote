@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* What Melodee FM-1's pages and controls read and ask of its model (its sequencer, patterns, takes, song, motion),
- * on a pure remote: Melodee's. The remote keeps no music of its own and plays none.
+ * on a pure remote: Ellic Studio's. The remote keeps no music of its own and plays none.
  *   the mirror: what the pages read (core.h's song and tracks: the parameters, the playing pattern's steps, the
- *     playhead; the patterns that hold something; the takes' notes; the song's rows), as Melodee says it (link.c);
+ *     playhead; the patterns that hold something; the takes' notes; the song's rows), as Ellic Studio says it (link.c);
  *   the requests: what a control asks (play, record, a pattern chosen, copied, cleared, a track added or removed,
- *     undo), said to Melodee (link_request); what it changes in place (a value, a step) Melodee hears from link.c,
- *     which keeps the mirror as Melodee last said it and tells what differs;
+ *     undo), said to Ellic Studio (link_request); what it changes in place (a value, a step) Ellic Studio hears from link.c,
+ *     which keeps the mirror as Ellic Studio last said it and tells what differs;
  *   none here: motion, a pattern's own sound, the note history, a capture of what was played. */
 
 static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c);   /* (link.c) */
@@ -22,9 +22,9 @@ static void midi_out_event(uint32_t pkt) { plat_midi_send(pkt, U_TO_USB | U_TO_B
 /* --------------------------------------------- the transport, the arm --- */
 static volatile uint8_t transport_req;         /* the controls': 1 play, 2 stop, 3 from the top (model_poll) */
 static volatile uint8_t panic_req;             /* bit per track: its notes off */
-static volatile uint32_t cin_left;             /* counting in (Melodee's) */
+static volatile uint32_t cin_left;             /* counting in (Ellic Studio's) */
 static int seq_counting(void) { return cin_left != 0; }
-static volatile uint32_t beat_pos, beat_n;     /* where in the beat (Melodee's) */
+static volatile uint32_t beat_pos, beat_n;     /* where in the beat (Ellic Studio's) */
 static volatile uint16_t seq_loops[NTRK], seq_pend[NTRK];
 static volatile uint8_t seq_hush;
 static volatile uint8_t midi_hint;
@@ -48,14 +48,14 @@ static uint32_t live_held[NTRK][4], live_last[NTRK][4];
 static void rec_set(track_t *t, uint32_t on) { link_request(RQ_ARM, (uint32_t)(t - trk), on, 0); }
 static void recording_stop(track_t *t) { (void)t; }
 
-/* the erase gesture (EDIT held while recording: seq_erase.c): asked of Melodee */
+/* the erase gesture (EDIT held while recording: seq_erase.c): asked of Ellic Studio */
 static volatile uint32_t seq_erase_request, seq_erase_generation;
 static uint32_t seq_erase_transport;
 static uint8_t seq_erase_seen[NTRK];
 static volatile uint16_t seq_erase_button;
 static int seq_erase_active(const track_t *t) { (void)t; return 0; }
 
-/* the step entry's MIDI and the preview of a sound (Melodee hears the keys itself) */
+/* the step entry's MIDI and the preview of a sound (Ellic Studio hears the keys itself) */
 #define STEP_MIDI_Q 64u
 static uint32_t step_midi_q[STEP_MIDI_Q];
 static volatile uint32_t step_midi_w, step_midi_r;
@@ -66,12 +66,12 @@ static uint32_t audition_gate;
 static int32_t audition_pitch;
 
 /* ---------------------------------------------------- the tracks' names --- */
-/* each track's name as Melodee tells it (TRACKS): Stage's cards and the mixer's strips show it ("": the sound's) */
+/* each track's name as Ellic Studio tells it (TRACKS): Stage's cards and the mixer's strips show it ("": the sound's) */
 #define TRK_NAME_LEN 12u
 static char trk_name[NTRK][TRK_NAME_LEN + 1u];
 
 /* ------------------------------------------------- patterns (clips) --- */
-/* each track's patterns: which hold something, their lengths and speeds (pattern_timing), as Melodee says; the
+/* each track's patterns: which hold something, their lengths and speeds (pattern_timing), as Ellic Studio says; the
  * playing one's steps are the track's own (trk[k].step) */
 typedef struct { step_t step[NSTEP]; int16_t timing[4]; } pattern_t;
 static uint16_t pattern_holds[NTRK];           /* bit per bank: it holds something */
@@ -96,7 +96,7 @@ static void pattern_read(uint32_t k, uint32_t bank, pattern_t *p)   /* another p
         p->step[i].time = ST_REST;
     for (i = 0; i < 4u; i++)
         p->timing[i] = pattern_timings[k][bank % NPAT][i];
-    if ((pattern_holds[k] >> (bank % NPAT)) & 1u)   /* (holds something Melodee has not shown: one note says so) */
+    if ((pattern_holds[k] >> (bank % NPAT)) & 1u)   /* (holds something Ellic Studio has not shown: one note says so) */
         p->step[0].time = ST_NOTE, p->step[0].n = 1, p->step[0].note[0] = 60;
 }
 static step_t pattern_step(uint32_t k, uint32_t bank, uint32_t i)
@@ -109,7 +109,7 @@ static int16_t pattern_timing(uint32_t k, uint32_t bank, uint32_t i)
 {
     return bank == trk[k].pattern ? trk[k].p[P_SLEN + i] : pattern_timings[k][bank % NPAT][i % 4u];
 }
-static uint32_t pattern_room(void) { return 1u << 16; }   /* (room enough: the patterns are Melodee's) */
+static uint32_t pattern_room(void) { return 1u << 16; }   /* (room enough: the patterns are Ellic Studio's) */
 static uint32_t pattern_file_cost(void) { return 0; }
 static int pattern_request(track_t *t, uint32_t bank) { link_request(RQ_PATTERN, (uint32_t)(t - trk), bank, 0); return 0; }
 static int pattern_copy(track_t *t, uint32_t source, uint32_t dest)
@@ -148,7 +148,7 @@ static struct {
     uint32_t carry, rest_pos, seek_phase[NTRK];
     uint64_t seek_samples[NTRK];
 } chain;
-static struct { uint8_t n, pat[CHAIN_ROWS][NTRK], rep[CHAIN_ROWS]; } jam;   /* (a jam taken into the song: Melodee's) */
+static struct { uint8_t n, pat[CHAIN_ROWS][NTRK], rep[CHAIN_ROWS]; } jam;   /* (a jam taken into the song: Ellic Studio's) */
 static uint32_t chain_div_samples(uint64_t value, uint32_t divisor, uint32_t *remainder)
 {
     if (remainder)
@@ -169,7 +169,7 @@ static uint64_t chain_row_samples(uint32_t row)        /* a row's length (its fo
 static uint32_t chain_sound_id(uint32_t row, uint32_t track) { (void)row; (void)track; return 0; }
 
 /* ------------------------------------------------------------ takes --- */
-/* the takes' notes (the timed notes recorded over a pattern's steps), as Melodee says them: lists per pattern */
+/* the takes' notes (the timed notes recorded over a pattern's steps), as Ellic Studio says them: lists per pattern */
 static recorded_note_t recording[RECORD_MAX] __attribute__((section(".pool")));
 static uint16_t recording_next[RECORD_MAX] __attribute__((section(".pool")));
 static uint16_t recording_head[NTRK * NPAT] = {[0 ... NTRK * NPAT - 1u] = RECORD_MAX};   /* (RECORD_MAX: none) */
@@ -261,5 +261,5 @@ static void model_poll(void)
         transport_req = 0;
         link_request(r == 1u ? RQ_PLAY : r == 2u ? RQ_STOP : RQ_RESTART, 0, 0, 0);
     }
-    panic_req = 0;                             /* (a sound changed: Melodee ends its notes itself) */
+    panic_req = 0;                             /* (a sound changed: Ellic Studio ends its notes itself) */
 }

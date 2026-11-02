@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The selected track's sound pages as Melodee tells them (docs/PROTOCOL.md, "The selected track's pages"): PAGES (its
+/* The selected track's sound pages as Ellic Studio tells them (docs/PROTOCOL.md, "The selected track's pages"): PAGES (its
  * EDIT, ENV, LFO and FX pages and Stage's knobs, each four told values), DESC (each value's range and how it reads, or
  * an action), PARAM 4096 + k (the values), WAVE and MARKS (a sample's or a clip's sound and its marks). They fill the
  * page table's told slots (params.c SC_TOLD), which the families step through as Melodee FM-1's own pages; a knob turns
- * a value here and link.c tells Melodee what changed; an action's column asks it (REQUEST ACTION). While another track
- * is selected than the one told, the slots show nothing: Melodee tells the new one's at once. */
+ * a value here and link.c tells Ellic Studio what changed; an action's column asks it (REQUEST ACTION). While another track
+ * is selected than the one told, the slots show nothing: Ellic Studio tells the new one's at once. */
 /* text kept with the set ("" when there is no room left) */
 static const char *told_text(const char *s, uint32_t n)
 {
@@ -21,7 +21,7 @@ static const char *told_text(const char *s, uint32_t n)
     return d;
 }
 
-/* a new set for track tr: no pages, no values, until Melodee tells them */
+/* a new set for track tr: no pages, no values, until Ellic Studio tells them */
 static void told_reset(uint32_t tr)
 {
     uint32_t k;

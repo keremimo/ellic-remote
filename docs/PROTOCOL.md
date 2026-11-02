@@ -1,24 +1,24 @@
-# The Melodee Remote protocol, version 4
+# The Ellic Remote protocol, version 4
 
-How Melodee and an FM-1 running Melodee Remote talk. The remote is a pure remote: it runs Melodee FM-1's own pages
+How Ellic Studio and an FM-1 running Ellic Remote talk. The remote is a pure remote: it runs Melodee FM-1's own pages
 and controls (its navigation, lists, popups, sheets, knobs, LEDs, the keys' layouts), and nothing else. It keeps no
-music, plays none, records none and stores none. What its pages show is a **mirror** of Melodee's project, in Melodee
-FM-1's shapes, which Melodee fills; what its controls do comes back to Melodee as **changes** (a value turned, a step
+music, plays none, records none and stores none. What its pages show is a **mirror** of Ellic Studio's project, in Ellic Studio
+FM-1's shapes, which Ellic Studio fills; what its controls do comes back to Ellic Studio as **changes** (a value turned, a step
 written, a track selected, a sound chosen) and **requests** (play, record, a pattern copied, a track added, undo, save).
-The keys play notes as MIDI. The two show the same place: the remote's page moves Melodee's screen and Melodee's
+The keys play notes as MIDI. The two show the same place: the remote's page moves Ellic Studio's screen and Ellic Studio's
 screen moves the remote's page (**PAGE**), whichever was touched last.
 
-Version 4 (2026-11-01): the selected track's sound pages are Melodee's (**PAGES**, **DESC**: each instrument's own
+Version 4 (2026-11-01): the selected track's sound pages are Ellic Studio's (**PAGES**, **DESC**: each instrument's own
 EDIT, ENV and LFO pages, a sampler's pad and sample, an audio track's clip and warp, the track's effects on FX), with a
 waveform and its marks for a sample or a clip (**WAVE**, **MARKS**) and actions (**REQUEST ACTION**); the tracks'
-names (**TRACKS**); the screens followed both ways (**PAGE**); the remote's preferences and Melodee's sound settings
-kept by Melodee (**PREFS**); Melodee's word on the remote's screen (**TOAST**). Gone: the projects (PROJECTS, LOAD,
+names (**TRACKS**); the screens followed both ways (**PAGE**); the remote's preferences and Ellic Studio's sound settings
+kept by Ellic Studio (**PREFS**); Ellic Studio's word on the remote's screen (**TOAST**). Gone: the projects (PROJECTS, LOAD,
 NEW; SAVE saves the project open), Melodee FM-1's own ENV, LFO and FX pages and its eight engine parameters
 (`P_E0..P_E7`). A HELLO of another version claims nothing: the remote answers with its own.
-`app/unit/link.c` is the firmware's side of everything below; `app/tests/link.txt` plays Melodee's.
+`app/unit/link.c` is the firmware's side of everything below; `app/tests/link.txt` plays Ellic Studio's.
 
-The same bytes work over Bluetooth MIDI (the remote is a peripheral advertised as **Melodee**, GAP name
-**Melodee Remote**) and USB MIDI (USB product **Melodee Remote FM-1**; CoreMIDI names its port "FM-1").
+The same bytes work over Bluetooth MIDI (the remote is a peripheral advertised as **Ellic**, GAP name
+**Ellic Remote**) and USB MIDI (USB product **Ellic Remote FM-1**; CoreMIDI names its port "FM-1").
 
 ## Framing
 
@@ -32,42 +32,42 @@ Every message is SysEx: `F0 7D 4D 52 cmd body F7` (7D: non-commercial; "MR"). In
   `P_ROOT` 25, `P_SCALE` 26, `P_QUANT` 27, `G_BPM` 0. **4096 + k** is the selected track's told value k (0..119, below).
 - Tracks are numbered 0..tmax-1, every one a part. The remote's pages show them four at a time, the selected track's
   four (Stage, MIXER, PATTERNS, SONG, GLO's layer: Melodee FM-1's groups), numbered 1..32.
-- Messages keep their bodies to about 150 bytes (Melodee splits longer ones: PAGES, SOUNDS, WAVE).
+- Messages keep their bodies to about 150 bytes (Ellic Studio splits longer ones: PAGES, SOUNDS, WAVE).
 
 ## Who is there
 
 1. When a link comes up (a Bluetooth central subscribes; USB at power-on and at each new host), the remote sends
    **HELLO**, and again 1, 2, 4, 8 and 16 s later while nobody has it.
-2. Melodee sends **HELLO** (version 4) to a port it suspects: that claims the remote, which answers **STATE**. Melodee
+2. Ellic Studio sends **HELLO** (version 4) to a port it suspects: that claims the remote, which answers **STATE**. Ellic Studio
    then tells it everything (the mirror below) and listens for its changes and requests.
-3. Melodee sends **PING** every 2 s; the remote answers **STATE**. A Melodee that has PINGed and then says nothing
+3. Ellic Studio sends **PING** every 2 s; the remote answers **STATE**. A copy of Ellic Studio that has PINGed and then says nothing
    for 7 s lets the remote go, as **BYE** does, and as the claiming link going does.
-4. The remote's **generation** (in HELLO and STATE) changes whenever it lost what Melodee had told it (power-on,
-   a link that went, another Melodee taking it, a frame of Melodee's cut short on the way: bytes lost). A Melodee that sees a generation it did not last tell, or a state
+4. The remote's **generation** (in HELLO and STATE) changes whenever it lost what Ellic Studio had told it (power-on,
+   a link that went, another copy of Ellic Studio taking it, a frame of Ellic Studio's cut short on the way: bytes lost). A copy of Ellic Studio that sees a generation it did not last tell, or a state
    that is not "yours", tells it everything again.
 
-Only the Melodee that has the remote is listened to; another port's messages are ignored except HELLO (which takes it
+Only the copy of Ellic Studio that has the remote is listened to; another port's messages are ignored except HELLO (which takes it
 over) and PING (answered with STATE: "taken").
 
 | cmd | Name | Who | Body |
 | --- | --- | --- | --- |
 | 01 | HELLO | both | version (4); from the remote also: generation (2 x 7 bits, low first), state, tmax (the tracks it holds: 32) |
-| 02 | BYE | Melodee | — |
-| 03 | STATE | remote | generation (2 x 7 bits), state: 0 free, 1 yours, 2 taken; why the generation last changed: 0 power-on, 1 a link went or went silent, 2 taken by another port, 3 bytes lost (a frame of Melodee's cut short on the way); tmax |
-| 04 | PING | Melodee | — |
+| 02 | BYE | Ellic Studio | — |
+| 03 | STATE | remote | generation (2 x 7 bits), state: 0 free, 1 yours, 2 taken; why the generation last changed: 0 power-on, 1 a link went or went silent, 2 taken by another port, 3 bytes lost (a frame of Ellic Studio's cut short on the way); tmax |
+| 04 | PING | Ellic Studio | — |
 | 05 | PAGE | both | screen, track, family, page (127 none), title (below) |
 | 06 | PREFS | both | (id, value v14) repeated (below) |
-| 07 | TOAST | Melodee | a line, a second line (text each): shown on the remote a moment, as its own messages are |
+| 07 | TOAST | Ellic Studio | a line, a second line (text each): shown on the remote a moment, as its own messages are |
 
-## The mirror: Melodee to the remote
+## The mirror: Ellic Studio to the remote
 
 | cmd | Name | Body |
 | --- | --- | --- |
-| 40 | INSTRUMENT | n (0..11, Melodee's order), sounds v14, name |
+| 40 | INSTRUMENT | n (0..11, Ellic Studio's order), sounds v14, name |
 | 41 | DESC | k (0..119), format (`F_*`: 0 INT, 1 PCT, 2 BIPCT, 3 TIME, 4 LFOHZ, 5 CUTOFF, 6 DB, 7 SEMI, 8 ENUM, 9 BPM, 10 NOTE, 11 ONOFF, 12 OCT, 13 STEPS; 14 ACTION), min v14, max v14, default v14, names count, label, unit, then the value names (ENUM: one a value, at most 24): the selected track's told value k |
 | 42 | SOUNDS | n, first v14, count, then count names (at most 128 an instrument) |
 | 43 | INSTRUMENTS | count: the instruments told so far are the list (PRESETS browses them; a track's instrument is one of them) |
-| 44 | TRACKS | count (1..tmax: the project's first tracks, in order), the selected one, first, then the tracks from first on as fit (each: instrument n (127 none), sound v14, name): Melodee splits them into messages of ~150 bytes |
+| 44 | TRACKS | count (1..tmax: the project's first tracks, in order), the selected one, first, then the tracks from first on as fit (each: instrument n (127 none), sound v14, name): Ellic Studio splits them into messages of ~150 bytes |
 | 45 | PARAM | (track, id v14, value v14) repeated: a track's values (`P_*`; 4096 + k the selected track's told value k) |
 | 46 | GLOBAL | (`G_*`, value v14) repeated: the project's values (tempo, swing, ..) |
 | 47 | STEPS | track, first step (0..63), count (at most 16), then count steps, 13 bytes each (below): the playing pattern's |
@@ -83,18 +83,18 @@ A **step** is Melodee FM-1's `step_t` (`fm1/src/core.h`): 11 bytes (note 0..3, n
 flags (1 accent, 2 slide, ..), velocity, hits (bit a drum lane), accents, chance) sent as 13: two bytes of high bits
 (byte 0 bit i: byte i's bit 7 for i < 7; byte 1 for the rest), then each byte's low 7 bits.
 
-Melodee tells the instruments first (INSTRUMENT, SOUNDS, then INSTRUMENTS), then TRACKS, the selected track's PAGES,
+Ellic Studio tells the instruments first (INSTRUMENT, SOUNDS, then INSTRUMENTS), then TRACKS, the selected track's PAGES,
 DESCs and told values (PARAM 4096 + k), every track's PARAM, GLOBAL, each track's STEPS and PATTERNS, SONG, PREFS and
 PLAY. Afterwards it tells what changes as it changes (an edit on the iPad: PARAM, STEPS; the music moving: PLAY, at
 least at each step; another track selected: its PAGES, DESCs and told values).
 
 ### The selected track's pages
 
-The sound's pages are Melodee's, for the selected track as it is: its instrument's own (a synth's oscillators and
+The sound's pages are Ellic Studio's, for the selected track as it is: its instrument's own (a synth's oscillators and
 filter on EDIT, its envelopes on ENV, its LFOs and modulation on LFO), a sampler's (ENV the selected pad: its pitch,
 level, pan, decay, filter, how it plays; LFO its sample: start, end, loop, trim and chop), an audio track's (ENV the
 selected clip: start, end, gain, fades; LFO its warp: tempo, stretch, pitch), and the track's effects (FX: each
-device's), and every track's MIDI IN on EDIT (SOURCE: Any and Melodee's sources by name; CHANNEL: Any, 1..16).
+device's), and every track's MIDI IN on EDIT (SOURCE: Any and Ellic Studio's sources by name; CHANNEL: Any, 1..16).
 **PAGES** lists them in order:
 
 - **family**: 0 HOME (Stage's four knobs: one page), 1 EDIT, 2 ENV, 3 LFO, 4 FX. A button of the family steps through
@@ -104,11 +104,11 @@ device's), and every track's MIDI IN on EDIT (SOURCE: Any and Melodee's sources 
 - **k0..k3**: the told values the page's knobs turn (127: none); **title** at most 12 letters.
 
 Each told value k has its **DESC** (its range, how it reads; ACTION: a column that OCT+ does, `REQUEST ACTION`). A
-value belongs to the track as Melodee maps it: a sampler's pad values to the pad selected, a clip's to the clip shown;
-when that changes Melodee tells the values again. Up to 32 pages, 120 values.
+value belongs to the track as Ellic Studio maps it: a sampler's pad values to the pad selected, a clip's to the clip shown;
+when that changes Ellic Studio tells the values again. Up to 32 pages, 120 values.
 
 **keys**: 0 the keys play the selected track's layout (below); 1 pads: the 16 white keys, left to right, play the
-pads' first note .. + 15 (the black keys nothing), as Melodee FM-1's kits do; Melodee chooses a pad as it is struck.
+pads' first note .. + 15 (the black keys nothing), as Melodee FM-1's kits do; Ellic Studio chooses a pad as it is struck.
 
 ### The wave and its marks
 
@@ -129,14 +129,14 @@ sound shown (marks with another gen than the wave's wait for it). Kinds (bit 6 s
 | 9 | FADE OUT's start | — |
 | 10 | PLAYING (where it plays now) | — |
 
-## The remote to Melodee
+## The remote to Ellic Studio
 
 ### Changes
 
-The remote sends what its controls changed in place, against the mirror as Melodee last told it, in the same messages:
+The remote sends what its controls changed in place, against the mirror as Ellic Studio last told it, in the same messages:
 **PARAM** (told values too), **GLOBAL**, **STEPS** and **TRACKS** (the track selected, with no tracks after it when only
 that changed; a sound chosen in PRESETS: that track alone, its instrument and sound, its name as told: the remote names
-nothing; Melodee then loads the sound and tells the track's values). Melodee applies them to its project; what it tells back the remote takes as the new mirror. At most 24
+nothing; Ellic Studio then loads the sound and tells the track's values). Ellic Studio applies them to its project; what it tells back the remote takes as the new mirror. At most 24
 messages a frame (~60 frames a second).
 
 ### Requests
@@ -160,16 +160,16 @@ messages a frame (~60 frames a second).
 | 13 | ERASE (EDIT held while recording) | track |
 | 14 | REMOVE a recorded note | track, its index |
 | 15 | CLEAR the recorded notes | track |
-| 17 | SAVE: Melodee saves the project open (SAVE pressed); TOAST says how it went | — |
+| 17 | SAVE: Ellic Studio saves the project open (SAVE pressed); TOAST says how it went | — |
 | 20 | ACTION: a told ACTION value done (OCT+ on its column) | k, track |
 
 ### PAGE: one screen
 
-Whenever the remote's page changes by its own controls it sends **PAGE**; whenever Melodee's screen changes by the
+Whenever the remote's page changes by its own controls it sends **PAGE**; whenever Ellic Studio's screen changes by the
 iPad's it sends **PAGE** too, and the other side goes there (the remote not while its menu or a dialog is open). Neither
 answers a PAGE with one.
 
-| screen | The remote | Melodee | family, page |
+| screen | The remote | Ellic Studio | family, page |
 | --- | --- | --- | --- |
 | 0 | HOME (Stage, the chord view) | Stage | — |
 | 1 | a sound page: EDIT, ENV, LFO, FX, PRESETS | Sound, at the told page's section | family 1..4 (5 PRESETS), the page's index in PAGES' set |
@@ -182,12 +182,12 @@ answers a PAGE with one.
 | 8 | SEQ: TEMPO | (stays) | — |
 | 9 | the menu | (stays) | — |
 
-The title is the page's (for Melodee's section on Sound).
+The title is the page's (for Ellic Studio's section on Sound).
 
-### PREFS: what Melodee keeps
+### PREFS: what Ellic Studio keeps
 
-The remote keeps nothing: its menu's settings are Melodee's to keep. Melodee tells them on claim (PREFS); the remote
-tells each one changed in its menu. Ids 0..15 are the remote's own, 32.. Melodee's settings the menu shows.
+The remote keeps nothing: its menu's settings are Ellic Studio's to keep. Ellic Studio tells them on claim (PREFS); the remote
+tells each one changed in its menu. Ids 0..15 are the remote's own, 32.. Ellic Studio's settings the menu shows.
 
 | id | Setting | values |
 | --- | --- | --- |
@@ -201,7 +201,7 @@ tells each one changed in its menu. Ids 0..15 are the remote's own, 32.. Melodee
 | 7 | GLO SELECT | the same |
 | 8 | UNUSED TRACKS | 0 HIDE, 1 SHOW |
 | 9 | SCREEN OFF | 0 NEVER, 1 5 MIN, 2 15 MIN, 3 30 MIN, 4 60 MIN |
-| 32 | AUDIO CLICK (Melodee's metronome) | 0 OFF, 1 while recording, 2 ON |
+| 32 | AUDIO CLICK (Ellic Studio's metronome) | 0 OFF, 1 while recording, 2 ON |
 | 33 | CLICK LEVEL | 0..100 % |
 | 34 | COUNT-IN | 0 OFF, 1 one bar, 2 two bars |
 | 35 | NOTE PREVIEW (a step chosen sounds) | 0 off, 1 on |
@@ -212,12 +212,12 @@ tells each one changed in its menu. Ids 0..15 are the remote's own, 32.. Melodee
 The keys play the selected track as Melodee FM-1's do: its layout (`QNT` OFF, SNAP, WHITE, ALL, MPC and the scale,
 `fm1/src/excerpt_seq.c` `kb_map`), a chord key's chord (`CHRD`), the octave, or its pads (PAGES keys 1); the drum
 grid's lane keys their lanes' notes; a layer's keys (GLO, SCL held) the layer's. Each note goes out as **note on / off
-on the track's channel** (track k: channel (k mod 15) + 1; 16 is the remote's own, for MASTER), velocity 100. Melodee
+on the track's channel** (track k: channel (k mod 15) + 1; 16 is the remote's own, for MASTER), velocity 100. Ellic Studio
 takes a note on channel c as the track of those (c-1, c-1+15, ..) nearest the selected one (the keys only play the
-selected track); a release goes where its press went. Melodee plays them on that track (and its arpeggiator, its
+selected track); a release goes where its press went. Ellic Studio plays them on that track (and its arpeggiator, its
 recording, as it would any keyboard's): the remote does not record or arpeggiate them.
 
-MASTER goes out as CC 7 (high 7 bits) and CC 39 (low) on channel 16: Melodee's master level.
+MASTER goes out as CC 7 (high 7 bits) and CC 39 (low) on channel 16: Ellic Studio's master level.
 
 ## Example
 
@@ -249,6 +249,6 @@ set's page 1: AMP).
 
 ## Not in version 4 (yet)
 
-Motion (parameter lanes), a pattern's own sound, the song's sections as Melodee has them (the remote's SONG is rows of
+Motion (parameter lanes), a pattern's own sound, the song's sections as Ellic Studio has them (the remote's SONG is rows of
 patterns), a Song clip's audio (the pages edit an audio track's Stage clip), audio to notes, the preset favourites and
 the scales' favourites (the remote's, until power-off).

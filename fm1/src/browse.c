@@ -257,7 +257,7 @@ static int list_keep(uint32_t m, uint32_t src, uint32_t k)
 }
 
 /* one pass over the list LIST keeps: *total its length; the place of entry (ws, wk) (total: not in it); entry n in
- * *as, *ak (USER_GENERAL, UP_SLOTS past the end). The selected track's instrument's sounds alone (Melodee's: its
+ * *as, *ak (USER_GENERAL, UP_SLOTS past the end). The selected track's instrument's sounds alone (Ellic Studio's: its
  * instrument is changed on the browser's KNOB 4, never by turning past its sounds; a track with none has none) */
 #define LSEG_USER (2u * NENG_SHOWN)
 static uint32_t lseg_src(uint32_t seg){return seg&1u?USER_GENERAL:eng_vis(seg/2u);}

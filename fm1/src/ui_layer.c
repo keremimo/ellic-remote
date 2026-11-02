@@ -46,8 +46,8 @@ static struct {
 } lys;
 
 static const uint32_t LY_DTAP_MS=300u;
-/* Melodee told a value (link.c): a SET layer's snapshot of it takes it, so OCT- puts back the remote's own turns and
- * never what Melodee changed meanwhile */
+/* Ellic Studio told a value (link.c): a SET layer's snapshot of it takes it, so OCT- puts back the remote's own turns and
+ * never what Ellic Studio changed meanwhile */
 static void layer_heard(uint32_t t, uint32_t id, int32_t v)
 {
     uint32_t k;

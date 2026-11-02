@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* Melodee FM-1's user sounds (its upreset.c and the banks it keeps on the FM-1: general, FM6, CZ-1 and Prophet
- * slots, their favourites, imports) are not on the remote: the user's sounds are Melodee's. Its pages still ask;
+ * slots, their favourites, imports) are not on the remote: the user's sounds are Ellic Studio's. Its pages still ask;
  * these answer that no slot holds a sound, and refuse to keep one here. */
 static uint32_t up_gen;                              /* (no slot ever changes) */
 static int up_used(uint32_t k) { (void)k; return 0; }

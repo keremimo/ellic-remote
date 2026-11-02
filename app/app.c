@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* Melodee Remote: the FM-1 as Melodee's remote, over Bluetooth MIDI or USB. It runs Melodee FM-1's own pages and
- * controls (its sequencer, its tracks, its notes), a unit of their own (unit/unit.c, from fm1/), and Melodee makes
+/* Ellic Remote: the FM-1 as Ellic Studio's remote, over Bluetooth MIDI or USB. It runs Melodee FM-1's own pages and
+ * controls (its sequencer, its tracks, its notes), a unit of their own (unit/unit.c, from fm1/), and Ellic Studio makes
  * the sound: the keys' notes go to it as MIDI, the model is kept with its own (unit/link.c, docs/PROTOCOL.md). This is
  * fm1-base's side: the unit's screen, panel and MIDI on the platform, the SysEx gathered for it. No sound: the audio
  * runs silent. Part of the unity build after the platform (device/unity.c, host/plat_host.c). */
@@ -28,7 +28,7 @@ void app_lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) { 
 void app_lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px) { lcd_blit(x, y, w, h, px); }
 void app_lcd_sync(void) { lcd_sync(); }
 
-/* a SysEx frame (F0 .. F7) to Melodee on a port, as USB-MIDI packets: sent whole or not at all */
+/* a SysEx frame (F0 .. F7) to Ellic Studio on a port, as USB-MIDI packets: sent whole or not at all */
 void app_sysex_out(const uint8_t *f, uint32_t n, int port)
 {
     uint32_t to = port == PORT_BLE ? TO_BLE : TO_USB, k = (n + 2u) / 3u, i;
@@ -88,7 +88,7 @@ void mel_ble_sysex(uint8_t byte)
     if (got > 0)
         (void)fm1u_sysex(sx_ble.buf, sx_ble.n, PORT_BLE);
     else if (got < 0)
-        fm1u_lost(PORT_BLE);                       /* (Melodee told again: link.c) */
+        fm1u_lost(PORT_BLE);                       /* (Ellic Studio told again: link.c) */
 }
 
 #define USB_Q 4096u
@@ -129,7 +129,7 @@ static void usb_take(void)
 #ifdef PLAT_HOST
 int app_sysex(const uint8_t *p, uint32_t n) { return fm1u_sysex(p, n, PORT_USB); }   /* (the simulator: whole frames) */
 #else
-/* (had byte by byte: usb_take) Melodee's frames are the app's; every other one the platform's (the installer, the
+/* (had byte by byte: usb_take) Ellic Studio's frames are the app's; every other one the platform's (the installer, the
  * backup, the mirror, a screen reader) */
 int app_sysex(const uint8_t *p, uint32_t n) { return n >= 5u && p[1] == 0x7D && p[2] == 0x4D && p[3] == 0x52; }
 #endif
@@ -165,7 +165,7 @@ void app_input_only(void)
 /* ------------------------------------------------------------ simulator --- */
 #ifdef PLAT_HOST
 int app_expect(const char *what, int *got) { return fm1u_expect(what, got); }
-/* sysex HEX..., blesysex HEX...: a frame from Melodee on USB or Bluetooth (the whole line: plat_host_line) */
+/* sysex HEX..., blesysex HEX...: a frame from Ellic Studio on USB or Bluetooth (the whole line: plat_host_line) */
 int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, const char *d)
 {
     (void)c;

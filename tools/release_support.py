@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
 """Build receipts and matching, committed source archives for public firmware (Saadet's tools/release_support.py,
-for Melodee Remote)."""
+for Ellic Remote)."""
 import hashlib
 import io
 import json
@@ -11,7 +11,7 @@ import tarfile
 import time
 import zipfile
 
-NAME = "melodee-remote"
+NAME = "ellic-remote"
 
 
 def sha256(data):
@@ -119,7 +119,7 @@ def make_source_archive(root, version, output, receipt, base):
         _archive_repository(archive, base, prefix + "dependencies/fm1-base/", timestamp)
         _archive_repository(archive, base / "bsp", prefix + "dependencies/fm1-base/bsp/", timestamp)
         archive.writestr(prefix + "SOURCE_INFO.json", json.dumps(receipt, indent=2) + "\n")
-        archive.writestr(prefix + "SOURCE_README.txt", f"""Melodee Remote {version} matching firmware source
+        archive.writestr(prefix + "SOURCE_README.txt", f"""Ellic Remote {version} matching firmware source
 
 Application commit: {state['commit']}
 Package SHA-256: {receipt['package_sha256']}

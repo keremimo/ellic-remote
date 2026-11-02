@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* Melodee FM-1's own engines are not on the remote (Melodee's instruments are Melodee's: remote_sounds.c). Its pages
+/* Melodee FM-1's own engines are not on the remote (the instruments are Ellic Studio's: remote_sounds.c). Its pages
  * and its sequencer still name them where an engine has pages or ways of its own (FM6's, CZ-1's, the Prophet's, the
  * drum kits'); these are the remote's answers for each: no track is ever one of them, none holds a patch, every list
  * of theirs is empty. Nothing here plays or edits a sound. */

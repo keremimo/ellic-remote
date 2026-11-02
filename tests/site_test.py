@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
 """The release site (tools/make_site.py) from the development package: its files, release.json, the bundled
-installer page, and the packages it refuses. Needs app/build/melodee-remote.fwsc (./build.sh), the pinned fm1-base
+installer page, and the packages it refuses. Needs app/build/ellic-remote.fwsc (./build.sh), the pinned fm1-base
 and node."""
 import hashlib
 import json
@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import make_site as S  # noqa: E402
 
-PKG = ROOT / "app/build/melodee-remote.fwsc"
+PKG = ROOT / "app/build/ellic-remote.fwsc"
 
 
 class SiteTest(unittest.TestCase):
@@ -47,7 +47,7 @@ class SiteTest(unittest.TestCase):
         self.assertEqual(fw, PKG.read_bytes())
         self.assertEqual(hashlib.sha256(boot).hexdigest(), m["boot"]["sha256"])
         self.assertEqual((m["name"], m["product"], m["dev"], m["boot"]["version"]),
-                         ("Melodee Remote", "FM-1_1400", True, "1.2"))
+                         ("Ellic Remote", "FM-1_1400", True, "1.2"))
         sums = (o / "firmware/SHA256SUMS").read_text()
         for p in (o / "firmware").rglob("*"):
             if p.is_file() and p.name != "SHA256SUMS":
@@ -60,7 +60,7 @@ class SiteTest(unittest.TestCase):
         self.assertNotIn('src="installer.js"', page)
         self.assertIn('href="../firmware/LICENSING.md"', page)
         self.assertIn('href="../firmware/SOURCES.txt"', page)
-        self.assertIn("<title>Install Melodee Remote</title>", page)
+        self.assertIn("<title>Install Ellic Remote</title>", page)
         self.assertIn("Firmware: MPL-2.0", page)
         self.assertNotIn("editor.html", page)                  # Saadet's pages are not on this site
         self.assertNotIn("manual/", page)

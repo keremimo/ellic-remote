@@ -1,36 +1,36 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The link with Melodee (docs/PROTOCOL.md, version 4): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
- *   the session: the remote says HELLO until a Melodee claims it (its HELLO back), answers PING with STATE (its
- *     generation: a new one each time it loses what Melodee told, so Melodee tells it all again); BYE lets it go;
- *   the mirror, Melodee's: its instruments, the tracks (their names) and their parameters, the selected track's sound
+/* The link with Ellic Studio (docs/PROTOCOL.md, version 4): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
+ *   the session: the remote says HELLO until Ellic Studio claims it (its HELLO back), answers PING with STATE (its
+ *     generation: a new one each time it loses what Ellic Studio told, so Ellic Studio tells it all again); BYE lets it go;
+ *   the mirror, Ellic Studio's: its instruments, the tracks (their names) and their parameters, the selected track's sound
  *     pages (remote_told.c), the steps, the patterns, where the music is, the song's rows, the scope, the remote's
  *     preferences (remote_model.c, remote_sounds.c);
  *   from the remote: what the controls changed in place (a value, a step, the track selected, a sound chosen, a
- *     preference), found against the mirror as Melodee last told it, what they asked (link_request) and the page shown
- *     (PAGE: Melodee follows it, and the remote Melodee's); the keys' notes go as MIDI.
+ *     preference), found against the mirror as Ellic Studio last told it, what they asked (link_request) and the page shown
+ *     (PAGE: Ellic Studio follows it, and the remote Ellic Studio's); the keys' notes go as MIDI.
  * Values: 14 bits as two 7-bit bytes, low first, offset by 8192 (-8192..8191); text ASCII, 0-terminated. */
-#define L_PROTO 4u                                     /* (4: Melodee's sound pages, names, PAGE, PREFS, TOAST) */
+#define L_PROTO 4u                                     /* (4: Ellic Studio's sound pages, names, PAGE, PREFS, TOAST) */
 enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING, L_PAGE, L_PREFS, L_TOAST,
        L_INSTRUMENT = 0x40, L_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
        L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS, L_REQUEST = 0x50 };
 enum { L_FREE, L_YOURS, L_TAKEN };                     /* STATE: whose the remote is, to the port asking */
 enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN, L_WHY_LOST };   /* why the generation last changed */
-#define L_SILENT_MS 7000u                              /* a Melodee that PINGs and is then silent this long: let go */
+#define L_SILENT_MS 7000u                              /* a copy of Ellic Studio that PINGs and is then silent this long: let go */
 #define L_SEND_MAX 24u                                 /* messages a frame (Bluetooth MIDI's pace) */
 
 static struct {
-    uint8_t host;                                      /* where Melodee is: 0 nowhere, else 1 + U_PORT_* */
+    uint8_t host;                                      /* where Ellic Studio is: 0 nowhere, else 1 + U_PORT_* */
     uint8_t pings;                                     /* it PINGs: its silence lets the remote go */
     uint16_t gen;                                      /* the mirror's generation */
     uint8_t why;
-    uint32_t heard_ms;                                 /* Melodee's last message */
+    uint32_t heard_ms;                                 /* Ellic Studio's last message */
     uint32_t link_ms[2];                               /* each port up since (| 1; 0 down): HELLO again while free */
     uint8_t hellos[2];
     uint8_t sent;                                      /* messages this frame */
     struct { uint8_t what; uint16_t a, b, c; } req[16];
     uint8_t req_w, req_r;
-    /* the mirror as Melodee last told it: what differs is the controls' */
+    /* the mirror as Ellic Studio last told it: what differs is the controls' */
     int16_t p[NTRK][P_COUNT], g[G_COUNT];
     step_t step[NTRK][NSTEP];
     uint8_t eng[NTRK], preset[NTRK], sel, ntrk;
@@ -58,7 +58,7 @@ static uint32_t wr_text(uint8_t *p, const char *s, uint32_t max)
     return n + 1u;
 }
 
-/* a frame out: F0 7D 4D 52 cmd body F7, to the port given (-1: wherever Melodee is) */
+/* a frame out: F0 7D 4D 52 cmd body F7, to the port given (-1: wherever Ellic Studio is) */
 static void link_send(uint32_t cmd, const uint8_t *body, uint32_t n, int port)
 {
     uint8_t f[300];
@@ -104,7 +104,7 @@ static void link_new_gen(uint32_t why)
     lk.why = (uint8_t)why;
 }
 
-/* the mirror's view now is Melodee's: nothing for the controls to tell */
+/* the mirror's view now is Ellic Studio's: nothing for the controls to tell */
 static void link_mark(void)
 {
     uint32_t k;
@@ -119,7 +119,7 @@ static void link_mark(void)
     lk.ntrk = song.ntrk;
 }
 
-/* a frame cut short on a port (bytes lost on the way): from the Melodee that has the remote, a new generation, so the
+/* a frame cut short on a port (bytes lost on the way): from the copy of Ellic Studio that has the remote, a new generation, so the
  * next STATE (its PING's answer) has it tell everything again */
 static void link_lost(int port)
 {
@@ -135,7 +135,7 @@ static void link_let_go(void)
     lk.hellos[0] = lk.hellos[1] = 0;
     lk.link_ms[0] = lk.link_ms[0] ? plat_ms() | 1u : 0u;
     lk.link_ms[1] = lk.link_ms[1] ? plat_ms() | 1u : 0u;
-    ui_say("MELODEE ", "LET GO");
+    ui_say("ELLIC ", "LET GO");
 }
 
 static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c)
@@ -143,7 +143,7 @@ static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c)
     uint8_t w = lk.req_w;
     lk.last_req = (uint8_t)what;
     if (!lk.host) {                                    /* (nobody to ask: said, and forgotten) */
-        ui_say("MELODEE ", "NOT HERE");
+        ui_say("ELLIC ", "NOT HERE");
         return;
     }
     if ((uint8_t)(w - lk.req_r) >= 16u)
@@ -180,17 +180,17 @@ static void step_get(step_t *s, const uint8_t *b)
     s->hit = raw[8]; s->acc = raw[9]; s->probability = raw[10];
 }
 
-/* -------------------------------------------------------- from Melodee --- */
+/* -------------------------------------------------------- from Ellic Studio --- */
 static void link_claim(int port)
 {
     if (lk.host && lk.host != 1u + (uint32_t)port)
-        link_new_gen(L_WHY_TAKEN);                     /* (another Melodee had it: it hears it has gone) */
+        link_new_gen(L_WHY_TAKEN);                     /* (another copy of Ellic Studio had it: it hears it has gone) */
     lk.host = (uint8_t)(1u + (uint32_t)port);
     lk.heard_ms = plat_ms();
-    told_reset(0xFFu);                                 /* (the sound pages: Melodee tells the selected track's) */
+    told_reset(0xFFu);                                 /* (the sound pages: Ellic Studio tells the selected track's) */
     follow_claimed();
     link_state_to((uint32_t)port);
-    ui_say("MELODEE ", "CONNECTED");
+    ui_say("ELLIC ", "CONNECTED");
 }
 
 static int link_sysex(const uint8_t *p, uint32_t n, int port)
@@ -202,7 +202,7 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
     cmd = p[4];
     end = p + n - 1u;                                  /* (the body: b .. end) */
     lk.frames_in++;
-    if (cmd == L_HELLO) {                              /* a Melodee of this version claims; an older one hears ours */
+    if (cmd == L_HELLO) {                              /* Ellic Studio at this version claims; an older one hears ours */
         if (end > b && b[0] >= L_PROTO)
             link_claim(port);
         else
@@ -218,7 +218,7 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
         return 1;
     }
     if (lk.host != 1u + (uint32_t)port)
-        return 1;                                      /* (only the Melodee that has the remote tells it) */
+        return 1;                                      /* (only the copy of Ellic Studio that has the remote tells it) */
     lk.heard_ms = plat_ms();
     switch (cmd) {
     case L_BYE:
@@ -251,15 +251,15 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
     case L_MARKS:
         told_marks(b, end);
         break;
-    case L_PAGE:                                       /* screen, track, family, page: Melodee's screen, the remote's */
+    case L_PAGE:                                       /* screen, track, family, page: Ellic Studio's screen, the remote's */
         if (end - b >= 4)
             page_follow(b);
         break;
-    case L_PREFS:                                      /* (id, value v14)...: what Melodee keeps for the remote */
+    case L_PREFS:                                      /* (id, value v14)...: what Ellic Studio keeps for the remote */
         for (; end - b >= 3; b += 3)
             pref_set(b[0], rd14(b + 1));
         break;
-    case L_TOAST:                                      /* a line, a second line: Melodee's word, shown a moment */
+    case L_TOAST:                                      /* a line, a second line: Ellic Studio's word, shown a moment */
         if (b < end) {
             const char *a = (const char *)b, *c = a + str_len(a) + 1;
             char t[32];
@@ -380,7 +380,7 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
     return 1;
 }
 
-/* ------------------------------------------------------- to Melodee --- */
+/* ------------------------------------------------------- to Ellic Studio --- */
 static void link_poll(void)
 {
     uint8_t m[300];
@@ -417,7 +417,7 @@ static void link_poll(void)
     }
     if (!lk.host)
         return;
-    {                                                  /* MASTER: Melodee's master level, 14 bits as CC 7 and 39 */
+    {                                                  /* MASTER: Ellic Studio's master level, 14 bits as CC 7 and 39 */
         static int32_t sent = -1;
         int32_t v = (int32_t)(plat_master() * 16383u / 4096u);
         if (sent < 0 || v - sent > 31 || sent - v > 31 || ((v == 0 || v == 16383) && v != sent)) {
@@ -439,7 +439,7 @@ static void link_poll(void)
     }
     for (k = 0; k < NTRK && lk.sent < L_SEND_MAX; k++)     /* a sound chosen (PRESETS): that track alone */
         if (k < trk_n() && (trk[k].eng_req != lk.eng[k] || trk[k].preset != lk.preset[k])) {
-            memcpy(lk.p[k], trk[k].p, sizeof lk.p[k]);   /* (its values are Melodee's to tell) */
+            memcpy(lk.p[k], trk[k].p, sizeof lk.p[k]);   /* (its values are Ellic Studio's to tell) */
             n = 0;
             m[n++] = song.ntrk;
             m[n++] = song.sel;
@@ -483,7 +483,7 @@ static void link_poll(void)
         if (n)
             link_send(L_PARAM, m, n, -1);
     }
-    page_poll();                                       /* (the page shown, the preferences: Melodee's to know) */
+    page_poll();                                       /* (the page shown, the preferences: Ellic Studio's to know) */
     prefs_poll();
     n = 0;
     for (i = 0; i < G_COUNT && n + 3u <= 250u; i++)

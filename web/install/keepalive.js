@@ -14,7 +14,7 @@
 //   - the page's visibility, reported to the caller (the warning when the tab is switched).
 // Each part is skipped where the browser lacks it; none is needed for the transfer itself (transfer.js).
 
-const LOCK = "melodee-remote-fm1-install";        // (Saadet's site shares the origin: a name of its own)
+const LOCK = "ellic-remote-fm1-install";        // (Saadet's site shares the origin: a name of its own)
 const BASE_ID = 1 << 30;                          // worker timer ids, apart from the browser's own
 
 let worker = null, nextId = BASE_ID;

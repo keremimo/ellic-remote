@@ -1,6 +1,6 @@
 # The remote's lights (app/unit/remote_hal.c hal_lights) and SAVE: Melodee FM-1's levels go to the scan as planes, a key
-# played lights at once, and SAVE only asks Melodee to save (no page, no slots).
-#   app/build/host/melodee-remote_host app/tests/lights.txt app/build/tests
+# played lights at once, and SAVE only asks Ellic Studio to save (no page, no slots).
+#   app/build/host/ellic-remote_host app/tests/lights.txt app/build/tests
 wait 1500
 expect home 1
 # LIGHTS MID: the playable keys in the LIGHTS plane, a quarter lit (mask 3)
@@ -29,7 +29,7 @@ wait 900
 release HOME
 wait 40
 expect menu 0
-# SAVE: a save asked of Melodee (claimed first: requests go to the Melodee that has the remote), HOME stays
+# SAVE: a save asked of Ellic Studio (claimed first: requests go to the copy of Ellic Studio that has the remote), HOME stays
 sysex F0 7D 4D 52 01 04 F7
 wait 50
 expect host 1

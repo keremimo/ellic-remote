@@ -3,19 +3,19 @@
 /* Melodee FM-1 on the remote: one compilation unit, as Melodee FM-1's own (firmware/src/melodee.c), its files in its
  * order from fm1/src (forked from Melodee FM-1, fm1/SOURCE, and the remote's own since). Where Melodee FM-1 has its hardware (the LCD, the panel's scan, USB, Bluetooth,
  * the flash) or makes sound (the engine table, the audio interrupt), the remote has its own sections (remote_*.c):
- * the screen, the panel and MIDI are fm1-base's (app.c, through unit.h), the engines and the music Melodee's
+ * the screen, the panel and MIDI are fm1-base's (app.c, through unit.h), the engines and the music Ellic Studio's
  * (link.c). Everything Melodee FM-1's pages and controls do is its own code; its model (the sequencer, the patterns,
- * the takes, the song, the projects) is Melodee's, mirrored (remote_model.c), a few of its pure functions as they
+ * the takes, the song, the projects) is Ellic Studio's, mirrored (remote_model.c), a few of its pure functions as they
  * are (fm1/src/excerpt_*.c).
  * Melodee FM-1's engines, voices, mixer and effects, its own sounds, user presets and projects in flash, its sound
  * designer, its NAME and NEW SONG screens, MIDI knobs and MOTION are not here (cut from fm1/src); what its pages still
- * ask of them upreset.c, absent_engines.h and absent_sound.h answer: absent. SAVE asks Melodee to save its project. */
+ * ask of them upreset.c, absent_engines.h and absent_sound.h answer: absent. SAVE asks Ellic Studio to save its project. */
 #include <stdint.h>
 #include <stddef.h>
 #include "unit.h"
 
 /* ---------------------------------------------------- build options --- */
-#define MELODEE_FLASH 0          /* nothing kept in the FM-1's flash: the project is Melodee's */
+#define MELODEE_FLASH 0          /* nothing kept in the FM-1's flash: the project is Ellic Studio's */
 #define MELODEE_RAM_AUDIO 0
 #define MELODEE_VERSION "REMOTE"
 #define MELODEE_ID "FM-1_1400"
@@ -53,15 +53,15 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "remote_hal.c"          /* Melodee FM-1's HAL calls: the panel, its LEDs, the LCD, the clock */
 #include "../../fm1/src/gfx.c"
 
-/* ------------------------------------------- the mirror of Melodee's --- */
+/* ------------------------------------------- the mirror of Ellic Studio's --- */
 #include "../../fm1/src/core.h"
 #include "../../fm1/src/dsp.c"                 /* (its helpers: clamp, the curves the pages draw; nothing of it plays) */
 #include "../../fm1/src/eng_midi.c"            /* (a MIDI Track: the tracks after the four) */
-#include "remote_sounds.c"       /* Melodee FM-1's engines.c: Melodee's instruments, told over the link */
-#include "remote_told.h"         /* the selected track's sound pages, as Melodee tells them */
+#include "remote_sounds.c"       /* Melodee FM-1's engines.c: Ellic Studio's instruments, told over the link */
+#include "remote_told.h"         /* the selected track's sound pages, as Ellic Studio tells them */
 #include "../../fm1/src/params.c"
 #include "absent_sound.h"        /* (Melodee FM-1's punch effects and inserts: not here) */
-#include "remote_model.c"        /* what the pages read and ask of Melodee FM-1's model: Melodee's, mirrored */
+#include "remote_model.c"        /* what the pages read and ask of Melodee FM-1's model: Ellic Studio's, mirrored */
 #include "../../fm1/src/excerpt_midi_track.c"
 #include "../../fm1/src/excerpt_seq.c"
 #include "../../fm1/src/excerpt_voice.c"
@@ -69,9 +69,9 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/excerpt_song_chain.c"
 #include "../../fm1/src/excerpt_recording.c"
 #include "../../fm1/src/excerpt_mod.c"
-#include "remote_audio.c"        /* audio.c: the scope, Melodee's */
-#include "remote_keys.c"         /* the keys as Melodee FM-1 lays them out: notes to Melodee */
-#include "remote_told.c"         /* the selected track's sound pages, as Melodee tells them */
+#include "remote_audio.c"        /* audio.c: the scope, Ellic Studio's */
+#include "remote_keys.c"         /* the keys as Melodee FM-1 lays them out: notes to Ellic Studio */
+#include "remote_told.c"         /* the selected track's sound pages, as Ellic Studio tells them */
 
 /* --------------------------------------------------------------- UI --- */
 #include "../../fm1/src/panel.c"
@@ -82,10 +82,10 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/ui_menu.c"
 #include "../../fm1/src/ui_input.c"
 #include "../../fm1/src/ui_layer.c"
-#include "remote_follow.c"        /* one screen with Melodee's (PAGE), the menu's settings kept by Melodee (PREFS) */
+#include "remote_follow.c"        /* one screen with Ellic Studio's (PAGE), the menu's settings kept by Ellic Studio (PREFS) */
 
-#include "upreset.c"             /* (here: the user's sounds are Melodee's) */
-#include "remote_project.c"      /* project.c, tracks.c: Melodee's projects, tracks asked of Melodee */
+#include "upreset.c"             /* (here: the user's sounds are Ellic Studio's) */
+#include "remote_project.c"      /* project.c, tracks.c: Ellic Studio's projects, tracks asked of Ellic Studio */
 
-#include "link.c"                /* the model kept with Melodee's */
+#include "link.c"                /* the model kept with Ellic Studio's */
 #include "remote_main.c"         /* main.c: Melodee FM-1's start and main loop, as unit.h calls them */

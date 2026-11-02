@@ -615,7 +615,7 @@ static void rec_play(void)
         ui_message("RECORDING");
 }
 
-static void project_quick_save(void);           /* remote_project.c: Melodee saves its project */
+static void project_quick_save(void);           /* remote_project.c: Ellic Studio saves its project */
 
 /* Capture. What the selected track played in its last bars while no track was recording (seq.c cap_ev) into
  * its pattern, as recorded notes (timing, velocity and length as played): an empty pattern takes 1, 2 or 4 bars (16, 32
@@ -977,13 +977,13 @@ static void edit_param(uint32_t slot, int32_t steps)
     }
 }
 
-/* OCT+ on an action page: the picked action asked of Melodee, dropped once asked */
+/* OCT+ on an action page: the picked action asked of Ellic Studio, dropped once asked */
 static void act_do(void)
 {
     uint32_t c = act_col();
     if (!c--)
         return;
-    link_request(RQ_ACTION, cur_page()->id[c & 3u], song.sel, 0);   /* (Melodee does it: link.c) */
+    link_request(RQ_ACTION, cur_page()->id[c & 3u], song.sel, 0);   /* (Ellic Studio does it: link.c) */
     ui_message(act_name(c));
     ui.act = 0;
     ui.force = 1;
@@ -1850,7 +1850,7 @@ static void ui_input(void)
             menu_input(oct);
         return;
     }
-    if (save == BT_TAP && !ui.confirm)                  /* SAVE: Melodee saves its project */
+    if (save == BT_TAP && !ui.confirm)                  /* SAVE: Ellic Studio saves its project */
         project_quick_save();
     if (!ui.confirm && !lay && (edit == BT_HOLD || edit_oct)) {
         uint32_t dir = ((edit_oct >> panel.btn[B_OCTDN]) & 1u) | (((edit_oct >> panel.btn[B_OCTUP]) & 1u) << 1);

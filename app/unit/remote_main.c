@@ -82,7 +82,7 @@ void fm1u_redraw(void)
     ui.force = 1;
 }
 
-void fm1u_midi(uint32_t pkt, int port) { (void)pkt; (void)port; }   /* (Melodee says its state as SysEx: link.c) */
+void fm1u_midi(uint32_t pkt, int port) { (void)pkt; (void)port; }   /* (Ellic Studio says its state as SysEx: link.c) */
 
 int fm1u_sysex(const uint8_t *p, uint32_t n, int port)
 {

@@ -3,7 +3,7 @@
 """Checked changes to the pinned fm1-base, made in the disposable build copy; upstream files keep their notices.
 
 Bluetooth MIDI SysEx both ways (fm1-base drops SysEx in and has no SysEx out over Bluetooth), USB's SysEx a byte at
-a time to the app as well (felucca-bsp keeps one frame: a burst of Melodee's lost all but its first), the name,
+a time to the app as well (felucca-bsp keeps one frame: a burst of Ellic Studio's lost all but its first), the name,
 Saadet's fixes to the peripheral link (tools/base_overlay.py there, the same author), and Melodee FM-1's light levels
 in the scan (three planes, each lit on the frames its mask leaves: full, 1/2, 1/4, 1/8 of lit)."""
 
@@ -31,7 +31,7 @@ def function(s, name, body):
 
 
 MIDI_PARSE = r'''
-/* Melodee Remote: SysEx in as well, a byte at a time to the app (mel_ble_sysex), across packets. A BLE MIDI SysEx
+/* Ellic Remote: SysEx in as well, a byte at a time to the app (mel_ble_sysex), across packets. A BLE MIDI SysEx
  * starts with a timestamp and F0, goes on in the next packets straight after their header, and ends with a
  * timestamp and F7; real time may come between. Any other status cuts it short (the app drops what it had). */
 extern void mel_ble_sysex(u8 b);
@@ -91,7 +91,7 @@ static void midi_parse(const u8 *b, u16 len)
 '''
 
 SYSEX_OUT = r'''        if (cin == 4 || cin == 6 || cin == 7 || (cin == 5 && (sx_out || st == 0xF7))) {
-            /* Melodee Remote: SysEx, as USB-MIDI packs it (4 its start or middle, three bytes; 5, 6, 7 its end with
+            /* Ellic Remote: SysEx, as USB-MIDI packs it (4 its start or middle, three bytes; 5, 6, 7 its end with
              * one, two, three): F0 and F7 each after a timestamp, the bytes between as they are, going on straight
              * after the header of the next packet */
             u32 c = cin == 4 ? 3 : cin - 4u, j;
@@ -121,7 +121,7 @@ SYSEX_OUT = r'''        if (cin == 4 || cin == 6 || cin == 7 || (cin == 5 && (sx
 USB_SYSEX = r'''    if (b >= 0xF8u)
         return;                                        /* realtime may occur anywhere in SysEx */
 #if defined(APP_USB_SYSEX_BYTE) && !defined(FELUCCA_LOADER)
-    app_usb_sysex_byte(b);                             /* Melodee Remote: every SysEx byte to the app as well, as it
+    app_usb_sysex_byte(b);                             /* Ellic Remote: every SysEx byte to the app as well, as it
                                                         * comes (the frame below holds one: a burst loses the rest) */
 #endif'''
 
@@ -129,7 +129,7 @@ USB_SYSEX = r'''    if (b >= 0xF8u)
 LED_MID = '''static uint8_t fm1_led_mid[FM1_NCOL];      /* a steady mid level (see top): lit 1 frame in FM1_LED_MID_N */'''
 
 LED_PLANES_STATE = LED_MID + r'''
-/* Melodee Remote: Melodee FM-1's levels, three planes of LEDs lit as a lit LED on the frames their masks leave (the
+/* Ellic Remote: Melodee FM-1's levels, three planes of LEDs lit as a lit LED on the frames their masks leave (the
  * frame count & mask == 0: mask 0 every frame, full; 1 one frame in 2; 3 one in 4; 7 one in 8), all in step, dark in
  * the others. fm1__pl_ph counts the frames when column 0 comes round; plat_lights_planes writes them */
 static uint8_t fm1_led_pl[3][FM1_NCOL];
@@ -147,7 +147,7 @@ LED_PLANES_LIT = r'''#define FM1__PL(c) ((fm1__pl_ph & fm1_led_pl_mask[0] ? 0u :
 
 LED_FRAME = '''        fm1__mid_ph = (uint8_t)(fm1__mid_ph + 1u >= fm1__mid_n ? 0u : fm1__mid_ph + 1u);'''
 
-LED_PLANES_DEVICE = r'''/* Melodee Remote: Melodee FM-1's three planes (felucca-bsp fm1_led_pl): plane j's buttons and keys, lit on the frames
+LED_PLANES_DEVICE = r'''/* Ellic Remote: Melodee FM-1's three planes (felucca-bsp fm1_led_pl): plane j's buttons and keys, lit on the frames
  * mask[j] leaves; bit NB in buttons PLAY's green LED */
 void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask)
 {
@@ -175,7 +175,7 @@ void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uin
 
 HOST_GLOW = "static int glow_on = 1;                 /* the device's button glow (plat_glow) */"
 
-LED_PLANES_HOST = r'''/* Melodee Remote: Melodee FM-1's three planes ("leds" shows them as the glow) */
+LED_PLANES_HOST = r'''/* Ellic Remote: Melodee FM-1's three planes ("leds" shows them as the glow) */
 static uint32_t pl_keys;
 void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask)
 {
@@ -188,7 +188,7 @@ void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uin
 PLAT_MID = 'void plat_lights_mid(uint32_t buttons, uint32_t keys);'
 
 PLAT_PLANES = PLAT_MID + '''
-/* Melodee Remote: three planes of levels, plane j lit on the frames whose count & mask[j] is 0 (mask 0: always, full;
+/* Ellic Remote: three planes of levels, plane j lit on the frames whose count & mask[j] is 0 (mask 0: always, full;
  * 1, 3, 7: 1/2, 1/4, 1/8 of lit), unless lit; bit NB in buttons PLAY's green LED. Each call replaces them */
 void plat_lights_planes(const uint32_t *buttons, const uint32_t *keys, const uint8_t *mask);'''
 
@@ -200,18 +200,18 @@ def apply(work):
     s = p.read_text()
     s = replace(s, LED_MID, LED_PLANES_STATE)
     s = replace(s, LED_LIT, LED_PLANES_LIT)
-    s = replace(s, LED_FRAME, LED_FRAME + '\n        fm1__pl_ph++;                              /* (Melodee Remote: the planes\' frames) */')
-    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    s = replace(s, LED_FRAME, LED_FRAME + '\n        fm1__pl_ph++;                              /* (Ellic Remote: the planes\' frames) */')
+    p.write_text('/* Ellic Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
     p = work / 'device/plat_fm1.c'
     s = p.read_text()
     s = replace(s, 'static uint8_t glow_on = 1, play_red;', LED_PLANES_DEVICE + 'static uint8_t glow_on = 1, play_red;')
-    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
     p = work / 'host/plat_host.c'
     s = p.read_text()
     s = replace(s, HOST_GLOW, LED_PLANES_HOST + HOST_GLOW)
     s = replace(s, '(dim_keys | mid_keys) >> HOST_WHITE_K', '(dim_keys | mid_keys | pl_keys) >> HOST_WHITE_K')
     s = replace(s, '(dim_keys | mid_keys) >> HOST_BLACK_K', '(dim_keys | mid_keys | pl_keys) >> HOST_BLACK_K')
-    p.write_text('/* Melodee Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote light levels Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
     p = work / 'include/plat.h'
     s = p.read_text()
     s = replace(s, PLAT_MID, PLAT_PLANES)
@@ -222,7 +222,7 @@ def apply(work):
     s = p.read_text()
     s = replace(s, '''    if (b >= 0xF8u)
         return;                                        /* realtime may occur anywhere in SysEx */''', USB_SYSEX)
-    p.write_text('/* Melodee Remote USB SysEx to the app Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote USB SysEx to the app Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
 
     # BLE-only builds have no sys_timer task: SDK timers naming that service belong to the main loop's timer pump,
     # as unnamed BLE timers already do (Saadet).
@@ -230,7 +230,7 @@ def apply(work):
     s = p.read_text()
     s = replace(s, '            tm[i].task = task;',
                 '            tm[i].task = !SHIM_WIFI && task && !strcmp(task, "sys_timer") ? 0 : task;')
-    p.write_text('/* Melodee Remote timer routing (from Saadet) Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote timer routing (from Saadet) Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
 
     p = work / 'ble/midi/le_midi.c'
     s = p.read_text()
@@ -241,11 +241,11 @@ def apply(work):
     s = replace(s, 'u8 st = (u8)(pkts[i] >> 8), cin = pkts[i] & 0xF, m[4];',
                 'u8 st = (u8)(pkts[i] >> 8), cin = pkts[i] & 0xF, m[8];')
     s = replace(s, '        /* running status', SYSEX_OUT)
-    # The name: "Melodee" in the advertisement (its 31 bytes hold eight letters beside the MIDI service), the whole
-    # "Melodee Remote" in the scan response and the GAP name.
+    # The name: "Ellic" in the advertisement (its 31 bytes hold eight letters beside the MIDI service), the whole
+    # "Ellic Remote" in the scan response and the GAP name.
     s = replace(s, 'static const char gap_device_name[] = "FM-1";',
-                'static const char gap_device_name[] = "Melodee Remote";\n'
-                'static const char adv_short_name[] = "Melodee";')
+                'static const char gap_device_name[] = "Ellic Remote";\n'
+                'static const char adv_short_name[] = "Ellic";')
     s = replace(s, '''    offset += make_eir_packet_data(&buf[offset], offset, HCI_EIR_DATATYPE_COMPLETE_LOCAL_NAME, (void *)gap_device_name, sizeof gap_device_name - 1);
     if (offset > ADV_RSP_PACKET_MAX)''', '''    offset += make_eir_packet_data(&buf[offset], offset, 0x08 /* shortened local name */, (void *)adv_short_name, sizeof adv_short_name - 1);
     if (offset > ADV_RSP_PACKET_MAX)''')
@@ -263,11 +263,11 @@ def apply(work):
         len -= offset;''')
     s = replace(s, '            memcpy(buffer, &gap_device_name[offset], buffer_size);\n            len = buffer_size;', '''            if (len > buffer_size) len = buffer_size;
             memcpy(buffer, &gap_device_name[offset], len);''')
-    p.write_text('/* Melodee Remote SysEx and naming Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote SysEx and naming Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
 
     p = work / 'device/radio.c'
     s = p.read_text()
-    s = replace(s, 'BT ready: advertising as FM-1', 'BT ready: advertising as Melodee Remote')
+    s = replace(s, 'BT ready: advertising as FM-1', 'BT ready: advertising as Ellic Remote')
     # Bluetooth switched off while it was still starting stays off (Saadet's).
     s = replace(s, 'static volatile uint8_t ble_state;', 'static volatile uint8_t ble_state;\nstatic uint8_t ble_off;')
     s = replace(s, 'static uint8_t ble_off;                           /* switched off by the player (plat_ble_enable) */', '')
@@ -277,4 +277,4 @@ def apply(work):
             ble_midi_enable(0);                   /* an OFF asked for while starting still wins */
         }
         ble_state = BLE_READY;''')
-    p.write_text('/* Melodee Remote radio naming (with Saadet\'s start) Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)
+    p.write_text('/* Ellic Remote radio naming (with Saadet\'s start) Copyright (C) 2026 Kerem Kilic (Ellic Studio) */\n' + s)

@@ -529,7 +529,7 @@ static void foot_hint(char *a, char *b)
 }
 
 /* the sound's name on the track: a user preset or the engine's preset (b holds 16) */
-/* a track as Stage and the mixer name it: its name as Melodee tells it, else its sound's */
+/* a track as Stage and the mixer name it: its name as Ellic Studio tells it, else its sound's */
 static void track_label(const track_t *t, char *b)
 {
     const char *n = trk_name[(uint32_t)(t - trk) % NTRK];

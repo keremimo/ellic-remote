@@ -11,7 +11,7 @@ export const IS_OTA = (id) => /^ota-/i.test(id.model);
 const OPEN_RE = /^FM1_(OFFICIAL_OPEN|COMMUNITY_\d+)$/;
 
 // the identities' prefixes (fm1-base tools/build.py: a development build is the prefix and "00", a release the
-// prefix and XXYYZZ): Melodee Remote's, and Saadet's, which an FM-1 may run before
+// prefix and XXYYZZ): Ellic Remote's, and Saadet's, which an FM-1 may run before
 export const PREFIX = "FM-1_14", SAADET = "FM-1_9";
 
 // "FM-1_14010200" -> "1.2", "FM-1_14010203" -> "1.2.3"
@@ -26,7 +26,7 @@ export function releaseVersion(product, prefix = PREFIX) {
 // a connected FM-1, from its identity: { kind, version }
 //   loader   in update mode: an install waits to be finished
 //   this     the version this page installs
-//   remote   another Melodee Remote release; dev: a development build (FM-1_1400)
+//   remote   another Ellic Remote release; dev: a development build (FM-1_1400)
 //   saadet   Saadet (version: its release, or null for a development build)
 //   stock    M-VAVE's own firmware (version: "V16"); open: M-VAVE's Open firmware (must go back to stock first)
 //   other    another firmware for the FM-1; model: not an FM-1

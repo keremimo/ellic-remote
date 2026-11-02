@@ -1,6 +1,6 @@
-# Melodee Remote licensing
+# Ellic Remote licensing
 
-Melodee Remote is licensed file by file; each file's `SPDX-License-Identifier` line is authoritative. Its own files
+Ellic Remote is licensed file by file; each file's `SPDX-License-Identifier` line is authoritative. Its own files
 are MPL-2.0 (`LICENSE`), by Kerem Kilic (Ellic Studio).
 
 | What | Licence |
@@ -15,12 +15,12 @@ are MPL-2.0 (`LICENSE`), by Kerem Kilic (Ellic Studio).
 
 ## From Melodee FM-1
 
-The remote runs Melodee FM-1's pages and controls (Melodee's FM-1 firmware), forked into `fm1/` from its repository
+The remote runs Melodee FM-1's pages and controls (the Melodee firmware for the FM-1), forked into `fm1/` from its repository
 at the commit `fm1/SOURCE` names (copied then by a sync tool, since retired: `fm1/` is the remote's own and edited
 here). Melodee FM-1 is GPL-3.0-only; what was copied is here under MPL-2.0 (each file's licence line rewritten, its
 copyright lines kept), as its authors allow:
 
-- Kerem Kilic's own code (Melodee's UI and its design are his).
+- Kerem Kilic's own code (Melodee FM-1's UI and its design are his).
 - Leo Kuroshita's Felucca code that Melodee FM-1 keeps (each file's header says where), and `fm1/assets/icons.json`,
   the icons' names, his: "Anyone may use the Felucca code for which I personally hold the copyright under MPL-2.0"
   (Leo Kuroshita, hugelton/felucca-bsp#4), with his name in the credits: Leo Kuroshita (@kurogedelic), Hügelton
@@ -46,7 +46,7 @@ The remote takes its platform from Saadet's fm1-base port, and only Kerem Kilic'
   peripheral-link changes to fm1-base (timer routing, fresh-link state, the subscription bit, GAP name reads, Bluetooth
   off while starting). The SysEx and naming changes are new.
 - `app/app.h` keeps Saadet's splash colour and its panel-calibration store offset.
-- `web/install/` is Saadet's web installer (MPL-2.0 there too) with Melodee Remote's words: Kerem Kilic's code, with
+- `web/install/` is Saadet's web installer (MPL-2.0 there too) with Ellic Remote's words: Kerem Kilic's code, with
   the portions it keeps from fm1-base's `web/installer.html` and `fm1ota.js`/`fm1pkg.js` (Charles Vestal, Leo
   Kuroshita) under MPL-2.0 as fm1-base gives them; `web/test_install.mjs` is its test.
 - `tools/make_site.py`, `tools/release_support.py`, `tools/prepare_public_release.py` and `tests/site_test.py` follow

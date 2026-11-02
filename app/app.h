@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* Melodee Remote: the app's half of the contract with fm1-base (device/unity.c, host/plat_host.c). */
+/* Ellic Remote: the app's half of the contract with fm1-base (device/unity.c, host/plat_host.c). */
 #pragma once
 #include <stdint.h>
 #include "plat.h"
 
-#define APP_NAME "MELODEE"               /* the splash (the big face holds seven letters); "Melodee Remote" elsewhere */
+#define APP_NAME "ELLIC"                 /* the splash (the big face holds seven letters); "Ellic Remote" elsewhere */
 #define APP_SPLASH_RGB 0xFBA0u           /* Saadet's amber */
-#define APP_BLOCK 256u                   /* the audio runs, silent: Melodee plays */
-#define APP_SYSEX                        /* Melodee's SysEx over USB: the frames fm1-base keeps (the simulator's) */
+#define APP_BLOCK 256u                   /* the audio runs, silent: Ellic Studio plays */
+#define APP_SYSEX                        /* Ellic Studio's SysEx over USB: the frames fm1-base keeps (the simulator's) */
 #define APP_USB_SYSEX_BYTE               /* .. and each byte as it comes (the overlay's bsp/chip/usb.c): a burst whole */
 void app_usb_sysex_byte(uint8_t b);      /* (USB's interrupt) */
 void mel_ble_sysex(uint8_t byte);        /* a byte of SysEx from Bluetooth (the overlay's ble/midi/le_midi.c) */

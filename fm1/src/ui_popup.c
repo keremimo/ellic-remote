@@ -114,9 +114,9 @@ static const sheet_row_t SHEET_STAGE[] = {
     {"Undo last load", 0, 0, ps_undo, 0},
     {"Add track", ps_add_v, 0, track_add, 0}, {"Remove track", ps_remove_v, 0, 0, CF_DEL_TRACK}};
 
-/* A new track's (Add track: Stage's sheet, a track key past the last on PATTERNS): what it plays (one of Melodee's
+/* A new track's (Add track: Stage's sheet, a track key past the last on PATTERNS): what it plays (one of Ellic Studio's
  * instruments, from the selected track's; Audio; nothing yet), its sound, the MIDI it hears (a source of the selected
- * track's MIDI IN as Melodee told it, a channel); Add track asks Melodee for it (REQUEST ADD: link.c) */
+ * track's MIDI IN as Ellic Studio told it, a channel); Add track asks Ellic Studio for it (REQUEST ADD: link.c) */
 #define AD_AUDIO 126u                                   /* (REQUEST ADD's b: an audio track, one with nothing yet) */
 #define AD_EMPTY 127u
 static struct { uint8_t place, kind, src, ch; uint16_t sound; } ad;
@@ -150,7 +150,7 @@ static void ad_sound_turn(int32_t s)
     ad.sound = (uint16_t)clamp((int32_t)ad.sound + s, 0, (int32_t)e->npresets - 1);
     ui.force = 1;
 }
-/* the sources: the selected track's MIDI IN SOURCE as Melodee told it (its names; the first Any) */
+/* the sources: the selected track's MIDI IN SOURCE as Ellic Studio told it (its names; the first Any) */
 static const char *const *ad_sources(uint32_t *n)
 {
     uint32_t k;

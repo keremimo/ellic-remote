@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (C) 2026 Kerem Kilic (Ellic Studio)
-"""Make Melodee Remote's release site from a release package (static files for any web host), as Saadet's
+"""Make Ellic Remote's release site from a release package (static files for any web host), as Saadet's
 tools/make_site.py makes Saadet's:
 
   index.html                    a redirect to the installer
@@ -9,15 +9,15 @@ tools/make_site.py makes Saadet's:
                                 or half-loaded page can never mix two releases' code during an install
   install/release.json          the version, the package identity, file names and SHA-256s the page checks
   install/fakefm1.js, fm1ota.js the simulated FM-1 for ?demo (loaded only there)
-  firmware/melodee-remote-VERSION.fwsc   the package; also the download
+  firmware/ellic-remote-VERSION.fwsc   the package; also the download
   firmware/m-bootloader-X.Y.fwsc, m-bootloader-LICENSE.txt   the pinned m-bootloader (MIT), offered by the installer
   firmware/SHA256SUMS           every file under firmware/
-  firmware/melodee-remote-VERSION-source.zip, SOURCES.txt, LICENSE, LICENSING.md, LICENSES/   matching source and
+  firmware/ellic-remote-VERSION-source.zip, SOURCES.txt, LICENSE, LICENSING.md, LICENSES/   matching source and
                                 notices
 
   tools/prepare_public_release.py 0.1.0    (build and prepare all public artifacts)
   tools/make_site.py PACKAGE VERSION SITE --source SOURCE.zip --build-info BUILD_INFO.json
-  tools/make_site.py --dev app/build/melodee-remote.fwsc dev build/site     (a development package, for testing)
+  tools/make_site.py --dev app/build/ellic-remote.fwsc dev build/site     (a development package, for testing)
 
 A release package comes from ./build.sh --release X.Y[.Z]: its identity is FM-1_14 and XXYYZZ, which the page
 checks the download against and the FM-1 reports after the install. The site refuses a package without the base's
@@ -179,9 +179,9 @@ def main(argv=None):
     source_name = f"{NAME}-{a.version}-source.zip"
     if source_info:
         shutil.copyfile(a.source, out / "firmware" / source_name)
-        source_notice = (f"Melodee Remote {a.version}\nFirmware source: {source_name}\n"
+        source_notice = (f"Ellic Remote {a.version}\nFirmware source: {source_name}\n"
                          f"Application commit: {source_info['commit']}\nSource SHA-256: {source_info['sha256']}\n"
-                         "The ZIP includes matching Melodee Remote, fm1-base and felucca-bsp source.\n"
+                         "The ZIP includes matching Ellic Remote, fm1-base and felucca-bsp source.\n"
                          "MPL-covered files are available under MPL-2.0; other files retain their own terms.\n")
     else:
         source_notice = ("Development preview. Public releases include a matching source ZIP here.\n"
@@ -195,7 +195,7 @@ def main(argv=None):
     dirty = bool(subprocess.run(["git", "status", "--porcelain", "--", "app", "fm1", "web", "tools"],
                                 cwd=ROOT, capture_output=True, text=True).stdout.strip())
     meta = {
-        "name": "Melodee Remote", "version": a.version, "product": product, "dev": a.dev,
+        "name": "Ellic Remote", "version": a.version, "product": product, "dev": a.dev,
         "pkg": f"../firmware/{fw}", "sha256": sha256(raw), "size": len(raw),
         "boot": {"version": BOOT_VERSION, "pkg": f"../firmware/{bootname}", "sha256": BOOT_SHA256,
                  "licence": "MIT", "source": "https://github.com/jvitkauskas/m-bootloader"},
@@ -221,9 +221,9 @@ def main(argv=None):
         shutil.copyfile(INSTALL / name, out / "install" / name)
 
     (out / ".nojekyll").touch()
-    (out / "index.html").write_text('<!doctype html><meta charset="utf-8"><title>Melodee Remote</title>'
+    (out / "index.html").write_text('<!doctype html><meta charset="utf-8"><title>Ellic Remote</title>'
                                     '<meta http-equiv="refresh" content="0; url=install/">'
-                                    '<a href="install/">Install Melodee Remote</a>\n')
+                                    '<a href="install/">Install Ellic Remote</a>\n')
     print(f"site: {out}: install/ ({product}, {a.version}{', dev' if a.dev else ''}), firmware/{fw} ({len(raw)} B), "
           f"m-bootloader {BOOT_VERSION}" + ("; uncommitted changes in the tree" if dirty else ""))
 

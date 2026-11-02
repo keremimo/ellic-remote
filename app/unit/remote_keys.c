@@ -2,7 +2,7 @@
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
 /* The keys, as Melodee FM-1 plays them (its seq.c keyboard_block, key_on, key_off): the selected track's, laid out
  * as its QNT and scale say (kb_map), a chord key's chord (chord.c chord_build), the drum grid's lanes, a layer's keys
- * the layer's (ui_layer.c kb_mask); NAME and the patterns' selection take them all. The notes go to Melodee as MIDI,
+ * the layer's (ui_layer.c kb_mask); NAME and the patterns' selection take them all. The notes go to Ellic Studio as MIDI,
  * track k's on channel (k mod 15) + 1 (16 is the remote's: MASTER), a key's release ending the notes its press began.
  * Nothing sounds here. */
 static uint32_t kb_prev;

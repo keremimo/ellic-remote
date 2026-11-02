@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* Melodee FM-1's master punch effects (SLOOP's) and its inserts' running state are not on the remote: Melodee's
- * effects are Melodee's. Its pages and keys still name them (GLO's FX layer, the song's punch lane, an insert's
+/* Melodee FM-1's master punch effects (SLOOP's) and its inserts' running state are not on the remote: the
+ * effects are Ellic Studio's. Its pages and keys still name them (GLO's FX layer, the song's punch lane, an insert's
  * picture); these are the remote's answers: nothing playing, nothing failed, the curves straight. */
 #pragma once
 #define PUNCH_NFX 27u
