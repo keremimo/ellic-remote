@@ -22,7 +22,7 @@ both directions, which the link with Ellic Studio needs and the base does not ca
 
 It starts on Melodee FM-1's Stage, its tracks empty, and says **ELLIC NOT HERE** to any control that asks Ellic Studio
 for something while none has it; the keys already play (notes on the selected track's channel). In Ellic Studio, connect
-to **Ellic Remote** (Bluetooth MIDI): once Ellic Studio says HELLO (protocol version 4), its instruments, tracks (up to 32,
+to **Ellic Remote** (Bluetooth MIDI): once Ellic Studio says HELLO (protocol version 5), its instruments, tracks (up to 32,
 every one a part, shown four at a time as Melodee FM-1 shows them), the selected track's sound pages, steps and
 patterns fill the pages. MASTER is Ellic Studio's master level.
 
@@ -41,8 +41,11 @@ the remote when it claims it (PREFS in the protocol).
 ## Status
 
 Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`, forked and cut down to a remote),
-32 tracks, protocol version 4 (the selected track's sound pages Ellic Studio's, waves for samples and clips, one screen with
-Ellic Studio's, preferences kept by Ellic Studio): Bluetooth build 427 KB, 62 of 96 KB of RAM, 298 of 344 KB of the pool.
+32 tracks, protocol version 5 (the selected track's chain on FX's CHAIN page, switched, moved, added, replaced and
+removed from the remote, what a chain can take told; a sampler's bank as a grid, its bank on OCT- / OCT+, a take's
+source and meter, Ellic Studio's samples loaded onto a pad; the selected track's sound pages Ellic Studio's, waves for samples and clips, one screen with
+Ellic Studio's, preferences kept by Ellic Studio): Bluetooth build 433 KB, 62 of 96 KB of RAM, 312 of 344 KB of the pool.
 Installed on an FM-1 over USB, which answers PING; the pages, the link and the lights tested in fm1-base's host
 simulator (`app/tests/`), and Ellic Studio's own messages read there (melodee-ios `scripts/remote-screens.sh`). Ellic Studio
-speaks version 4 (melodee-ios `b9273c8`).
+speaks version 4 (melodee-ios `b9273c8`): it claims nothing until it follows to version 5, and the remote answers its
+HELLO with its own.

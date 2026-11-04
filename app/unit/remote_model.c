@@ -12,7 +12,8 @@
 static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c);   /* (link.c) */
 enum { RQ_PLAY = 1, RQ_STOP, RQ_RESTART, RQ_ARM, RQ_PATTERN, RQ_PAT_COPY, RQ_PAT_CLEAR, RQ_PAT_DOUBLE, RQ_PAT_HALF,
        RQ_TRACK_ADD, RQ_TRACK_REMOVE, RQ_UNDO, RQ_ERASE, RQ_TAKE_REMOVE, RQ_TAKES_CLEAR, RQ_PANIC, RQ_SAVE,
-       RQ_ACTION = 20 };
+       RQ_ACTION = 20, RQ_DEVICE_ON, RQ_DEVICE_MOVE, RQ_DEVICE_REMOVE, RQ_DEVICE_ADD, RQ_DEVICE_REPLACE,
+       RQ_DEVICE_CHOOSE, RQ_LOAD_SAMPLE };   /* (21..27: the chain, a sample onto a pad: remote_chain.c) */
 
 /* ------------------------------------------------------------- MIDI --- */
 /* what the pages read of USB (usb.c): up while fm1-base has a host */

@@ -16,7 +16,7 @@ as a grid (PAGES view PADS, its bank a told value, OCT- / OCT+ stepping it), a t
 Ellic Studio's samples in their folders to load onto a pad (**SAMPLES**, PAGES view LIST, **REQUEST LOAD SAMPLE**, the row
 scrolled onto auditioned on the pad). A LOOPER on a chain is a stub for now (one mirror cmd and requests 30..39 reserved,
 nothing assigned: it is being reworked in Ellic Studio). A HELLO of another version claims nothing: the remote answers
-with its own. `app/unit/link.c` is the firmware's side of everything below (it speaks version 4 until it follows this);
+with its own. `app/unit/link.c` is the firmware's side of everything below (`remote_chain.c` the chain and the lists);
 `app/tests/link.txt` plays Ellic Studio's.
 
 Version 4 (2026-11-01): the selected track's sound pages are Ellic Studio's (**PAGES**, **DESC**: each instrument's own

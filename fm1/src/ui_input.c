@@ -53,7 +53,8 @@ static int oct_nav(void)
 }
 static int oct_enter_ok(void)                           /* OCT+ would do something here */
 {
-    return list_on() || (!ui.home && cur_page()->graph == GR_SCALE_PICKER) || page_sheet() || pop.on || smap.on || (!ui.home && cur_page()->graph == GR_BROWSE) || ptc_on();
+    return list_on() || (!ui.home && cur_page()->graph == GR_SCALE_PICKER) || page_sheet() || pop.on || smap.on || (!ui.home && cur_page()->graph == GR_BROWSE) || ptc_on() ||
+           (!ui.home && (cur_page()->graph == GR_CHAIN || cur_page()->graph == GR_LIST));
 }
 
 /* the OCT LEDs, bit 0 OCT-, bit 1 OCT+. In the dialogs, the menu and on action pages OCT- (back) is
@@ -1489,7 +1490,11 @@ static int fx_rack_back(void)
 {
     const page_t *pg = cur_page();
     uint32_t sh = pg->scope == SC_GLOBAL;
-    if (ui.home || pg->fam != FAM_FX || (pg->graph == GR_FXRACK && !sh))
+    if (!ui.home && pg->scope == SC_TOLD && pg->fam == FAM_FX && chain_on()) {   /* a device's page: back to CHAIN */
+        chain_show();
+        return 1;
+    }
+    if (ui.home || pg->fam != FAM_FX || pg->graph == GR_CHAIN || (pg->graph == GR_FXRACK && !sh))
         return 0;
     if (pg->graph == GR_FXRACK) {
         fx_rack_row[0] = FX_SLOTS;
@@ -1517,6 +1522,8 @@ static void page_knob_edit(uint32_t k, int32_t s)
         list_knob(k, s);
         return;
     }
+    if (!ui.home && pg->graph == GR_CHAIN && chain_knob(k, s))   /* CHAIN: KNOB 1 the row, 2 ON, 3 MOVE (remote_chain.c) */
+        return;
     momentary_take(k);
     if (ui.home) {                                      /* Stage: the selected track's engine's four, as its pages; they
                                                          * drop in */
@@ -1668,6 +1675,8 @@ static void ui_confirm_accept(void)
             song_rows_remove(r, 1); song_edit_cancel(); song_edit_end();
             ui_message("ROW DELETED");
         }
+    } else if (kind == CF_DEL_DEVICE) {         /* CHAIN's sheet: Ellic Studio removes it (remote_chain.c) */
+        chain_req_remove(ui.confirm_trk);
     } else if (kind == CF_DEL_TRACK) {
         track_remove(ui.confirm_trk % NTRK);
     } else if (kind == CF_TAKE_JAM) {
@@ -1718,7 +1727,8 @@ static void ui_input(void)
         if (!ui.home && cur_page()->graph == GR_SONG) ui.bulk_hold = 1;
         else if(bulk_context())ui.bulk_hold=1;else page_sheet_open();
     } else if (octup == BT_TAP && oct_deferred) {
-        *oct_deferred_value += *oct_deferred_value < 3 ? 1 : 0;
+        if (!told_bank_step(1))                         /* (pads mode: the bank, remote_chain.c) */
+            *oct_deferred_value += *oct_deferred_value < 3 ? 1 : 0;
     }
     if (octup != BT_NONE || !((fm1_in.buttons >> panel.btn[B_OCTUP]) & 1u))
         oct_deferred = 0;
@@ -1908,13 +1918,14 @@ static void ui_input(void)
                 panel_enc(k);
         return;
     }
-    if (pop.on == POP_SHEET || pop.on == POP_LIST) {   /* an action sheet, a value's list: KNOB 1 / 2, OCT+ / OCT-
-                                                         * (ui_popup.c) */
+    if (pop.on == POP_SHEET || pop.on == POP_LIST || pop.on == POP_CAT) {   /* an action sheet, a value's list, the
+                                                         * chain's Add list: KNOB 1 / 2 (PRESETS), OCT+ / OCT- (ui_popup.c) */
         if (!ui.home && cur_page()->graph == GR_SONG && (pressed & (1u << panel.btn[B_PLAY]))) {
             if (song.playing || seq_counting() || chain_busy()) transport_req = 2; else chain_play_ui();
         }
         int32_t k1 = panel_enc(EN_K1), k2 = panel_enc(EN_K2);
-        if (pop.on == POP_LIST) vlist_input(k1, k2, oct);
+        if (pop.on == POP_CAT) cat_input(k1, k2 + panel_enc(EN_PRESET), oct);
+        else if (pop.on == POP_LIST) vlist_input(k1, k2, oct);
         else sheet_input(k1, k2, oct);
         ui.pg_down = 0;
         enc_drop();
@@ -1999,6 +2010,8 @@ static void ui_input(void)
             } else if (b == B_OCTUP && page_sheet() == 1u) {
                 oct_deferred = 1;                       /* Stage: OCT+ on release, held: the sound's sheet */
                 oct_deferred_value = octave_control();  /* keep the bank where the press began */
+            } else if (told_bank_step(b == B_OCTUP ? 1 : -1)) {   /* pads mode: the sampler's bank in place of the
+                                                                     * octave (remote_chain.c) */
             } else {
                 int8_t *value = octave_control();
                 *value += b == B_OCTDN ? (*value > -3 ? -1 : 0) : (*value < 3 ? 1 : 0);
@@ -2042,6 +2055,10 @@ static void ui_input(void)
             ptc_paste(0);
         else if (cur_page()->graph == GR_SCALE_PICKER)  /* SCALES: done, SCL's list */
             scales_back();
+        else if (chain_enter())                         /* CHAIN: the row's pages, + Add's list (ui_chain.c) */
+            ;
+        else if (load_enter())                          /* LOAD: the row onto the pad */
+            ;
         else if (fx_rack_enter())
             ;
         else if (step_enter())
@@ -2107,6 +2124,8 @@ static void ui_input(void)
             if (!ui.home && cur_page()->graph == GR_PATGRID && total)
                 preset_pick_touch();
         }
+    } else if (s && !ui.home && cur_page()->graph == GR_LIST) {   /* LOAD: the row (ui_chain.c) */
+        load_row_step(s);
     } else if (s && !ui.home && cur_page()->graph == GR_ROLL && !grid_on()) {
         ui.note_zoom = (uint8_t)clamp((int32_t)ui.note_zoom + s, 0, 4);
         ui.force = 1;
@@ -2134,6 +2153,8 @@ static void ui_input(void)
             if (pattern_request(TSEL, (uint32_t)clamp((int32_t)from + s, 0, (int32_t)trk_npat(song.sel) - 1))) ui_message("STOP SONG TO SWITCH");
             ui.force = 1;
         } else if (step_gesture(s)) {                   /* ENV / SCL / a key held: the note's length, its place */
+        } else if (!ui.home && cur_page()->graph == GR_CHAIN) {   /* CHAIN: the row, as KNOB 1 */
+            chain_knob(0, s);
         } else if (!ui.home) {                          /* the section's pages (BPM: SEQ > TEMPO; the notes, the hits:
                                                          * KNOB 1) */
             page_scroll(s);

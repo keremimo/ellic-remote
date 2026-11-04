@@ -59,6 +59,7 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "../../fm1/src/eng_midi.c"            /* (a MIDI Track: the tracks after the four) */
 #include "remote_sounds.c"       /* Melodee FM-1's engines.c: Ellic Studio's instruments, told over the link */
 #include "remote_told.h"         /* the selected track's sound pages, as Ellic Studio tells them */
+#include "remote_chain.h"        /* its chain, what a chain can take, the samples, a take's meter */
 #include "../../fm1/src/params.c"
 #include "absent_sound.h"        /* (Melodee FM-1's punch effects and inserts: not here) */
 #include "remote_model.c"        /* what the pages read and ask of Melodee FM-1's model: Ellic Studio's, mirrored */
@@ -72,6 +73,7 @@ int memcmp(const void *a, const void *b, __SIZE_TYPE__ n);
 #include "remote_audio.c"        /* audio.c: the scope, Ellic Studio's */
 #include "remote_keys.c"         /* the keys as Melodee FM-1 lays them out: notes to Ellic Studio */
 #include "remote_told.c"         /* the selected track's sound pages, as Ellic Studio tells them */
+#include "remote_chain.c"        /* its chain and the lists around it, as Ellic Studio tells them */
 
 /* --------------------------------------------------------------- UI --- */
 #include "../../fm1/src/panel.c"

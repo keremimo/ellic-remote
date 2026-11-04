@@ -1,11 +1,11 @@
-# The link with Ellic Studio (docs/PROTOCOL.md, version 4): a stand-in Ellic Studio claims the remote, tells it an instrument, two
+# The link with Ellic Studio (docs/PROTOCOL.md, version 5): a stand-in Ellic Studio claims the remote, tells it an instrument, two
 # named tracks, the selected track's sound pages and values, the tempo, a step and that the music plays; the remote's
 # controls tell it back what they change, ask and show (PAGE), and it follows Ellic Studio's screen and preferences.
 #   app/build/host/ellic-remote_host app/tests/link.txt app/build/tests
 wait 1300
 expect host 0
 expect last_cmd 1
-sysex F0 7D 4D 52 01 04 F7
+sysex F0 7D 4D 52 01 05 F7
 wait 50
 expect host 1
 # (STATE, then where it is: PAGE)
@@ -119,13 +119,13 @@ expect last_cmd 3
 sysex F0 7D 4D 52 02 F7
 wait 20
 expect host 0
-# Ellic Studio at another version (3) does not claim it: it hears the remote's HELLO, version 4
+# Ellic Studio at another version (3) does not claim it: it hears the remote's HELLO, version 5
 sysex F0 7D 4D 52 01 03 F7
 wait 20
 expect host 0
 expect last_cmd 1
 # twelve tracks, every one a part: claimed again, 12 tracks told in two messages, track 10 selected and armed (bit 9)
-sysex F0 7D 4D 52 01 04 F7
+sysex F0 7D 4D 52 01 05 F7
 sysex F0 7D 4D 52 44 0C 09 00 00 00 40 54 31 00 00 00 40 54 32 00 00 00 40 54 33 00 00 00 40 54 34 00 00 00 40 54 35 00 00 00 40 54 36 00 F7
 sysex F0 7D 4D 52 44 0C 09 06 00 01 40 54 37 00 00 01 40 54 38 00 00 01 40 54 39 00 00 01 40 54 31 30 00 00 01 40 54 31 31 00 00 01 40 54 31 32 00 F7
 sysex F0 7D 4D 52 49 01 00 04 00 00 00 00 00 00 00 00 00 00 00 F7
@@ -145,7 +145,7 @@ ble connect
 wait 100
 sysex F0 7D 4D 52 02 F7
 wait 20
-blesysex F0 7D 4D 52 01 04 F7
+blesysex F0 7D 4D 52 01 05 F7
 wait 50
 expect host 2
 expect lost 0
@@ -154,7 +154,7 @@ wait 50
 expect lost 1
 expect last_cmd 3
 # NOTES: the selected track's (10) 32-step pattern shown whole at zoom 0 (its length to a bar), the notes over both bars
-sysex F0 7D 4D 52 01 04 F7
+sysex F0 7D 4D 52 01 05 F7
 wait 50
 sysex F0 7D 4D 52 45 09 1D 40 20 40 F7
 sysex F0 7D 4D 52 47 09 00 01 00 00 3C 00 00 00 01 00 00 64 00 00 00 F7
@@ -187,3 +187,109 @@ tap OCT+
 wait 100
 expect last_req 10
 expect pop 0
+# version 5: the selected track's chain (CHAIN), what a chain can take (CATALOGUE), the samples (SAMPLES); the CHAIN
+# page, FX's first: the row picked (DEVICE CHOOSE), switched (DEVICE ON), moved (DEVICE MOVE), its page (the chain as
+# chips in its footer), its sheet (Remove asks first: DEVICE REMOVE), + Add (the Add list: DEVICE ADD)
+sysex F0 7D 4D 52 44 03 00 00 00 00 40 42 41 53 53 00 00 01 40 4C 45 41 44 00 7F 00 40 4B 45 59 53 00 F7
+sysex F0 7D 4D 52 4D 00 00 24 00 03 03 00 00 00 01 02 03 53 54 41 47 45 00 04 00 0B 7F 7F 7F 45 43 48 4F 00 04 00 0C 7F 7F 7F 52 45 56 45 52 42 00 F7
+sysex F0 7D 4D 52 41 00 00 00 40 7F 40 40 40 00 44 52 49 56 45 00 00 F7
+sysex F0 7D 4D 52 41 0B 01 00 40 7F 40 40 40 00 4D 49 58 00 00 F7
+sysex F0 7D 4D 52 41 0C 01 00 40 7F 40 40 40 00 4D 49 58 00 00 F7
+sysex F0 7D 4D 52 45 00 0B 60 23 40 00 0C 60 14 40 F7
+sysex F0 7D 4D 52 51 00 01 04 00 01 41 52 50 00 31 2F 31 36 00 02 01 42 52 4F 46 41 54 00 42 72 6F 20 42 61 73 73 00 03 01 45 43 48 4F 00 33 35 25 00 03 00 52 45 56 45 52 42 00 32 30 25 00 F7
+sysex F0 7D 4D 52 52 00 00 40 02 43 48 4F 52 44 00 41 52 50 00 F7
+sysex F0 7D 4D 52 52 02 00 40 03 44 45 4C 41 59 00 52 45 56 45 52 42 00 4C 4F 4F 50 45 52 00 F7
+sysex F0 7D 4D 52 53 00 56 6F 63 61 6C 73 00 00 40 02 41 68 68 00 4F 6F 68 00 F7
+wait 100
+expect chain_n 4
+expect chain_row 1
+expect folders 1
+tap HOME
+wait 100
+tap FX
+wait 100
+text page CHAIN
+shot l_chain.png
+turn SELECT 1
+wait 50
+expect chain_row 2
+expect last_req 26
+turn K2 -1
+wait 50
+expect last_req 21
+turn K3 1
+wait 50
+expect last_req 22
+expect chain_row 3
+tap OCT+
+wait 100
+text page ECHO
+shot l_chain_echo.png
+tap OCT-
+wait 100
+text page CHAIN
+press OCT+
+wait 800
+release OCT+
+wait 50
+expect pop 1
+text toast_title ECHO
+turn K2 1
+wait 30
+tap OCT+
+wait 50
+expect confirm 13
+shot l_chain_ask.png
+tap OCT+
+wait 50
+expect last_req 23
+expect confirm 0
+turn SELECT 1
+wait 30
+expect chain_row 4
+tap OCT+
+wait 50
+expect pop 6
+shot l_chain_add.png
+turn PRESET 2
+wait 30
+tap OCT+
+wait 50
+expect last_req 24
+expect pop 0
+# a sampler in pads mode: PADS (view 3: the bank as a grid, PAD and BANK told values), OCT+ on Stage steps the bank;
+# LOAD (view 4: SAMPLES' rows, PRESETS the row (ROW), OCT+ LOAD SAMPLE); a take's meter under SAMPLE's wave (METER)
+sysex F0 7D 4D 52 4D 00 01 24 00 04 04 00 00 00 01 02 03 53 54 41 47 45 00 02 03 14 15 7F 7F 50 41 44 53 00 03 01 08 09 7F 7F 53 41 4D 50 4C 45 00 03 04 16 7F 7F 7F 4C 4F 41 44 00 F7
+sysex F0 7D 4D 52 41 14 00 01 40 40 40 01 40 00 50 41 44 00 00 F7
+sysex F0 7D 4D 52 41 15 08 00 40 03 40 00 40 04 42 41 4E 4B 00 00 41 00 42 00 43 00 44 00 F7
+sysex F0 7D 4D 52 41 16 00 00 40 7F 7F 00 40 00 52 4F 57 00 00 F7
+sysex F0 7D 4D 52 41 08 00 00 40 7F 7F 00 40 00 53 54 41 52 54 00 00 F7
+sysex F0 7D 4D 52 41 09 00 00 40 7F 7F 7F 7F 00 45 4E 44 00 00 F7
+sysex F0 7D 4D 52 45 00 14 60 06 40 00 15 60 00 40 00 16 60 00 40 F7
+wait 100
+expect keys 1
+tap HOME
+wait 100
+tap OCT+
+wait 300
+expect told21 1
+tap ENV
+wait 100
+text page PADS
+shot l_pads.png
+tap LFO
+wait 100
+text page LOAD
+turn PRESET 1
+wait 50
+expect told22 1
+shot l_load.png
+tap OCT+
+wait 50
+expect last_req 27
+tap LFO
+wait 100
+text page SAMPLE
+sysex F0 7D 4D 52 54 00 50 F7
+wait 100
+shot l_take_meter.png

@@ -163,7 +163,7 @@ static void head_chip_text(char *b)
         str_cpy(b, ENGINES[e]->name, 16);
     } else if (pg->graph == GR_ROLL && grid_on()) {     /* the drum grid */
         str_cpy(b, "STEP", 16);
-    } else if (pg->fam == FAM_FX && pg->graph == GR_NONE) {   /* an FX slot: its effect */
+    } else if (pg->fam == FAM_FX && pg->graph == GR_NONE && pg->scope != SC_TOLD) {   /* an FX slot: its effect */
         str_cpy(b, N_FX[clamp((pg->scope == SC_GLOBAL ? song.g : TSEL->p)[pg->id[0] - 1u], 0, FX_COUNT - 1)], 16);
     } else if (pg->scope != SC_ENGINE && sec_on()) {   /* an engine in sections: the page's name in its section */
         sec_chip(ui.page, b, 16);
@@ -578,9 +578,12 @@ static int midi_rx_recent(uint32_t trs)
 /* the foot (large type, one row of 28 px under the old pages: NOTES on a drum track, DRUM HIT, CZ TOOLS, the
  * actions): what OCT+ / OCT- do (keycaps and their words); recording notes: EDIT held erases; else the sound (its
  * track's numeral and name, as pv_sound_bar) and, on a grid, its page ("1/2"; ACCENT held: "Accent") */
+static int chain_foot(void);                           /* ui_chain.c: CHAIN's keycaps, a device's page's chips */
 static void draw_foot(void)
 {
     char pn[16], b[16];
+    if (chain_foot())
+        return;
     const track_t *t = TSEL;
     uint32_t sig;
     const page_t *pg = cur_page();
@@ -847,6 +850,7 @@ static void draw_uboot(void)
 #define DLG_W 224
 #define DLG_H 168
 #define CF_DETAIL 64                                    /* confirm_text's b: its longest detail and the 0 */
+static void chain_confirm_text(char *a, char *b);      /* ui_chain.c */
 static void confirm_text(char *a, char *b)
 {
     uint32_t k = ui.confirm_trk;
@@ -909,6 +913,9 @@ static void confirm_text(char *a, char *b)
         str_cpy(b, "Again: delete \xB7 other: copy\nBlinking: half \xB7 double", CF_DETAIL);
         break;
     }
+    case CF_DEL_DEVICE:                                 /* CHAIN's sheet: the device named (ui_chain.c) */
+        chain_confirm_text(a, b);
+        break;
     case CF_DEL_TRACK:                                  /* Stage's sheet: the tracks after it move down a place */
         str_cpy(a, "REMOVE TRACK ", 24);
         str_cpy(a + 13 + trk_num(a + 13, k), "?", 2);
@@ -994,6 +1001,7 @@ static void draw_confirm(void)
 #include "ui_list.c"                                    /* list pages */
 #include "ui_popup.c"                                   /* action sheets, pickers */
 #include "ui_scales.c"                                  /* SCALES: a screen of its own */
+#include "ui_chain.c"                                   /* the chain, its lists, a sampler's pads (protocol version 5) */
 static int own_screen(void)                             /* a page drawn whole by its own code, no cards or footer */
 {
     uint32_t g = cur_page()->graph;

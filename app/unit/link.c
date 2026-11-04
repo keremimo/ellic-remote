@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Kerem Kilic (Ellic Studio) */
-/* The link with Ellic Studio (docs/PROTOCOL.md, version 4): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
+/* The link with Ellic Studio (docs/PROTOCOL.md, version 5): SysEx F0 7D 4D 52 cmd .. F7 over USB or Bluetooth MIDI.
  *   the session: the remote says HELLO until Ellic Studio claims it (its HELLO back), answers PING with STATE (its
  *     generation: a new one each time it loses what Ellic Studio told, so Ellic Studio tells it all again); BYE lets it go;
  *   the mirror, Ellic Studio's: its instruments, the tracks (their names) and their parameters, the selected track's sound
@@ -10,10 +10,11 @@
  *     preference), found against the mirror as Ellic Studio last told it, what they asked (link_request) and the page shown
  *     (PAGE: Ellic Studio follows it, and the remote Ellic Studio's); the keys' notes go as MIDI.
  * Values: 14 bits as two 7-bit bytes, low first, offset by 8192 (-8192..8191); text ASCII, 0-terminated. */
-#define L_PROTO 4u                                     /* (4: Ellic Studio's sound pages, names, PAGE, PREFS, TOAST) */
+#define L_PROTO 5u                                     /* (5: the chain, its catalogue, a sampler's bank, take and samples) */
 enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING, L_PAGE, L_PREFS, L_TOAST,
        L_INSTRUMENT = 0x40, L_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
-       L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS, L_REQUEST = 0x50 };
+       L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS,
+       L_CHAIN = 0x51, L_CATALOGUE, L_SAMPLES, L_METER, L_REQUEST = 0x50 };
 enum { L_FREE, L_YOURS, L_TAKEN };                     /* STATE: whose the remote is, to the port asking */
 enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN, L_WHY_LOST };   /* why the generation last changed */
 #define L_SILENT_MS 7000u                              /* a copy of Ellic Studio that PINGs and is then silent this long: let go */
@@ -28,7 +29,7 @@ static struct {
     uint32_t link_ms[2];                               /* each port up since (| 1; 0 down): HELLO again while free */
     uint8_t hellos[2];
     uint8_t sent;                                      /* messages this frame */
-    struct { uint8_t what; uint16_t a, b, c; } req[16];
+    struct { uint8_t what; int16_t a, b, c; } req[16];   /* (a: v14: DEVICE MOVE's -1 keeps its sign) */
     uint8_t req_w, req_r;
     /* the mirror as Ellic Studio last told it: what differs is the controls' */
     int16_t p[NTRK][P_COUNT], g[G_COUNT];
@@ -149,9 +150,9 @@ static void link_request(uint32_t what, uint32_t a, uint32_t b, uint32_t c)
     if ((uint8_t)(w - lk.req_r) >= 16u)
         return;
     lk.req[w % 16u].what = (uint8_t)what;
-    lk.req[w % 16u].a = (uint16_t)a;
-    lk.req[w % 16u].b = (uint16_t)b;
-    lk.req[w % 16u].c = (uint16_t)c;
+    lk.req[w % 16u].a = (int16_t)a;
+    lk.req[w % 16u].b = (int16_t)b;
+    lk.req[w % 16u].c = (int16_t)c;
     lk.req_w = (uint8_t)(w + 1u);
 }
 
@@ -188,6 +189,8 @@ static void link_claim(int port)
     lk.host = (uint8_t)(1u + (uint32_t)port);
     lk.heard_ms = plat_ms();
     told_reset(0xFFu);                                 /* (the sound pages: Ellic Studio tells the selected track's) */
+    chain_reset();                                     /* (the chain and the lists too: remote_chain.c) */
+    lists_reset();
     follow_claimed();
     link_state_to((uint32_t)port);
     ui_say("ELLIC ", "CONNECTED");
@@ -250,6 +253,18 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
         break;
     case L_MARKS:
         told_marks(b, end);
+        break;
+    case L_CHAIN:                                      /* the selected track's chain (remote_chain.c) */
+        chain_told(b, end);
+        break;
+    case L_CATALOGUE:                                  /* what a chain can take, a group at a time */
+        cat_told(b, end);
+        break;
+    case L_SAMPLES:                                    /* Ellic Studio's samples, a folder at a time */
+        smp_told(b, end);
+        break;
+    case L_METER:                                      /* a take's source level */
+        meter_told(b, end);
         break;
     case L_PAGE:                                       /* screen, track, family, page: Ellic Studio's screen, the remote's */
         if (end - b >= 4)

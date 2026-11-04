@@ -33,7 +33,10 @@ static void page_now(uint8_t s[4])
         s[0] = SCR_MENU;
     else if (ui.home)
         s[0] = SCR_STAGE;
-    else if (pg->scope == SC_TOLD) {
+    else if (pg->scope == SC_CHAIN) {                 /* the chain: family 4, page 127 */
+        s[0] = SCR_SOUND;
+        s[2] = TF_FX;
+    } else if (pg->scope == SC_TOLD) {
         static const uint8_t TF[FAM_COUNT] = {[FAM_EDIT] = TF_EDIT, [FAM_ENV] = TF_ENV, [FAM_LFO] = TF_LFO, [FAM_FX] = TF_FX};
         s[0] = SCR_SOUND;
         s[2] = pg->fam < FAM_COUNT ? TF[pg->fam] : 0;
@@ -110,6 +113,8 @@ static void page_follow(const uint8_t *b)
     case SCR_SOUND:
         if (b[2] == 5u)
             page_show(page_by_graph(GR_BROWSE));
+        else if (b[2] == TF_FX && b[3] == 127u)
+            page_show(page_by_graph(GR_CHAIN));
         else if (b[3] < TOLD_PAGES && told_visible(told_first + b[3]))
             page_show(told_first + b[3]);
         else if (b[2] >= 1u && b[2] < TF_N && (ui.home || cur_page()->fam != FAM[b[2]]))

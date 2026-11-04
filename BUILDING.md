@@ -66,9 +66,11 @@ MOTION, the polyphony budget's pages, autosave), and SAVE only asks Ellic Studio
 `tests/run_tests.sh` (about 10 s) runs:
 
 - `host-*`: the app in fm1-base's host simulator, `app/tests/*.txt`, each at most a minute. `pages` walks the pages
-  with the controls; `link` plays Ellic Studio (version 4): it claims the remote, tells it an instrument, named tracks, the
+  with the controls; `link` plays Ellic Studio (version 5): it claims the remote, tells it an instrument, named tracks, the
   selected track's sound pages (an envelope, a wave and an action), a step and the transport, and checks what the
-  controls send back, the pages followed both ways, the preferences, a toast and the pads on the keys; `lights` the
+  controls send back, the pages followed both ways, the preferences, a toast and the pads on the keys, then the chain
+  (CHAIN's rows picked, switched and moved, a device's page and its sheet, Remove asked, the Add list) and a sampler's
+  PADS, bank, LOAD and meter; `lights` the
   LEDs' levels and SAVE. The app adds script commands: `sysex HEX..` (a frame from USB),
   `blesysex HEX..` (from Bluetooth), `text page TITLE` (`text nameK NAME`, `text toast WORDS`: the rest of the line),
   and `expect` values (home, page, menu, pop, confirm, layer, sel, playing, rec, bpm, octave, tracks, list_row,

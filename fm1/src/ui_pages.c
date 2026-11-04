@@ -469,7 +469,8 @@ static uint32_t pv_pic(int32_t *cut, int32_t *res)
     uint32_t c;
     *cut = -1;
     *res = 0;
-    if(pg->fam==FAM_FX)return 9u;
+    if (pg->fam == FAM_FX && pg->scope != SC_TOLD)     /* (a told device's page: cards, no slot picture) */
+        return 9u;
     if (pg->graph == GR_ARP || pg->graph == GR_STEPS)
         return pg->graph == GR_ARP ? 5u : 6u;
     if (pg->fam == FAM_ARP)                             /* ARP 2: the notes it plays too */
@@ -873,7 +874,8 @@ static void pv_draw(void)
     col_style = CS_CARD;
     draw_columns();
     card_y = Y_LABEL;
-    pv_sound();
+    if (!chain_foot())                                  /* (a device's page: the chain as chips, ui_chain.c) */
+        pv_sound();
     {   /* the picture straight on the background (no panel: the screen calm) */
         uint16_t panel = ux.panel;
         ux.panel = ux.bg;

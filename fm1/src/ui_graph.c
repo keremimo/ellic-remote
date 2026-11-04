@@ -12,6 +12,11 @@
 #define PANEL_W 220
 #define GOY 11                                       /* graphs drawn on a 100 px scale sit at y 11..111 */
 static int32_t graph_y = Y_GRAPH, graph_h = H_GRAPH, graph_oy = GOY;   /* (graph_oy: the 100 px scale's top) */
+static void graph_chain(uint16_t c);                 /* ui_chain.c: the chain's rows, a sampler's bank, LOAD's list, a take's meter */
+static void graph_pads(uint16_t c);
+static void graph_list(uint16_t c);
+static void graph_meter(uint16_t c);
+static uint8_t chain_first;                           /* (ui_chain.c: the first row shown) */
 
 /* Matches voice.c: attack is linear, decay and release are exponential
  * (env += (target - env) * k each tick, ~99 % after the set time). Time
@@ -512,6 +517,12 @@ static uint32_t graph_sig(int play)
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u;
     if (pg->scope == SC_TOLD)                        /* (Ellic Studio's values, wave and marks: remote_told.c) */
         h = (h ^ told.gen) * 16777619u + (uint32_t)told.track * 31u;
+    if (pg->graph == GR_CHAIN)                       /* (the chain, its row: remote_chain.c) */
+        h = (h ^ chn.gen) * 16777619u + chn.row * 7919u + chain_first * 31u;
+    if (pg->graph == GR_LIST)
+        h = (h ^ smp.gen) * 16777619u;
+    if (pg->graph == GR_WAVE)                        /* (a take's meter while told) */
+        h ^= (meter_fresh() ? meter.level + 1u : 0u) * 131u;
     if (pg->graph == GR_ROLL && !grid_on()) {
         uint32_t chosen = notes_selected(t);
         notes_follow(t);
@@ -803,6 +814,19 @@ static void draw_graph(void)
             case GR_WAVE:                                    /* a told sample or clip (remote_told.c) */
                 cv_oy = 0;
                 graph_wave(c);
+                graph_meter(c);
+                break;
+            case GR_CHAIN:                                   /* the chain's rows (ui_chain.c) */
+                cv_oy = 0;
+                graph_chain(c);
+                break;
+            case GR_PADS:
+                cv_oy = 0;
+                graph_pads(c);
+                break;
+            case GR_LIST:
+                cv_oy = 0;
+                graph_list(c);
                 break;
             case GR_LFO:
                 graph_lfo(t, c);

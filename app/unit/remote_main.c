@@ -134,6 +134,10 @@ int fm1u_expect(const char *what, int *got)
     else if (!strcmp(what, "keys")) v = told.keys;
     else if (!strcmp(what, "lights")) v = settings_lights;
     else if (!strcmp(what, "act")) v = ui.act;
+    else if (!strcmp(what, "chain_n")) v = chain_on() ? chn.n : -1;   /* (the chain: remote_chain.c) */
+    else if (!strcmp(what, "chain_row")) v = chn.row;
+    else if (!strcmp(what, "chain_chosen")) v = chn.chosen;
+    else if (!strcmp(what, "folders")) v = smp.nf;
     else return 0;
     *got = v;
     return 1;

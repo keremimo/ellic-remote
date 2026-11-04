@@ -18,7 +18,10 @@ typedef struct {
                                                          * SR_RED: no question, red (a destructive act) */
 } sheet_row_t;
 #define SR_RED 0xFFu
-enum { POP_NONE, POP_SHEET, POP_PICK, POP_LIST, POP_PRESET, POP_SONG_PUNCH };
+enum { POP_NONE, POP_SHEET, POP_PICK, POP_LIST, POP_PRESET, POP_SONG_PUNCH, POP_CAT };   /* POP_CAT: the chain's Add /
+                                                                                        * Replace list (ui_chain.c) */
+static void cat_draw(void);                             /* ui_chain.c */
+static void chain_sheet_open(void);
 #define PAT_AUDITION_MS 2000u
 #define POP_X BOX_X                                     /* a sheet (large type): 236 wide, its title row 34, its rows
                                                          * 32 px, 34 apart (ui_list.c row_draw), five at most shown */
@@ -416,6 +419,8 @@ static uint32_t page_sheet(void)
         return 4;
     if (cur_page()->graph == GR_ROLL || cur_page()->graph == GR_STEPS)
         return 3;
+    if (cur_page()->graph == GR_CHAIN)                 /* the chain: the row's device (ui_chain.c) */
+        return chain_on() && chn.row < chn.n ? 6u : 0u;
     fam = cur_page()->fam;
     if (fam == FAM_FX && cur_page()->scope == SC_GLOBAL)   /* SHARED, its slots */
         return 5;
@@ -454,6 +459,9 @@ static void page_sheet_open(void)
     }
     case 5:
         sheet_open("Shared FX", "All tracks", SHEET_SHARED, NELEM(SHEET_SHARED));
+        break;
+    case 6:
+        chain_sheet_open();
         break;
     default:
         break;
@@ -498,7 +506,7 @@ static void sheet_input(int32_t k1, int32_t k2, uint32_t oct)
         if (r->act)
             r->act();
         else if (r->cf && !cf_refused(r->cf))
-            confirm_open(r->cf, r->cf == CF_DEL_ROW ? ui.song_row : song.sel);
+            confirm_open(r->cf, r->cf == CF_DEL_ROW ? ui.song_row : r->cf == CF_DEL_DEVICE ? chn.row : song.sel);
         else if (r->turn)
             r->turn(1);
     }
@@ -889,4 +897,6 @@ static void pop_draw(void)
         vlist_draw();
     else if (pop.on == POP_PRESET)
         preset_pick_draw();
+    else if (pop.on == POP_CAT)
+        cat_draw();
 }
