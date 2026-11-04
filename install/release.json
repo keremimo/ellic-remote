@@ -1,10 +1,10 @@
 {
-  "name": "Melodee Remote",
-  "version": "0.1.0",
-  "product": "FM-1_14000100",
+  "name": "Ellic Remote",
+  "version": "0.1.1",
+  "product": "FM-1_14000101",
   "dev": false,
-  "pkg": "../firmware/melodee-remote-0.1.0.fwsc",
-  "sha256": "a4f6aff3a3c77a5d674de8a63cc628ef9b7fc00f2611b4a80ddf3db26806c695",
+  "pkg": "../firmware/ellic-remote-0.1.1.fwsc",
+  "sha256": "3658fd80ac248d3f7e33943ac1485d39f32a431b0667bc087c04a2e483e670be",
   "size": 611354,
   "boot": {
     "version": "1.2",
@@ -13,18 +13,18 @@
     "licence": "MIT",
     "source": "https://github.com/jvitkauskas/m-bootloader"
   },
-  "commit": "c582228734d513a85508bf5a826ca9dd52fcfd5e",
+  "commit": "a3d36f4c4edf3a413c292bfc28df987c2b51732d",
   "base": "6c0b47e4bfc5",
-  "built": "2026-11-01T15:52:42+00:00",
+  "built": "2026-11-04T18:46:36+00:00",
   "source": {
-    "sha256": "8f669df0b456faa0ee7ba935a3404f836de34098d53438bb35c8829efa185ad4",
-    "commit": "c582228734d513a85508bf5a826ca9dd52fcfd5e",
+    "sha256": "20fbbf3e272533ee0a8257e18b5fedbc4d974d05afce4c4bc99a56166fe163f3",
+    "commit": "a3d36f4c4edf3a413c292bfc28df987c2b51732d",
     "licence": "MPL-2.0",
     "dependencies": {
       "fm1-base": "6c0b47e4bfc56fd3cd5b34463210d0e7e0ce0431",
       "felucca-bsp": "0f08fcaa6610b7cabe8cfdcc5c50d6facdae0e7f"
     },
-    "zip": "../firmware/melodee-remote-0.1.0-source.zip"
+    "zip": "../firmware/ellic-remote-0.1.1-source.zip"
   },
   "licences": "../firmware/LICENSING.md"
 }
