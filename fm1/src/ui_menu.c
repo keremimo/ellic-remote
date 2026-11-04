@@ -17,14 +17,15 @@ static const char *const MI_NAME[MI_COUNT] = {"COLOR", "FONT", "HOLD", "LIGHTS",
                                               "AUDIO CLICK", "CLICK LEVEL", "COUNT-IN", "NOTE PREVIEW", "CHORD ENTRY",
                                               "PICKER POPUPS", "KNOB ACCEL", "HOME SELECT", "GLO SELECT", "UNUSED TRACKS", "SCREEN OFF", "CALIBRATION", "ABOUT", "BACK"};
 
-/* https://keremimo.github.io/melodee, QR version 3, correction M (segno; checked with a decoder).
- * One row per word, leftmost module in bit 0; the constant matrix needs no encoder or RAM. */
+/* https://keremimo.github.io/ellic-remote (the installer), QR version 3, correction M, byte mode (segno 1.6, which
+ * reproduces Melodee FM-1's matrix for its URL bit for bit). One row per word, leftmost module in bit 0; the constant
+ * matrix needs no encoder or RAM. */
 static const uint32_t ABOUT_QR[29] = {
-    0x1FC6EB7Fu, 0x104EF341u, 0x175C795Du, 0x1747C65Du, 0x174CB15Du, 0x10417241u,
-    0x1FD5557Fu, 0x001C5A00u, 0x1D23F9F9u, 0x0D8F5EA5u, 0x0557D275u, 0x137256B4u,
-    0x10C9E87Cu, 0x1FC7940Du, 0x143AD76Du, 0x15706E91u, 0x021C8767u, 0x0D1C8893u,
-    0x1309E463u, 0x07A1260Bu, 0x0FFBAC53u, 0x0316B300u, 0x035BAB7Fu, 0x011ABF41u,
-    0x1BF9275Du, 0x102DF35Du, 0x1DB1E85Du, 0x16A01241u, 0x00D06B7Fu,
+    0x1FC6537Fu, 0x10537441u, 0x174EA35Du, 0x1752EA5Du, 0x1744325Du, 0x10474B41u,
+    0x1FD5557Fu, 0x00010800u, 0x14919AC5u, 0x18DB9226u, 0x171FA1CDu, 0x02B4C0A7u,
+    0x10C8F7F4u, 0x18DB87BEu, 0x10A8FA5Eu, 0x00250382u, 0x105570DAu, 0x1CDAB3ACu,
+    0x1308826Bu, 0x00BCBD38u, 0x0BF9A55Bu, 0x17119300u, 0x1152F37Fu, 0x191C4441u,
+    0x13F96A5Du, 0x1733F45Du, 0x1923915Du, 0x03F11841u, 0x12997B7Fu,
 };
 
 static void draw_about_qr(int32_t x, int32_t y)
@@ -43,57 +44,26 @@ static void draw_about_qr(int32_t x, int32_t y)
 #define MENU_DOC_H (240 - MENU_HEAD)                  /* the document: screen rows 30..240 */
 enum { MC_TEXT, MC_TITLE, MC_URL };
 typedef struct { const char *text; uint8_t kind; } menu_credit_t;
-static const menu_credit_t MENU_CREDITS[] = {
-    {"FELUCCA / UPSTREAM", MC_TITLE},                  /* Melodee is a modified Felucca */
-    {"H\xFCgelton Instruments, Leo Kuroshita / GPL-3.0", MC_TEXT},
-    {"https://github.com/hugelton/Felucca", MC_URL},
+static const menu_credit_t MENU_CREDITS[] = {   /* what is in the remote (LICENSING.md): no engine, no sample */
+    {"FM1-BASE / PLATFORM", MC_TITLE},
+    {"Charles Vestal / MPL-2.0", MC_TEXT},
+    {"https://github.com/charlesvestal/fm1-base", MC_URL},
     {"", MC_TEXT},
-    {"H\xFCgelton Instruments / OWN WORK", MC_TITLE},
-    {"Leo Kuroshita", MC_TEXT},
-    {"CrispyZebra (PHASE waveforms): GPL-3.0", MC_TEXT},
-    {"https://github.com/hugelton", MC_URL},
+    {"FELUCCA-BSP / HARDWARE", MC_TITLE},
+    {"H\xFCgelton Instruments, Leo Kuroshita / MPL-2.0", MC_TEXT},
+    {"https://github.com/hugelton/felucca-bsp", MC_URL},
     {"", MC_TEXT},
-    {"KLATTSCH / VOICE REFERENCE", MC_TITLE},
-    {"Tony Gies / MIT", MC_TEXT},
-    {"https://github.com/tgies/klattsch", MC_URL},
+    {"MELODEE FM-1 / PAGES", MC_TITLE},
+    {"Kerem Kilic, with Felucca code by Leo Kuroshita under his MPL-2.0 permission", MC_TEXT},
+    {"https://github.com/keremimo/melodee", MC_URL},
     {"", MC_TEXT},
-    {"DAISYSP / PHYS PORT", MC_TITLE},
-    {"Electrosmith, Emilie Gillet", MC_TEXT},
-    {"MIT", MC_TEXT},
-    {"https://github.com/electro-smith/DaisySP", MC_URL},
-    {"", MC_TEXT},
-    {"uPD933 / NATIVE CZ", MC_TITLE},
-    {"Devin Acker / BSD-3-Clause", MC_TEXT},
-    {"https://github.com/mamedev/mame", MC_URL},
-    {"", MC_TEXT},
-    {"DEXED + MSFA / FM6 PORT", MC_TITLE},
-    {"Pascal Gauthier, Google Inc.", MC_TEXT},
-    {"msfa: Apache-2.0, Dexed: GPL-3.0", MC_TEXT},
-    {"https://github.com/asb2m10/dexed", MC_URL},
-    {"", MC_TEXT},
-    {"RESID / SID MODEL", MC_TITLE},
-    {"Dag Lem / GPL-2.0-or-later", MC_TEXT},
-    {"https://github.com/libsidplayfp/resid", MC_URL},
-    {"", MC_TEXT},
-    {"RINGS / PHYS PORT", MC_TITLE},
-    {"Emilie Gillet / MIT", MC_TEXT},
-    {"https://github.com/pichenettes/eurorack", MC_URL},
+    {"JIELI AC79 SDK / BLUETOOTH", MC_TITLE},
+    {"Zhuhai Jieli Technology / Apache-2.0 (its libraries: JieLi's)", MC_TEXT},
     {"", MC_TEXT},
     {"RUBIK / FONT", MC_TITLE},
     {"The Rubik Project Authors", MC_TEXT},
     {"SIL Open Font License 1.1", MC_TEXT},
     {"https://github.com/googlefonts/rubik", MC_URL},
-    {"", MC_TEXT},
-    {"VSCO-2 CE + VCSL / SAMPLES", MC_TITLE},
-    {"Versilian Studios / CC0 1.0", MC_TEXT},
-    {"https://github.com/sgossner/VSCO-2-CE", MC_URL},
-    {"https://github.com/sgossner/VCSL", MC_URL},
-    {"", MC_TEXT},
-    {"VOICE / RESEARCH", MC_TITLE},
-    {"Dennis H. Klatt (1980)", MC_TEXT},
-    {"https://doi.org/10.1121/1.383940", MC_URL},
-    {"Hillenbrand, Getty, Clark and Wheeler (1995)", MC_TEXT},
-    {"https://doi.org/10.1121/1.411872", MC_URL},
 };
 
 static int32_t menu_text(const char *s, int32_t y, uint16_t col, int draw)
@@ -137,11 +107,11 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text(6, y + 86, TY_LB, __DATE__, T_MID);
         draw_about_qr(158, y + 66);
     }
-    y = menu_text("Multi-engine synthesizer", y + 146, T_SEC, draw);
+    y = menu_text("Ellic Studio's remote", y + 146, T_SEC, draw);
     y = menu_text("\xA9 2026 Kerem Kilic, Ellic Studio", y + 6, T_TEXT, draw);
-    y = menu_text("Based on Felucca by Leo Kuroshita, H\xFCgelton Instruments", y, T_TEXT, draw);
-    y = menu_text("GPL-3.0-only", y, T_TEXT, draw);
-    y = menu_text("keremimo.github.io/melodee", y, T_MID, draw);
+    y = menu_text("Melodee FM-1's pages, with Felucca code by Leo Kuroshita, H\xFCgelton Instruments", y, T_TEXT, draw);
+    y = menu_text("MPL-2.0", y, T_TEXT, draw);
+    y = menu_text("keremimo.github.io/ellic-remote", y, T_MID, draw);
     y = menu_text("CREDITS", y + 14, T_THEME, draw) + 8;
     for (i = 0; i < NELEM(MENU_CREDITS); i++) {
         const menu_credit_t *c = &MENU_CREDITS[i];
@@ -153,11 +123,11 @@ static int32_t menu_document(int32_t y, int draw)
         else y = menu_text(text, y, c->kind == MC_TITLE ? T_THEME : c->kind == MC_URL ? T_MID : T_TEXT, draw);
     }
     y = menu_text("LICENSES + SOURCE", y + 12, T_THEME, draw);
-    y = menu_text("DRUM + own samples: GPL-3.0-only", y, T_TEXT, draw);
+    y = menu_text("Ellic Remote: MPL-2.0, file by file", y, T_TEXT, draw);
     y = menu_text("Fonts and icons: their licences travel with the source and the release files.", y, T_TEXT, draw);
     y = menu_text("NO WARRANTY", y, T_TEXT, draw);
     y = menu_text("Full notices in source:", y + 8, T_TEXT, draw);
-    y = menu_text("github.com/keremimo/melodee", y, T_MID, draw);
+    y = menu_text("github.com/keremimo/ellic-remote", y, T_MID, draw);
     return y + 4;
 }
 static int32_t menu_scroll_max(void)
