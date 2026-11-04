@@ -23,7 +23,7 @@ const DEMO = params.has("demo") ? (params.get("demo") || "stock") : null;
 // keys are the remote's own)
 const MARK = "ellic-remote-install-pending";
 const LANG = "ellic-remote-lang";
-const GUIDE = "https://github.com/keremimo/melodee-remote#on-the-fm-1";   // connecting in Ellic Studio (README)
+const GUIDE = "https://github.com/keremimo/ellic-remote#on-the-fm-1";   // connecting in Ellic Studio (README)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_STOCK = (p) => /^FM-1_0\d\d$/.test(p) && p !== "FM-1_099";
 const fail = (code, msg, detail = "") => Object.assign(new Error(msg), { code, detail });

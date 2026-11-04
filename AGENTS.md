@@ -8,9 +8,8 @@
 
 # This repository
 
-- The names: this firmware is Ellic Remote, the iOS app it serves is Ellic Studio (its repository still `melodee-ios`,
-  this one's still `melodee-remote`). Melodee now means only the separate Melodee FM-1 firmware and the `MELODEE_`/
-  `melodee_` names `fm1/` keeps from it. The protocol's "MR" bytes (`F0 7D 4D 52`) stay: changing them is a new protocol.
+- The names: this firmware is Ellic Remote, the iOS app it serves is Ellic Studio (its repository still
+  `melodee-ios`). Melodee now means only the separate Melodee FM-1 firmware and the `MELODEE_`/`melodee_` names `fm1/` keeps from it. The protocol's "MR" bytes (`F0 7D 4D 52`) stay: changing them is a new protocol.
 - Ellic Remote is MPL-2.0 file by file. Take nothing from Saadet but Kerem Kilic's own lines (check `git blame` there),
   and never its factory sound data, engines, Felucca-derived UI, or GPL-3.0-only tools and web pages. The exceptions
   are its web installer (`web/install/`, MPL-2.0 with fm1-base's portions) and its release-site tools, which Kerem

@@ -13,7 +13,7 @@ Saadet's pinned revisions, with Saadet's fixes to the Bluetooth peripheral link,
 both directions, which the link with Ellic Studio needs and the base does not carry.
 
 - [The protocol](docs/PROTOCOL.md): what Ellic Studio sends and what it gets back.
-- [Install Ellic Remote](https://keremimo.github.io/melodee-remote/install/): over USB from Chrome or Edge (the
+- [Install Ellic Remote](https://keremimo.github.io/ellic-remote/install/): over USB from Chrome or Edge (the
   installer: [web/install/](web/install/)).
 - [Building and testing](BUILDING.md).
 - [Licensing](LICENSING.md).

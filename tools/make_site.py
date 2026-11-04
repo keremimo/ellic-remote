@@ -185,7 +185,7 @@ def main(argv=None):
                          "MPL-covered files are available under MPL-2.0; other files retain their own terms.\n")
     else:
         source_notice = ("Development preview. Public releases include a matching source ZIP here.\n"
-                         "Source: https://github.com/keremimo/melodee-remote\n")
+                         "Source: https://github.com/keremimo/ellic-remote\n")
     (out / "firmware/SOURCES.txt").write_text(source_notice + "Read LICENSE, LICENSING.md and LICENSES/.\n")
     (out / "firmware/SHA256SUMS").write_text("".join(
         f"{sha256(p.read_bytes())}  {p.relative_to(out / 'firmware').as_posix()}\n"
