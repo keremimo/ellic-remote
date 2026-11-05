@@ -54,7 +54,7 @@ static int oct_nav(void)
 static int oct_enter_ok(void)                           /* OCT+ would do something here */
 {
     return list_on() || (!ui.home && cur_page()->graph == GR_SCALE_PICKER) || page_sheet() || pop.on || smap.on || (!ui.home && cur_page()->graph == GR_BROWSE) || ptc_on() ||
-           (!ui.home && (cur_page()->graph == GR_CHAIN || cur_page()->graph == GR_LIST));
+           (!ui.home && (cur_page()->graph == GR_CHAIN || cur_page()->graph == GR_LIST || cur_page()->graph == GR_LOOP));
 }
 
 /* the OCT LEDs, bit 0 OCT-, bit 1 OCT+. In the dialogs, the menu and on action pages OCT- (back) is
@@ -114,6 +114,12 @@ static uint32_t arp_led(void)
 static const uint8_t PAT_KEY[NPAT] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};   /* the 16 white keys */
 static const uint8_t TRK_KEY[] = {1, 3, 5, 8, 10, 13, 15, 17};
 static const uint8_t LEN_KEY[2] = {8, 10};              /* (its dialog: half, double) */
+/* pattern b's key: past the LOOPER's two (remote_chain.c pat_off: keys 1 and 2 its loops' footswitches); 0 none */
+static uint32_t pat_bit(uint32_t b)
+{
+    b += pat_off();
+    return b < NPAT ? 1u << PAT_KEY[b] : 0u;
+}
 #define PAT_HOLD_MS 1000u
 #define PAT_DTAP_MS 300u
 static int pattern_keys_on(void)
@@ -128,22 +134,29 @@ static int pattern_keys_on(void)
  * blinking (as a layer's button) */
 static uint32_t pattern_leds(uint32_t *dim, uint32_t *breath)
 {
-    uint32_t m = 1u << PAT_KEY[TSEL->pattern], b, dlg = ui.confirm == CF_PAT_KEY;
+    uint32_t m = pat_bit(TSEL->pattern), b, dlg = ui.confirm == CF_PAT_KEY;
     *dim = *breath = 0;
     for (b = 0; b < trk_npat(song.sel); b++)
         if (b != TSEL->pattern && pattern_used(song.sel, b))
-            *dim |= 1u << PAT_KEY[b];
+            *dim |= pat_bit(b);
+    for (b = 0; !dlg && b < pat_off(); b++) {             /* the LOOPER's loops: lit while they play or record, breathing
+                                                         * while they wait, dim while they hold something */
+        const loop_t *l = &loopm.loop[b];
+        if (l->state == LS_PLAYING || l->state == LS_RECORDING || l->state == LS_OVERDUBBING) m |= 1u << PAT_KEY[b];
+        else if (l->waiting || l->armed) *breath |= 1u << PAT_KEY[b];
+        else if (l->state == LS_STOPPED) *dim |= 1u << PAT_KEY[b];
+    }
     if (dlg && ((fm1_ms / 250u) & 1u) == 0u)
         m |= 1u << LEN_KEY[0] | 1u << LEN_KEY[1];
     for (b = 0; !dlg && b < NELEM(TRK_KEY) && b < trk_n(); b++)
         if ((song.rec >> b) & 1u) *breath |= 1u << TRK_KEY[b];
         else *dim |= 1u << TRK_KEY[b];
     if (!dlg) m |= 1u << TRK_KEY[song.sel];
-    if (TSEL->pattern_next < NPAT) *breath |= 1u << PAT_KEY[TSEL->pattern_next];
+    if (TSEL->pattern_next < NPAT) *breath |= pat_bit(TSEL->pattern_next);
     for (b = 0; b < trk_npat(song.sel); b++)             /* (an edit waiting for the loop end: waiting too) */
-        if ((seq_pend[song.sel % NTRK] >> b) & 1u) *breath |= 1u << PAT_KEY[b];
-    if (ui.pat_key) m |= 1u << PAT_KEY[ui.pat_key - 1u];
-    if (ui.confirm == CF_PAT_KEY) m |= 1u << PAT_KEY[ui.pat_dlg % NPAT];   /* (its dialog: the one held) */
+        if ((seq_pend[song.sel % NTRK] >> b) & 1u) *breath |= pat_bit(b);
+    if (ui.pat_key) m |= pat_bit(ui.pat_key - 1u);
+    if (ui.confirm == CF_PAT_KEY) m |= pat_bit(ui.pat_dlg % NPAT);   /* (its dialog: the one held) */
     *dim &= ~(m | *breath);
     *breath &= ~m;
     return m;
@@ -279,7 +292,7 @@ static void rec_toggle(uint32_t latch);
 /* Finish a released key before reading a new press: both can arrive in one UI frame. */
 static void pattern_key_release(void)
 {
-    if (ui.pat_key && (!pattern_keys_on() || !(fm1_in.notes & (1u << PAT_KEY[ui.pat_key - 1u])))) {
+    if (ui.pat_key && (!pattern_keys_on() || !(fm1_in.notes & pat_bit(ui.pat_key - 1u)))) {
         if (!ui.pat_copy) {
             uint32_t bank = ui.pat_key - 1u, armed = 0;
             if (pattern_request(TSEL, bank)) ui_message("STOP SONG TO SWITCH");
@@ -298,9 +311,39 @@ static void pattern_key_release(void)
         ui.pat_key = ui.pat_copy = 0;
     }
 }
+/* keys 1 and 2 on PATTERNS, a track with a LOOPER: its loops' footswitches (let go); held a second: the loop stops */
+static struct { uint32_t down[2]; uint8_t stopped[2]; } lpk;
+static void loop_pattern_keys(uint32_t notes)
+{
+    uint32_t i;
+    for (i = 0; i < 2u; i++) {
+        uint32_t bit = 1u << PAT_KEY[i];
+        if (notes & bit) {
+            lpk.down[i] = fm1_ms | 1u;
+            lpk.stopped[i] = 0;
+            ui.seq_t0 |= 2u;
+        }
+        if (!lpk.down[i])
+            continue;
+        if (fm1_in.notes & bit) {
+            if (!lpk.stopped[i] && fm1_ms - lpk.down[i] >= PAT_HOLD_MS) {
+                lpk.stopped[i] = 1;
+                loop_footswitch_req(i, 1);
+            }
+        } else {
+            if (!lpk.stopped[i])
+                loop_footswitch_req(i, 0);
+            lpk.down[i] = 0;
+        }
+    }
+}
 static void pattern_keys(uint32_t notes)
 {
     uint32_t b;
+    if (pattern_keys_on() && pat_off())
+        loop_pattern_keys(notes);
+    else if (lpk.down[0] || lpk.down[1])
+        lpk.down[0] = lpk.down[1] = 0;
     if (pattern_keys_on())
         for (b = 0; b < NELEM(TRK_KEY); b++) if (notes & (1u << TRK_KEY[b])) {   /* a track key: its absolute track */
             ui.seq_t0 |= 2u;
@@ -312,7 +355,7 @@ static void pattern_keys(uint32_t notes)
     if (ui.pat_key && ui.pat_track != song.sel) ui.pat_key = ui.pat_copy = 0;
     pattern_key_release();
     if (pattern_keys_on()) {
-        for (b = 0; b < trk_npat(song.sel); b++) if (notes & (1u << PAT_KEY[b])) {
+        for (b = 0; b < trk_npat(song.sel); b++) if (notes & pat_bit(b)) {
             ui.seq_t0 |= 2u;
             if (!ui.pat_key) {
                 ui.pat_key = (uint8_t)(b + 1u); ui.pat_track = song.sel; ui.pat_copy = 0; ui.pat_ms = fm1_ms;
@@ -323,7 +366,7 @@ static void pattern_keys(uint32_t notes)
                 ui.pat_tap = 0;
             }
         }
-        if (ui.pat_key && !ui.pat_copy && (fm1_in.notes & (1u << PAT_KEY[ui.pat_key - 1u])) &&
+        if (ui.pat_key && !ui.pat_copy && (fm1_in.notes & pat_bit(ui.pat_key - 1u)) &&
             fm1_ms - ui.pat_ms >= PAT_HOLD_MS) {        /* held alone: its dialog */
             ui.pat_dlg = (uint8_t)(ui.pat_key - 1u);
             ui.pat_key = ui.pat_copy = ui.pat_did = 0;
@@ -393,7 +436,7 @@ static int pattern_key_dialog(uint32_t notes)
         pattern_key_len(k, src, (notes >> LEN_KEY[1]) & 1u);
         return 1;
     }
-    for (b = 0; b < trk_npat(k) && !(notes & (1u << PAT_KEY[b])); b++)
+    for (b = 0; b < trk_npat(k) && !(notes & pat_bit(b)); b++)
         ;
     if (b == trk_npat(k))
         return 0;
@@ -452,8 +495,15 @@ static void ui_leds(void)
         led_put(nl, panel.btn[layer_btn()], ((fm1_ms / 250u) & 1u) == 0u);
     led_put(nl, panel.btn[B_PLAY], rolling && !counting); /* steady transport state, independent of audio block rate; */
     led_put(nw, panel.btn[B_PLAY], counting);           /* counting in: waiting */
-    led_put(nl, panel.btn[B_REC], recording_now);
-    led_put(nw, panel.btn[B_REC], armed && !recording_now);
+    if (loop_page()) {                                  /* the LOOPER's pages: REC is its LOOP key (ui_chain.c) */
+        uint32_t lit, wait;
+        loop_led(&lit, &wait);
+        led_put(nl, panel.btn[B_REC], (int)lit);
+        led_put(nw, panel.btn[B_REC], (int)(wait && !lit));
+    } else {
+        led_put(nl, panel.btn[B_REC], recording_now);
+        led_put(nw, panel.btn[B_REC], armed && !recording_now);
+    }
     k = oct_leds();
     led_put(nl, panel.btn[B_OCTDN], (int)(k & 1u));
     led_put(nl, panel.btn[B_OCTUP], (int)(k >> 1));
@@ -1721,6 +1771,11 @@ static void ui_input(void)
     uint32_t edit = btn_hold(&ui.edit_t0, B_EDIT, now, !ui.menu && !ui.confirm && !ui.ly);
     uint32_t octup = btn_hold(&ui.oct_t0, B_OCTUP, now, page_sheet() != 0u);   /* held: the page's sheet */
     uint32_t oct;
+    if (rec != BT_NONE && !ui.menu && !ui.confirm && loop_page()) {   /* the LOOPER's pages: REC is the bar's LOOP
+                                                                      * key, held it stops the loop (ui_chain.c) */
+        loop_key_req(rec == BT_HOLD);
+        rec = BT_NONE;
+    }
     if (octup == BT_HOLD) {
         oct_eat |= 2u;                                  /* (its release is no OCT+) */
         oct_deferred = 0;
@@ -1888,7 +1943,7 @@ static void ui_input(void)
             ui.force = 1;
         }
         if (ui.confirm == CF_PAT_KEY && ui.pat_did && !(fm1_in.buttons & (1u << panel.btn[B_SEQ])) &&
-            !(fm1_in.notes & (1u << PAT_KEY[ui.pat_dlg % NPAT]))) {
+            !(fm1_in.notes & pat_bit(ui.pat_dlg % NPAT))) {
             ui.confirm = 0;                             /* resized: close once both the pattern key and SEQ are up */
             ui.force = 1;
         }
@@ -2033,7 +2088,9 @@ static void ui_input(void)
     if(bulk.on && !ui.home && cur_page()->graph==GR_ROLL && (oct&2u)){
         notes_bulk_sheet_open();oct=0;
     } else if((bulk.on||ui.note_move||ui.note_copy)&&(oct&1u)){bulk_clear();oct=0;}
-    if (!ui.home && cur_page()->graph == GR_SONG && !ui.layer && (oct & 2u)) {
+    if (!ui.home && cur_page()->graph == GR_LOOP && (oct & 3u)) {   /* LOOP: OCT- / OCT+ the loop in focus */
+        loop_pick(oct & 2u ? 1u : 0u);
+    } else if (!ui.home && cur_page()->graph == GR_SONG && !ui.layer && (oct & 2u)) {
         if (se.pending) song_apply_destination();
         else if (se.range) song_range_sheet_open();
         else song_cell_sheet_open();

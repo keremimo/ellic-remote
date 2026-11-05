@@ -107,13 +107,13 @@ static uint32_t pt_focus(uint32_t k) { return trk[k].pattern_next < NPAT ? trk[k
  * another row: that row's, patgrid_edit) */
 static uint32_t pt_page(void)
 {
-    uint32_t k = song.sel % NTRK, f = pt_focus(k), sig = k * 64u + f + 1u;
-    if (trk_npat(pt_track()) <= PT_COLS)
+    uint32_t k = song.sel % NTRK, f = pt_focus(k), lo = pat_off(), sig = k * 64u + f + 1u + lo * 4096u;
+    if (trk_npat(pt_track()) + lo <= PT_COLS)
         return 0;
     if (ptc_on())
-        ui.pt_page = (uint8_t)(ui.ptc_dst / PT_COLS);
-    else if (ui.pt_page >= NPAT / PT_COLS || sig != ptv.focus)
-        ui.pt_page = (uint8_t)(f / PT_COLS);
+        ui.pt_page = (uint8_t)((ui.ptc_dst + lo) / PT_COLS);
+    else if (ui.pt_page >= (NPAT + lo + PT_COLS - 1u) / PT_COLS || sig != ptv.focus)
+        ui.pt_page = (uint8_t)((f + lo) / PT_COLS);
     ptv.focus = sig;
     return ui.pt_page;
 }
@@ -150,35 +150,51 @@ static void pt_bars(uint32_t k, uint32_t b, int32_t x, int32_t y, uint16_t c)
 /* the page's eight numbers (1 .. 8, 9 .. 16); two pages: their dots over the tracks' numerals, the page's a pill */
 static void pt_numbers(uint32_t pg)
 {
-    uint32_t b, two = trk_npat(pt_track()) > PT_COLS, sig = ux.gen * 977u + ux.pal * 31u + 1u + 2u * two + 4u * pg;
+    uint32_t b, lo = pat_off(), pages = (trk_npat(pt_track()) + lo + PT_COLS - 1u) / PT_COLS, two = pages > 1u;
+    uint32_t sig = ux.gen * 977u + ux.pal * 31u + 1u + 2u * two + 4u * pg + 64u * lo;
     int32_t x;
     if (!ui.force && sig == ptv.num)
         return;
     ptv.num = sig;
     cv_begin(240, PT_ROW_Y - PT_NUM_Y, T_BG);
-    for (b = pg * PT_COLS; b < pg * PT_COLS + PT_COLS; b++) {
-        char n[3] = {(char)('0' + (b + 1u) / 10u), (char)('0' + (b + 1u) % 10u), 0};
-        cv_text_c(PT_CELL_X(b) + 11, ty_y((PT_ROW_Y - PT_NUM_Y) / 2, TY_LB), TY_LB, b < 9u ? n + 1 : n, T_MID, T_BG);
+    for (b = pg * PT_COLS; b < pg * PT_COLS + PT_COLS; b++) {   /* (the LOOPER's loops first: L1, L2) */
+        char n[3] = {(char)('0' + (b - lo + 1u) / 10u), (char)('0' + (b - lo + 1u) % 10u), 0};
+        if (b < lo) { n[0] = 'L'; n[1] = (char)('1' + b); }
+        else if (b - lo >= NPAT) continue;
+        cv_text_c(PT_CELL_X(b) + 11, ty_y((PT_ROW_Y - PT_NUM_Y) / 2, TY_LB), TY_LB, b < lo ? n : b - lo < 9u ? n + 1 : n,
+                  b < lo ? T_THEME : T_MID, T_BG);
     }
-    for (b = 0, x = 4; two && b < NPAT / PT_COLS; b++) {   /* (as the header's, head_pages: over the numerals) */
+    for (b = 0, x = 4; two && b < pages; b++) {       /* (as the header's, head_pages: over the numerals) */
         int32_t w = b == pg ? 12 : 6;
         cv_rrect(x, (PT_ROW_Y - PT_NUM_Y) / 2 - 3, w, 6, 3, b == pg ? T_THEME : T_LINE, T_BG);
         x += w + 2;
     }
     cv_blit(0, PT_NUM_Y);
 }
+/* a loop of the LOOPER as a cell: its ring filled in the track's colour while it plays, red while it records or
+ * overdubs, red and hollow while it waits, dim while stopped, the line's while empty */
+static void pt_loop_cell(uint32_t i, int32_t x, int32_t y, uint16_t tc)
+{
+    const loop_t *l = &loopm.loop[i & 1u];
+    int busy = l->state == LS_RECORDING || l->state == LS_OVERDUBBING;
+    cv_rrect(x, y, 23, 32, 4, T_SURF, T_BG);
+    if (l->state == LS_PLAYING || busy)
+        cv_disc(x + 11, y + 16, 14, busy ? T_REC : tc, 0);
+    else
+        cv_disc(x + 11, y + 16, 14, l->waiting || l->armed ? T_REC : l->state == LS_STOPPED ? T_DIM : T_LINE, 1);
+}
 static void pt_row(uint32_t k, uint32_t pg)
 {
     const track_t *t = &trk[k];
     uint16_t tc = t->p[P_MUTE] ? T_DIM : T_TRK(k);
-    uint32_t b, on = t->pattern / PT_COLS == pg, prog = on ? pt_prog(t) : 0u, sel = k == song.sel, h;
-    uint32_t off = !on || (t->pattern_next < NPAT && t->pattern_next / PT_COLS != pg);   /* (on the other page) */
+    uint32_t b, i, lo = pat_off(), on = (t->pattern + lo) / PT_COLS == pg, prog = on ? pt_prog(t) : 0u, sel = k == song.sel, h;
+    uint32_t off = !on || (t->pattern_next < NPAT && (t->pattern_next + lo) / PT_COLS != pg);   /* (on the other page) */
     int32_t y0 = PT_ROW_Y + (int32_t)(k % NPART) * PT_ROW_H;
     char n[3];
     trk_num(n, k);
     h = fnv1(fnv1(fnv1(2166136261u, steps_hash(t)), t->pattern_gen), t->pattern + 16u * t->pattern_next + 8192u * sel +
             16384u * (uint32_t)(t->p[P_MUTE] != 0) + 65536u * (uint32_t)t->p[P_SLEN]);
-    h = fnv1(h, ux.gen * 977u + ux.pal * 31u + (uint32_t)song.playing + 2u * pg);
+    h = fnv1(h, ux.gen * 977u + ux.pal * 31u + (uint32_t)song.playing + 2u * pg + 8u * lo + (sel && lo ? loopm.gen * 64u : 0u));
     if (ptc_on() && k == ui.ptc_to)                     /* Copy to: where it goes */
         h = fnv1(h, 1u + ui.ptc_src + 16u * ui.ptc_dst);
     if (!ui.force && h == ptv.row[k]) {
@@ -186,7 +202,7 @@ static void pt_row(uint32_t k, uint32_t pg)
             ptv.prog[k] = prog;
             cv_begin(17, 3, tc);
             pt_prog_bar(0, 0, prog, tc);
-            cv_blit((uint32_t)(PT_CELL_X(t->pattern) + 3), (uint32_t)(y0 + 2 + 25));
+            cv_blit((uint32_t)(PT_CELL_X(t->pattern + lo) + 3), (uint32_t)(y0 + 2 + 25));
         }
         return;
     }
@@ -203,9 +219,16 @@ static void pt_row(uint32_t k, uint32_t pg)
     }
     if (off)                                            /* its pattern on the other page: a tick on that side */
         cv_rrect(pg ? 27 : 236, 12, 2, 12, 1, tc, T_BG);
-    for (b = pg * PT_COLS; b < pg * PT_COLS + PT_COLS && b < trk_npat(k); b++) {
-        int32_t x = PT_CELL_X(b), y = 2;
-        int dst = ptc_on() && k == ui.ptc_to && b == ui.ptc_dst;
+    for (i = pg * PT_COLS; i < pg * PT_COLS + PT_COLS; i++) {
+        int32_t x = PT_CELL_X(i), y = 2;
+        int dst;
+        if (i < lo) {                                   /* the LOOPER's loops, the selected track's (remote_chain.c) */
+            if (sel) pt_loop_cell(i, x, y, tc);
+            continue;
+        }
+        b = i - lo;                                     /* (the pattern) */
+        if (b >= trk_npat(k)) break;
+        dst = ptc_on() && k == ui.ptc_to && b == ui.ptc_dst;
         if (dst)                                        /* Copy to: the place, framed in the theme's colour */
             cv_rrect(x - 2, y - 2, 27, 36, 6, T_THEME, T_BG);
         if (b == t->pattern) {                          /* playing: filled, how far through it */
@@ -309,7 +332,7 @@ static void patgrid_edit(uint32_t k, int32_t steps)
     if (pattern_request(t, (uint32_t)clamp((int32_t)from + (steps > 0 ? 1 : -1), 0, (int32_t)trk_npat(k) - 1)))
         ui_message("STOP SONG TO SWITCH");
     else                                                /* (the page goes with it) */
-        ui.pt_page = (uint8_t)(pt_focus(k) / PT_COLS);
+        ui.pt_page = (uint8_t)((pt_focus(k) + pat_off()) / PT_COLS);
     ui.force = 1;
 }
 

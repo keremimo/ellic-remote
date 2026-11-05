@@ -14,7 +14,7 @@
 enum { L_HELLO = 0x01, L_BYE, L_STATE, L_PING, L_PAGE, L_PREFS, L_TOAST,
        L_INSTRUMENT = 0x40, L_DESC, L_SOUNDS, L_INSTRUMENTS, L_TRACKS, L_PARAM, L_GLOBAL, L_STEPS, L_PATTERNS,
        L_PLAY, L_SONG, L_SCOPE = 0x4C, L_PAGES, L_WAVE, L_MARKS,
-       L_CHAIN = 0x51, L_CATALOGUE, L_SAMPLES, L_METER, L_REQUEST = 0x50 };
+       L_CHAIN = 0x51, L_CATALOGUE, L_SAMPLES, L_METER, L_LOOP, L_REQUEST = 0x50 };
 enum { L_FREE, L_YOURS, L_TAKEN };                     /* STATE: whose the remote is, to the port asking */
 enum { L_WHY_POWER, L_WHY_SILENT, L_WHY_TAKEN, L_WHY_LOST };   /* why the generation last changed */
 #define L_SILENT_MS 7000u                              /* a copy of Ellic Studio that PINGs and is then silent this long: let go */
@@ -265,6 +265,9 @@ static int link_sysex(const uint8_t *p, uint32_t n, int port)
         break;
     case L_METER:                                      /* a take's source level */
         meter_told(b, end);
+        break;
+    case L_LOOP:                                       /* the selected track's LOOPER, its loops */
+        loop_told(b, end);
         break;
     case L_PAGE:                                       /* screen, track, family, page: Ellic Studio's screen, the remote's */
         if (end - b >= 4)

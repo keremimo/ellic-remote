@@ -583,8 +583,8 @@ enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK, SC_TOLD, SC_CHAIN };   /
                                                                      * SC_CHAIN: the chain (remote_chain.c) */
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_ROLL, GR_BROWSE, GR_TRK,
        GR_PATS, GR_SONG, GR_CHORD, GR_SCALE_PICKER, GR_PATGRID,
-       GR_FXRACK, GR_WAVE, GR_CHAIN, GR_PADS, GR_LIST };   /* NOTES shares GR_ROLL for steps and recorded events; GR_WAVE a told
-                                       * sample's or clip's; GR_CHAIN the chain's rows, GR_PADS a sampler's bank, GR_LIST LOAD's samples (ui_chain.c) */
+       GR_FXRACK, GR_WAVE, GR_CHAIN, GR_PADS, GR_LIST, GR_LOOP };   /* NOTES shares GR_ROLL for steps and recorded events; GR_WAVE a told
+                                       * sample's or clip's; GR_CHAIN the chain's rows, GR_PADS a sampler's bank, GR_LIST LOAD's samples, GR_LOOP the LOOPER's two loops (ui_chain.c) */
 
 typedef struct {
     const char *title;

@@ -14,8 +14,9 @@ and choose a device: **REQUEST DEVICE ON .. DEVICE CHOOSE**), what a chain can t
 effects, instruments, effects and plug-ins by name, so a new effect or a plug-in needs no firmware); a sampler's bank
 as a grid (PAGES view PADS, its bank a told value, OCT- / OCT+ stepping it), a take's source and its meter (**METER**),
 Ellic Studio's samples in their folders to load onto a pad (**SAMPLES**, PAGES view LIST, **REQUEST LOAD SAMPLE**, the row
-scrolled onto auditioned on the pad). A LOOPER on a chain is a stub for now (one mirror cmd and requests 30..39 reserved,
-nothing assigned: it is being reworked in Ellic Studio). A HELLO of another version claims nothing: the remote answers
+scrolled onto auditioned on the pad); a LOOPER on the chain (phase 90's pedal): its loops' state (**LOOP**), the bar's
+LOOP key and a loop's footswitch (**REQUEST LOOP KEY**, **LOOP FOOTSWITCH**), its LOOP page (PAGES view LOOP), the
+rest of the pedal plain told values and actions. A HELLO of another version claims nothing: the remote answers
 with its own. `app/unit/link.c` is the firmware's side of everything below (`remote_chain.c` the chain and the lists);
 `app/tests/link.txt` plays Ellic Studio's.
 
@@ -93,7 +94,7 @@ over) and PING (answered with STATE: "taken").
 | 52 | CATALOGUE | group (0 note effects, 1 instruments, 2 effects, 3 plug-ins), first v14, count, then count names (at most 128 a group): what a chain can take, in Ellic Studio's groups |
 | 53 | SAMPLES | folder (0.., Ellic Studio's order), its name (text: on the message with first 0, empty after), first v14, count, then count names (at most 128 a folder): Ellic Studio's samples (its factory kinds, Recordings, Loops) |
 | 54 | METER | track, the source's level (0..127): what a take would record, ~6 a second while a page shows it |
-| 55 | (reserved) | the LOOPER's mirror, to come (below) |
+| 55 | LOOP | track (127: the bar's LOOPER is not on the selected track's chain), device (its index in CHAIN; 127 none), the loop in focus (0 or 1: the one the bar's LOOP key plays), then 2 x (state: 0 empty, 1 recording, 2 playing, 3 overdubbing, 4 stopped; waiting: 0 none, 1 record, 2 overdub, 3 play, 4 stop (the action waiting for its line); armed (0/1: AUTO REC); what its footswitch would do: 0 REC, 1 PLAY, 2 DUB, 3 ARMED; bars x 4 (so far while it records, so 2/4 reads); the bars set (0 free); layers; undone (0/1); where it plays, 0..127 around; what it hears, 0..127): the selected track's LOOPER (below) |
 
 A **step** is Melodee FM-1's `step_t` (`fm1/src/core.h`): 11 bytes (note 0..3, notes in use, time 0 NOTE 1 TIE 2 REST,
 flags (1 accent, 2 slide, ..), velocity, hits (bit a drum lane), accents, chance) sent as 13: two bytes of high bits
@@ -122,7 +123,8 @@ Studio's sources by name; CHANNEL: Any, 1..16). **PAGES** lists them in order:
 - **view**: 0 the cards and the scope, 1 the wave (WAVE and MARKS) under the cards, 2 an envelope (k0..k3 as attack,
   decay, sustain, release, drawn as a curve), 3 PADS (a sampler's bank as a 4 x 4 grid under the cards, the pad chosen
   ringed), 4 LIST (a list under the cards, scrolled with PRESETS as the sound browser is: LOAD's samples, folder by
-  folder from SAMPLES, the row scrolled onto a told value).
+  folder from SAMPLES, the row scrolled onto a told value), 5 LOOP (the LOOPER's pedal under the cards: its two loops
+  as rings from LOOP, the one in focus outlined).
 - **k0..k3**: the told values the page's knobs turn (127: none); **title** at most 12 letters.
 
 Each told value k has its **DESC** (its range, how it reads; ACTION: a column that OCT+ does, `REQUEST ACTION`). A
@@ -134,8 +136,9 @@ Some told values are the remote's to know by name, as ACTION is; they need no me
 | Told value | Where | How it reads |
 | --- | --- | --- |
 | BANK | a sampler's PADS page | ENUM A, B, C, D: the bank on the keys and the grid (OCT- / OCT+ step it in pads mode, in place of the octave) |
-| SOURCE | a sampler's TAKE page | ENUM IN 1, IN 2, IN 1+2, MIX, THIS TRACK: what a take records; METER is its level |
+| SOURCE | a sampler's TAKE page | ENUM IN 1, IN 2, IN 1+2, MIX, TRACK: what a take records; METER is its level |
 | ROW | a sampler's LOAD page | INT: the row scrolled onto, folder x 128 + index into SAMPLES. While LOAD shows, the pad's key (a note on, as ever) plays that row's sample on the pad, auditioned by Ellic Studio; the pad's own sound stays until LOAD SAMPLE |
+| LOOP | the LOOPER's LOOP page | ENUM 1, 2: the loop in focus, the one the bar's LOOP key plays (Ellic Studio's loop last touched); OCT- / OCT+ on the LOOP page set it |
 
 **keys**: 0 the keys play the selected track's layout (below); 1 pads: the 16 white keys, left to right, play the
 pads' first note .. + 15 (the black keys nothing), as Melodee FM-1's kits do; Ellic Studio chooses a pad as it is struck.
@@ -169,14 +172,30 @@ changes, by its own hand or the remote's, and the track's PAGES, DESCs and told 
 instruments, effects, plug-ins), told once on claim: the remote's Add and Replace lists are its names, and a device
 asked for is a group and an index into it.
 
-### LOOPER (to come)
+### LOOPER
 
-A LOOPER on a chain (CHAIN kind 4) will have a mirror of its loops' state (each loop: empty, waiting, recording,
-playing, overdubbing, stopped, its bars and its place around, told each step while a page shows it, as PLAY is),
-requests for its footswitches (the remote's REC on its pages, its loops' keys on PATTERNS) and for sending a loop
-elsewhere (a pad, a clip, the song, a new track), and its pages as its device's on FX. The looper is being reworked
-in Ellic Studio, so none of it is assigned yet: cmd 55 and requests 30..39 are reserved for it, their bodies and the
-pages' content to come.
+A LOOPER on the selected track's chain (CHAIN kind 4) is the pedal of Ellic Studio's phase 90, played from the remote as
+the bar's LOOP key plays it on the iPad. Its pages are its device's on FX, as any effect's: Ellic Studio tells them (PAGES,
+DESC) and their values are plain told values, so the pedal needs no message of its own beyond its loops' state:
+
+- **LOOP** (the first page, view 5): the two loops as rings; its knobs Ellic Studio's (LEVEL 1, LEVEL 2, the told value
+  **LOOP** (the loop in focus), BARS, say). The remote's REC is the bar's LOOP key (`LOOP KEY`), held it stops the
+  loop; OCT- / OCT+ put LOOP 1 / LOOP 2 in focus (the told value LOOP).
+- The pedal's settings (REC ACTION, STOP, PLAY, TEMPO, QUANTISE, COUNT IN, FEEDBACK, AUTO REC, FROM: where it listens,
+  which moves the device), a loop's own (PAN, REVERSE, ONE SHOT, PITCH) and its actions (UNDO, x2, ÷2, CLEAR, KEEP,
+  TO: a pad, a clip, a new track, as ACTION told values on their pages) are told values as Ellic Studio pages them.
+- A loop's layers: a page with the layer picked (LAYER), its MUTE, REMOVE as an action: told values too.
+
+**LOOP** is the loops' state: told on claim and on track selection, whenever a loop's state, what it waits for, its
+arming or what its footswitch would do changes (so REC's light and the rings follow), and at each step while a page of
+the LOOPER's or PATTERNS shows the track (its loops' places around). Track 127 says the bar's LOOPER is elsewhere (a
+bus, the master, another track): the remote then plays none.
+
+On the remote: REC on any of the LOOPER's pages is the bar's LOOP key (its light the loop in focus: blinking while it
+waits for its line or is armed, lit while it records or overdubs); on **PATTERNS** a track with a LOOPER has its two
+loops as the first two cells of the grid (L1, L2, rings in their state) and keys 1 and 2 are their footswitches (held:
+the loop stops, `LOOP FOOTSWITCH`), its patterns following on keys 3 up, as its loops are the first two tiles of its
+column on the iPad.
 
 ## The remote to Ellic Studio
 
@@ -218,7 +237,9 @@ messages a frame (~60 frames a second).
 | 25 | DEVICE REPLACE (an instrument's Change) | track, device, group x 128 + index into CATALOGUE |
 | 26 | DEVICE CHOOSE: the row picked | track, device: Ellic Studio's chosen device, its knobs and its Sound screen follow |
 | 27 | LOAD SAMPLE (OCT+ on LOAD's row) | track, pad, folder x 128 + index into SAMPLES |
-| 30..39 | (reserved) | the LOOPER's: its footswitches, a loop sent elsewhere (above) |
+| 30 | LOOP KEY: the bar's LOOP key (REC on the LOOPER's pages) | held (0 a tap, 1 held: the loop stops) |
+| 31 | LOOP FOOTSWITCH: a loop's own (keys 1 and 2 on PATTERNS) | track, device x 2 + loop, held (0 a tap, 1 held: the loop stops) |
+| 32..39 | (reserved) | — |
 
 ### The chain and the pads on the remote
 
@@ -323,8 +344,7 @@ set's page 1: AMP).
 
 ## Not in version 5 (yet)
 
-The LOOPER's messages (its loops' state, its footswitches, a loop sent elsewhere, its pages' content: the stub above),
-which pads hold a sound (PADS draws every pad alike and the keys' LEDs light as before), motion (parameter lanes), a
+Which pads hold a sound (PADS draws every pad alike and the keys' LEDs light as before), motion (parameter lanes), a
 pattern's own sound, the song's sections as Ellic Studio has them (the remote's SONG is rows of patterns), a Song clip's
 audio (the pages edit an audio track's Stage clip), audio to notes, the preset favourites and the scales' favourites
 (the remote's, until power-off).

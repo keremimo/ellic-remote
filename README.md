@@ -43,8 +43,10 @@ the remote when it claims it (PREFS in the protocol).
 Melodee FM-1's UI and controls built as their own unit (`app/unit/`, from `fm1/`, forked and cut down to a remote),
 32 tracks, protocol version 5 (the selected track's chain on FX's CHAIN page, switched, moved, added, replaced and
 removed from the remote, what a chain can take told; a sampler's bank as a grid, its bank on OCT- / OCT+, a take's
-source and meter, Ellic Studio's samples loaded onto a pad; the selected track's sound pages Ellic Studio's, waves for samples and clips, one screen with
-Ellic Studio's, preferences kept by Ellic Studio): Bluetooth build 433 KB, 62 of 96 KB of RAM, 312 of 344 KB of the pool.
+source and meter, Ellic Studio's samples loaded onto a pad; a LOOPER on the chain played as phase 90's pedal: its loops
+as rings on its LOOP page, REC the bar's LOOP key, OCT- / OCT+ the loop in focus, its loops first on PATTERNS with
+keys 1 and 2 their footswitches; the selected track's sound pages Ellic Studio's, waves for samples and clips, one screen with
+Ellic Studio's, preferences kept by Ellic Studio): Bluetooth build 437 KB, 62 of 96 KB of RAM, 312 of 344 KB of the pool.
 Installed on an FM-1 over USB, which answers PING; the pages, the link and the lights tested in fm1-base's host
 simulator (`app/tests/`), and Ellic Studio's own messages read there (melodee-ios `scripts/remote-screens.sh`). Ellic Studio
 speaks version 4 (melodee-ios `b9273c8`): it claims nothing until it follows to version 5, and the remote answers its

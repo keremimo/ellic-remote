@@ -13,6 +13,7 @@
  *   The meter: a take's source level under a wave while METER is fresh.
  * Included by ui_draw.c after the popups; the graphs are called from ui_graph.c draw_graph. */
 static void chain_changed(void) { ui.force = 1; }
+static const char *const LOOP_KEY_WORD[4] = {"REC", "PLAY", "DUB", "ARMED"};
 
 /* ------------------------------------------------------ the rows --- */
 #define CH_ROW 31                                       /* the panel's 124 rows: four of them */
@@ -56,6 +57,12 @@ static void graph_chain(uint16_t c)
     }
 }
 
+/* a page's title is the device's: its name, or its name and a number ("LOOPER 2": its second page) */
+static int title_of_dev(const char *title, const char *name)
+{
+    uint32_t n = str_len(name);
+    return n && (str_eq(title, name) || (!memcmp(title, name, n) && title[n] == ' '));
+}
 /* the device whose page this is (its title the device's name), CHAIN_MAX none */
 static uint32_t chain_dev_of_page(uint32_t p)
 {
@@ -63,7 +70,7 @@ static uint32_t chain_dev_of_page(uint32_t p)
     if (p >= NPAGES || PAGES[p].scope != SC_TOLD)
         return CHAIN_MAX;
     for (i = 0; i < chn.n; i++)
-        if (str_eq(PAGES[p].title, chn.dev[i].name))
+        if (title_of_dev(PAGES[p].title, chn.dev[i].name))
             return i;
     return CHAIN_MAX;
 }
@@ -113,6 +120,18 @@ static int chain_foot(void)
         ui.foot_sig = sig;
         cv_begin(240, H_FOOT, T_BG);
         cv_key_row(8, 232, (H_FOOT - KC_PH) / 2, kh, 2, chain_on() ? 3u : 2u, T_BG);
+        cv_blit(0, Y_FOOT);
+        return 1;
+    }
+    if (pg->graph == GR_LOOP) {                         /* LOOP: REC the bar's LOOP key, OCT- / OCT+ the loop in focus */
+        khint_t kh[3] = {{KC_REC, LOOP_KEY_WORD[loopm.loop[loopm.focus & 1u].key & 3u]}, {KC_OCTDN, "1"}, {KC_OCTUP, "2"}};
+        sig = loopm.gen * 7u + ux.gen * 977u + ux.pal * 31u + 0x4C50u;
+        if (!ui.force && sig == ui.foot_sig)
+            return 1;
+        ui.foot_sig = sig;
+        pv.sound = 0;
+        cv_begin(240, H_FOOT, T_BG);
+        cv_key_row(8, 232, (H_FOOT - KC_PH) / 2, kh, 3, loop_on() ? 7u : 0u, T_BG);
         cv_blit(0, Y_FOOT);
         return 1;
     }
@@ -398,6 +417,97 @@ static int load_enter(void)
     load_sample_req((uint32_t)clamp(pad, 0, 127), (uint32_t)v / 128u, (uint32_t)v % 128u);
     ui_message("LOADING");
     return 1;
+}
+
+/* ----------------------------------------------------- the LOOPER --- */
+/* the page shown is the LOOPER's: its LOOP page (view 5) or another of its device's */
+static int loop_page(void)
+{
+    const page_t *pg = cur_page();
+    if (ui.home || !loop_on())
+        return 0;
+    if (pg->graph == GR_LOOP)
+        return 1;
+    return pg->scope == SC_TOLD && pg->fam == FAM_FX && chain_dev_of_page(ui.page) == loopm.device;
+}
+/* REC's light on the LOOPER's pages: the loop in focus, lit while it records or overdubs, blinking while it waits
+ * for its line or is armed */
+static void loop_led(uint32_t *lit, uint32_t *wait)
+{
+    const loop_t *l = &loopm.loop[loopm.focus & 1u];
+    *lit = l->state == LS_RECORDING || l->state == LS_OVERDUBBING;
+    *wait = l->waiting != LW_NONE || l->armed;
+}
+/* a loop's word: EMPTY, ARMED, WAITING, REC 2/4, 4 BARS +1, DUB +1, STOPPED */
+static void loop_word(const loop_t *l, char *b)
+{
+    if (l->armed) { str_cpy(b, "ARMED", 12); return; }
+    if (l->state == LS_EMPTY) { str_cpy(b, l->waiting ? "WAITING" : "EMPTY", 12); return; }
+    if (l->state == LS_RECORDING) {
+        str_cpy(b, "REC ", 12);
+        fmt_int(b + 4, (int32_t)l->bars4 / 4);
+        if (l->set) { str_cpy(b + str_len(b), "/", 2); fmt_int(b + str_len(b), (int32_t)l->set); }
+        return;
+    }
+    if (l->state == LS_STOPPED) { str_cpy(b, "STOPPED", 12); return; }
+    if (l->state == LS_OVERDUBBING) str_cpy(b, "DUB", 12);
+    else { fmt_int(b, (int32_t)l->bars4 / 4); str_cpy(b + str_len(b), l->bars4 / 4 == 1u ? " BAR" : " BARS", 6); }
+    if (l->layers > 1u) { str_cpy(b + str_len(b), " +", 3); fmt_int(b + str_len(b), (int32_t)l->layers - 1); }
+}
+/* dots along a circle from angle a0 to a1 (0..128 a turn from the top, clockwise), every fourth left out dashed */
+static void ring_arc(int32_t cx, int32_t cy, int32_t r, uint32_t a0, uint32_t a1, uint16_t c, int32_t d, int dashed)
+{
+    uint32_t a;
+    for (a = a0; a < a1; a++) {
+        uint32_t ph = a << 25;
+        if (dashed && (a & 4u))
+            continue;
+        cv_disc(cx + ((r * sine_i(ph)) >> 15), cy - ((r * sine_i(ph + (1u << 30))) >> 15), d, c, 0);
+    }
+}
+/* the pedal: the two loops as rings (the loop going round in the track's colour, red while it records or overdubs,
+ * dashed while it waits or is armed, dim while stopped), their bars in the middle, the loop in focus outlined, under
+ * each what its key does (REC: the focus; OCT- / OCT+: the other), what it hears as a bar */
+static void graph_loop(uint16_t c)
+{
+    const aafont_t *tf = TY_TX, *lf = TY_LB;
+    uint32_t i;
+    char b[16];
+    for (i = 0; i < 2u; i++) {
+        const loop_t *l = &loopm.loop[i];
+        int32_t x0 = (int32_t)i * 118 + 2, cx = x0 + 58, cy = 70, r = 23;
+        int focus = (loopm.focus & 1u) == i, busy = l->state == LS_RECORDING || l->state == LS_OVERDUBBING;
+        int waits = l->state == LS_EMPTY && (l->waiting || l->armed);
+        uint16_t lc = busy || waits ? T_REC : l->state == LS_PLAYING ? c : T_DIM, bg = T_SURF;
+        if (focus) {
+            cv_rrect(x0, 1, 116, H_GRAPH - 2, 8, c, T_SURF);
+            cv_rrect(x0 + 1, 2, 114, H_GRAPH - 4, 7, T_SURF, c);
+        }
+        str_cpy(b, "LOOP ", 8);
+        b[5] = (char)('1' + i);
+        b[6] = 0;
+        cv_text_on(x0 + 8, ty_y(11, lf), lf, b, c, bg);
+        loop_word(l, b);
+        cv_free_text(x0 + 8, ty_y(27, lf), lf, b, busy || waits ? T_REC : l->state == LS_PLAYING ? c : T_MID, bg, 100);
+        ring_arc(cx, cy, r, 0, 128, T_RAISE, 5, 0);
+        if (waits)
+            ring_arc(cx, cy, r, 0, 128, lc, 5, 1);
+        else if (l->state != LS_EMPTY)
+            ring_arc(cx, cy, r, 0, l->state == LS_STOPPED ? 128u : (uint32_t)l->pos * 128u / 127u + 1u, lc, 5, 0);
+        if (l->state == LS_EMPTY) str_cpy(b, "--", 3);
+        else { fmt_int(b, (int32_t)l->bars4 / 4); if (l->state == LS_RECORDING && l->set) { str_cpy(b + str_len(b), "/", 2); fmt_int(b + str_len(b), (int32_t)l->set); } }
+        cv_text_c(cx, ty_y(cy, tf), tf, b, l->state == LS_EMPTY ? T_DIM : T_TEXT, bg);
+        {   /* under it: what the key does (the focus: REC; the other: OCT- / OCT+ picks it) */
+            uint32_t id = focus ? KC_REC : i ? KC_OCTUP : KC_OCTDN;
+            const char *w = focus ? LOOP_KEY_WORD[l->key & 3u] : "PICK";
+            int32_t x = cx - kh_w(id, w) / 2;
+            cv_text_on(cv_keycap(x, 104 - KC_PH / 2, id, focus ? T_KEY : T_RAISE, focus ? T_INK : T_MID, bg) + KH_GAP,
+                       ty_y(104, lf), lf, w, focus ? T_TEXT : T_MID, bg);
+        }
+        cv_rrect(cx - 30, 117, 60, 3, 1, T_RAISE, bg);
+        if (l->hear)
+            cv_rrect(cx - 30, 117, (int32_t)l->hear * 60 / 127 < 3 ? 3 : (int32_t)l->hear * 60 / 127, 3, 1, c, T_RAISE);
+    }
 }
 
 /* ------------------------------------------------------ the meter --- */

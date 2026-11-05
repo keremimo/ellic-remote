@@ -138,6 +138,8 @@ int fm1u_expect(const char *what, int *got)
     else if (!strcmp(what, "chain_row")) v = chn.row;
     else if (!strcmp(what, "chain_chosen")) v = chn.chosen;
     else if (!strcmp(what, "folders")) v = smp.nf;
+    else if (!strcmp(what, "loop_focus")) v = loop_on() ? loopm.focus : -1;   /* (the LOOPER: LOOP) */
+    else if (!strncmp(what, "loop_state", 10)) v = loopm.loop[(what[10] - '0') & 1].state;
     else return 0;
     *got = v;
     return 1;

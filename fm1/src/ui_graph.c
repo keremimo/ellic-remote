@@ -16,6 +16,7 @@ static void graph_chain(uint16_t c);                 /* ui_chain.c: the chain's 
 static void graph_pads(uint16_t c);
 static void graph_list(uint16_t c);
 static void graph_meter(uint16_t c);
+static void graph_loop(uint16_t c);
 static uint8_t chain_first;                           /* (ui_chain.c: the first row shown) */
 
 /* Matches voice.c: attack is linear, decay and release are exponential
@@ -521,6 +522,8 @@ static uint32_t graph_sig(int play)
         h = (h ^ chn.gen) * 16777619u + chn.row * 7919u + chain_first * 31u;
     if (pg->graph == GR_LIST)
         h = (h ^ smp.gen) * 16777619u;
+    if (pg->graph == GR_LOOP)
+        h = (h ^ loopm.gen) * 16777619u;
     if (pg->graph == GR_WAVE)                        /* (a take's meter while told) */
         h ^= (meter_fresh() ? meter.level + 1u : 0u) * 131u;
     if (pg->graph == GR_ROLL && !grid_on()) {
@@ -827,6 +830,10 @@ static void draw_graph(void)
             case GR_LIST:
                 cv_oy = 0;
                 graph_list(c);
+                break;
+            case GR_LOOP:                                    /* the LOOPER's loops (ui_chain.c) */
+                cv_oy = 0;
+                graph_loop(c);
                 break;
             case GR_LFO:
                 graph_lfo(t, c);

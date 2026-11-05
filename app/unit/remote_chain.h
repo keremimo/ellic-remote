@@ -40,6 +40,20 @@ static struct {
     uint32_t gen;
 } smp __attribute__((section(".pool")));
 static struct { uint8_t track, level; uint32_t ms; } meter;   /* a take's source level, when last told */
+/* LOOP: the selected track's LOOPER, its two loops (PROTOCOL.md "LOOPER") */
+enum { LS_EMPTY, LS_RECORDING, LS_PLAYING, LS_OVERDUBBING, LS_STOPPED };   /* a loop's state */
+enum { LW_NONE, LW_RECORD, LW_OVERDUB, LW_PLAY, LW_STOP };                 /* .. the action waiting for its line */
+enum { LK_REC, LK_PLAY, LK_DUB, LK_ARMED };                                /* .. what its footswitch would do */
+typedef struct { uint8_t state, waiting, armed, key, bars4, set, layers, undone, pos, hear; } loop_t;
+static struct {
+    uint8_t track;                       /* whose (0xFF none; 127: the bar's LOOPER is elsewhere) */
+    uint8_t device;                      /* its index in CHAIN (127 none) */
+    uint8_t focus;                       /* the loop the bar's LOOP key plays */
+    loop_t loop[2];
+    uint32_t gen;
+} loopm;
 
 static int chain_on(void) { return chn.track == song.sel; }
+static int loop_on(void) { return loopm.track == song.sel && loopm.device < chn.n && chain_on(); }
+static uint32_t pat_off(void) { return loop_on() ? 2u : 0u; }   /* PATTERNS: the loops take the first two places */
 static const param_desc_t *chain_desc(uint32_t slot, int16_t **valp);   /* (remote_chain.c: the CHAIN page's knobs) */

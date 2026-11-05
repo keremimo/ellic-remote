@@ -146,7 +146,7 @@ static uint32_t told_synced = 0xFFFFFFFFu;
 static int told_sync(void)
 {
     static const uint8_t FAM[TF_N] = {FAM_HOME, FAM_EDIT, FAM_ENV, FAM_LFO, FAM_FX};
-    static const uint8_t GRAPH[5] = {GR_NONE, GR_WAVE, GR_ADSR, GR_PADS, GR_LIST};   /* (PAGES' views) */
+    static const uint8_t GRAPH[6] = {GR_NONE, GR_WAVE, GR_ADSR, GR_PADS, GR_LIST, GR_LOOP};   /* (PAGES' views) */
     uint32_t i, j, sig = told.gen * 2654435761u + song.sel * 40503u;
     if (!told_first)
         while (told_first < NPAGES && PAGES[told_first].scope != SC_TOLD)
@@ -159,7 +159,7 @@ static int told_sync(void)
         if (told_on() && i < told.n && told.page[i].fam != TF_HOME) {
             pg->title = told.page[i].title;
             pg->fam = FAM[told.page[i].fam % TF_N];
-            pg->graph = told.page[i].view < 5u ? GRAPH[told.page[i].view] : GR_NONE;
+            pg->graph = told.page[i].view < 6u ? GRAPH[told.page[i].view] : GR_NONE;
             for (j = 0; j < 4u; j++)
                 pg->id[j] = told.page[i].k[j];
         } else {

@@ -6,6 +6,7 @@
  * in their folders: LOAD's list) and METER (a take's source level). What the CHAIN page's controls do goes back as
  * requests (DEVICE ON, MOVE, REMOVE, ADD, REPLACE, CHOOSE; LOAD SAMPLE): Ellic Studio does it and tells CHAIN again. */
 static void chain_changed(void);                       /* (ui_chain.c: the page redrawn) */
+static uint32_t told_find(const char *label);           /* (below: a told value by its label) */
 static const char *const CHAIN_TAG[CK_N] = {"NOTE", "MIDI", "INST", "FX", "LOOP", "PLUG"};
 static const char *const CHAIN_KIND[CK_N] = {"Note effect", "MIDI effect", "Instrument", "Effect", "LOOPER", "Plug-in"};
 static const char *const CAT_GROUP[CG_N] = {"Note effects", "Instruments", "Effects", "Plug-ins"};
@@ -25,8 +26,17 @@ static const char *pool_text(char *pool, uint16_t *used, uint32_t cap, const cha
     return d;
 }
 
+static void loop_reset(void)
+{
+    loopm.track = 0xFFu;
+    loopm.device = 127;
+    loopm.focus = 0;
+    memset(loopm.loop, 0, sizeof loopm.loop);
+    loopm.gen++;
+}
 static void chain_reset(void)
 {
+    loop_reset();
     chn.track = 0xFFu;
     chn.chosen = 127;
     chn.n = 0;
@@ -145,6 +155,48 @@ static void smp_told(const uint8_t *b, const uint8_t *end)
 }
 static const char *smp_folder_name(uint32_t f) { return f < smp.nf ? smp.text + smp.folder[f] : ""; }
 static const char *smp_name(uint32_t f, uint32_t i) { return f < smp.nf && i < smp.n[f] ? smp.text + smp.name[f][i] : ""; }
+
+/* LOOP: track, device, the loop in focus, then 2 x (state, waiting, armed, key, bars x 4, bars set, layers, undone,
+ * position, hears) */
+static void loop_told(const uint8_t *b, const uint8_t *end)
+{
+    uint32_t i;
+    if (end - b < 23)
+        return;
+    loopm.track = b[0];
+    loopm.device = b[1];
+    loopm.focus = b[2] & 1u;
+    for (i = 0, b += 3; i < 2u; i++, b += 10) {
+        loop_t *l = &loopm.loop[i];
+        l->state = b[0] <= LS_STOPPED ? b[0] : LS_EMPTY;
+        l->waiting = b[1] <= LW_STOP ? b[1] : LW_NONE;
+        l->armed = b[2] & 1u;
+        l->key = b[3] & 3u;
+        l->bars4 = b[4];
+        l->set = b[5];
+        l->layers = b[6];
+        l->undone = b[7] & 1u;
+        l->pos = b[8] & 127u;
+        l->hear = b[9] & 127u;
+    }
+    loopm.gen++;
+    chain_changed();
+}
+/* the bar's LOOP key (REC on the LOOPER's pages), a loop's own footswitch (its key on PATTERNS); held: the loop stops */
+static void loop_key_req(uint32_t held) { link_request(RQ_LOOP_KEY, held, 0, 0); }
+static void loop_footswitch_req(uint32_t i, uint32_t held) { link_request(RQ_LOOP_FOOTSWITCH, song.sel, loopm.device * 2u + i, held); }
+/* OCT- / OCT+ on the LOOP page: the loop in focus (the told value LOOP, Ellic Studio's loop last touched) */
+static void loop_pick(uint32_t i)
+{
+    uint32_t k = told_find("LOOP");
+    if (k < TOLD_K) {
+        told.val[k] = (int16_t)(told.desc[k].min + (int32_t)i);
+        told.gen++;
+    }
+    loopm.focus = (uint8_t)(i & 1u);
+    loopm.gen++;
+    chain_changed();
+}
 
 /* METER: track, the source's level */
 static void meter_told(const uint8_t *b, const uint8_t *end)
