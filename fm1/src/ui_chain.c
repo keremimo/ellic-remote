@@ -131,7 +131,7 @@ static int chain_foot(void)
         ui.foot_sig = sig;
         pv.sound = 0;
         cv_begin(240, H_FOOT, T_BG);
-        cv_key_row(8, 232, (H_FOOT - KC_PH) / 2, kh, 3, loop_on() ? 7u : 0u, T_BG);
+        cv_key_row(8, 232, (H_FOOT - KC_PH) / 2, kh, 3, loop_on() ? 7u : 1u, T_BG);
         cv_blit(0, Y_FOOT);
         return 1;
     }
@@ -420,23 +420,29 @@ static int load_enter(void)
 }
 
 /* ----------------------------------------------------- the LOOPER --- */
-/* the page shown is the LOOPER's: its LOOP page (view 5) or another of its device's */
+/* the page shown is a LOOPER's: its LOOP page (view 5) or another of its device's, whatever LOOP last said (REC there
+ * is its LOOP key, never a take of the track) */
 static int loop_page(void)
 {
     const page_t *pg = cur_page();
-    if (ui.home || !loop_on())
+    uint32_t d;
+    if (ui.home)
         return 0;
     if (pg->graph == GR_LOOP)
         return 1;
-    return pg->scope == SC_TOLD && pg->fam == FAM_FX && chain_dev_of_page(ui.page) == loopm.device;
+    if (pg->scope != SC_TOLD || pg->fam != FAM_FX || !chain_on())
+        return 0;
+    d = chain_dev_of_page(ui.page);
+    return d < chn.n && chn.dev[d].kind == CK_LOOPER;
 }
 /* REC's light on the LOOPER's pages: the loop in focus, lit while it records or overdubs, blinking while it waits
- * for its line or is armed */
+ * for its line or is armed; dark while LOOP has told none of this track's */
 static void loop_led(uint32_t *lit, uint32_t *wait)
 {
     const loop_t *l = &loopm.loop[loopm.focus & 1u];
-    *lit = l->state == LS_RECORDING || l->state == LS_OVERDUBBING;
-    *wait = l->waiting != LW_NONE || l->armed;
+    int on = loop_on();
+    *lit = on && (l->state == LS_RECORDING || l->state == LS_OVERDUBBING);
+    *wait = on && (l->waiting != LW_NONE || l->armed);
 }
 /* a loop's word: EMPTY, ARMED, WAITING, REC 2/4, 4 BARS +1, DUB +1, STOPPED */
 static void loop_word(const loop_t *l, char *b)

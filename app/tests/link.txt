@@ -334,3 +334,27 @@ shot l_patterns_loops.png
 tapkey w0
 wait 100
 expect last_req 31
+# REC on a LOOPER's pages is the LOOP key whatever LOOP last said (track 127: none told of this track's), never a take
+# (rec: as told above, no track armed by it): on another of its pages (LOOPER 2, the set's third), on its LOOP page
+sysex F0 7D 4D 52 4D 00 00 24 02 01 03 04 00 21 7F 7F 7F 4C 4F 4F 50 45 52 20 32 00 F7
+sysex F0 7D 4D 52 55 7F 7F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F7
+wait 100
+sysex F0 7D 4D 52 05 01 00 04 02 00 F7
+wait 100
+text page LOOPER 2
+expect loop_focus -1
+tap REC
+wait 100
+expect last_req 30
+expect rec 512
+tap SAVE
+wait 100
+expect last_req 17
+sysex F0 7D 4D 52 05 01 00 04 01 00 F7
+wait 100
+text page LOOPER
+shot l_loop_elsewhere.png
+tap REC
+wait 100
+expect last_req 30
+expect rec 512

@@ -94,7 +94,7 @@ over) and PING (answered with STATE: "taken").
 | 52 | CATALOGUE | group (0 note effects, 1 instruments, 2 effects, 3 plug-ins), first v14, count, then count names (at most 128 a group): what a chain can take, in Ellic Studio's groups |
 | 53 | SAMPLES | folder (0.., Ellic Studio's order), its name (text: on the message with first 0, empty after), first v14, count, then count names (at most 128 a folder): Ellic Studio's samples (its factory kinds, Recordings, Loops) |
 | 54 | METER | track, the source's level (0..127): what a take would record, ~6 a second while a page shows it |
-| 55 | LOOP | track (127: the bar's LOOPER is not on the selected track's chain), device (its index in CHAIN; 127 none), the loop in focus (0 or 1: the one the bar's LOOP key plays), then 2 x (state: 0 empty, 1 recording, 2 playing, 3 overdubbing, 4 stopped; waiting: 0 none, 1 record, 2 overdub, 3 play, 4 stop (the action waiting for its line); armed (0/1: AUTO REC); what its footswitch would do: 0 REC, 1 PLAY, 2 DUB, 3 ARMED; bars x 4 (so far while it records, so 2/4 reads); the bars set (0 free); layers; undone (0/1); where it plays, 0..127 around; what it hears, 0..127): the selected track's LOOPER (below) |
+| 55 | LOOP | track (127: the selected track has no LOOPER on its chain), device (its index in CHAIN; 127 none), the loop in focus (0 or 1: the one the bar's LOOP key plays), then 2 x (state: 0 empty, 1 recording, 2 playing, 3 overdubbing, 4 stopped; waiting: 0 none, 1 record, 2 overdub, 3 play, 4 stop (the action waiting for its line); armed (0/1: AUTO REC); what its footswitch would do: 0 REC, 1 PLAY, 2 DUB, 3 ARMED; bars x 4 (so far while it records, so 2/4 reads); the bars set (0 free); layers; undone (0/1); where it plays, 0..127 around; what it hears, 0..127): the selected track's LOOPER (below) |
 
 A **step** is Melodee FM-1's `step_t` (`fm1/src/core.h`): 11 bytes (note 0..3, notes in use, time 0 NOTE 1 TIE 2 REST,
 flags (1 accent, 2 slide, ..), velocity, hits (bit a drum lane), accents, chance) sent as 13: two bytes of high bits
@@ -188,11 +188,13 @@ DESC) and their values are plain told values, so the pedal needs no message of i
 
 **LOOP** is the loops' state: told on claim and on track selection, whenever a loop's state, what it waits for, its
 arming or what its footswitch would do changes (so REC's light and the rings follow), and at each step while a page of
-the LOOPER's or PATTERNS shows the track (its loops' places around). Track 127 says the bar's LOOPER is elsewhere (a
-bus, the master, another track): the remote then plays none.
+the LOOPER's or PATTERNS shows the track (its loops' places around). It says the selected track's LOOPER: the bar's
+when that is on the track's chain, else the track's first, wherever the bar's is. Track 127 says the track has none (the
+bar's, if any, is elsewhere: a bus, the master, another track): the remote then plays none.
 
-On the remote: REC on any of the LOOPER's pages is the bar's LOOP key (its light the loop in focus: blinking while it
-waits for its line or is armed, lit while it records or overdubs); on **PATTERNS** a track with a LOOPER has its two
+On the remote: REC on any of a LOOPER's pages is the bar's LOOP key, whatever LOOP last said, and never a take of the
+track; Ellic Studio presses the selected track's LOOPER, which is the bar's from then (the light the loop in focus:
+blinking while it waits for its line or is armed, lit while it records or overdubs); on **PATTERNS** a track with a LOOPER has its two
 loops as the first two cells of the grid (L1, L2, rings in their state) and keys 1 and 2 are their footswitches (held:
 the loop stops, `LOOP FOOTSWITCH`), its patterns following on keys 3 up, as its loops are the first two tiles of its
 column on the iPad.
@@ -237,7 +239,7 @@ messages a frame (~60 frames a second).
 | 25 | DEVICE REPLACE (an instrument's Change) | track, device, group x 128 + index into CATALOGUE |
 | 26 | DEVICE CHOOSE: the row picked | track, device: Ellic Studio's chosen device, its knobs and its Sound screen follow |
 | 27 | LOAD SAMPLE (OCT+ on LOAD's row) | track, pad, folder x 128 + index into SAMPLES |
-| 30 | LOOP KEY: the bar's LOOP key (REC on the LOOPER's pages) | held (0 a tap, 1 held: the loop stops) |
+| 30 | LOOP KEY: the bar's LOOP key (REC on a LOOPER's pages), on the selected track's LOOPER when it has one | held (0 a tap, 1 held: the loop stops) |
 | 31 | LOOP FOOTSWITCH: a loop's own (keys 1 and 2 on PATTERNS) | track, device x 2 + loop, held (0 a tap, 1 held: the loop stops) |
 | 32..39 | (reserved) | — |
 

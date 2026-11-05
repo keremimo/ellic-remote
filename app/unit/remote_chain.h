@@ -46,7 +46,7 @@ enum { LW_NONE, LW_RECORD, LW_OVERDUB, LW_PLAY, LW_STOP };                 /* ..
 enum { LK_REC, LK_PLAY, LK_DUB, LK_ARMED };                                /* .. what its footswitch would do */
 typedef struct { uint8_t state, waiting, armed, key, bars4, set, layers, undone, pos, hear; } loop_t;
 static struct {
-    uint8_t track;                       /* whose (0xFF none; 127: the bar's LOOPER is elsewhere) */
+    uint8_t track;                       /* whose (0xFF none; 127: the selected track has none) */
     uint8_t device;                      /* its index in CHAIN (127 none) */
     uint8_t focus;                       /* the loop the bar's LOOP key plays */
     loop_t loop[2];
